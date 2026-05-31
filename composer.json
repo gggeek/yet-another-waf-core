@@ -1,0 +1,33 @@
+{
+    "name": "gggeek/yet-another-waf-core",
+    "description": "A php library for building web api firewalls",
+    "license": "GPL-2.0",
+    "keywords": [ "waf", "http", "firewall", "proxy","security" ],
+    "require": {
+        "php": "^8.2",
+        "ext-ctype": "*",
+        "ext-json": "*",
+        "laminas/laminas-httphandlerrunner": "^2.13.0",
+        "mtdowling/jmespath.php": "^2.8.0",
+        "nyholm/psr7": "^1.8.2",
+        "nyholm/psr7-server": "^1.1.0",
+        "psr/http-client": "^1.0.3",
+        "psr/http-message": "^2.0",
+        "psr/http-server-handler": "^1.0.2",
+        "psr/log": "^3.0.2",
+        "symfony/http-client": "^7.4.9"
+    },
+    "require-dev": {
+        "ext-curl": "*",
+        "ext-mbstring": "*",
+        "phpunit/phpunit": "^11",
+        "phpunit/phpunit-selenium": "*",
+        "yoast/phpunit-polyfills": "*"
+    },
+    "scripts": {
+        "setup-git-hooks": "if ln -s -f $(pwd)/.githooks/pre-push.sh .git/hooks/pre-push; then echo hooks installed; else echo fail; fi"
+    },
+    "autoload": {
+        "psr-4": {"YAWAF\\": "src/"}
+    }
+}
