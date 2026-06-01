@@ -26,14 +26,10 @@ class UrlMatcher extends BaseMatcher
 
     protected function normalizeMatchingRegexp(string $value): string
     {
+/// @todo... add support for allowing a path prefix, query strings and anchors
         $prefix = '';
-        // add '/vXX/' prefix support
-        if (!preg_match('#^/v[0-9.]+/#', $value)) {
-            $prefix = '/v[0-9.]+/';
-        }
-        // add support for query strings and anchors
         $postfix = '';
-        if (!str_contains($value, '?')) {
+        /*if (!str_contains($value, '?')) {
             $postfix .= '?';
         }
         if (!str_contains($value, '#')) {
@@ -41,7 +37,7 @@ class UrlMatcher extends BaseMatcher
         }
         if ($postfix !== '') {
             $postfix = "[$postfix].*";
-        }
+        }*/
 
         return '^' . $prefix . str_replace(['*'], ['.*'], preg_quote($value, $this->regexpDelimiter)) . $postfix . '$';
     }

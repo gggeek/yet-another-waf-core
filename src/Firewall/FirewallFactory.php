@@ -30,7 +30,7 @@ class FirewallFactory
         if (($configString = @file_get_contents($configurationFile)) === false) {
             throw new \Exception("Can not load configuration file '$configurationFile' " . error_get_last()['message']);
         }
-        return static::fromConfigString($configString);
+        return $this->fromConfigString($configString);
     }
 
     /**
@@ -49,7 +49,7 @@ class FirewallFactory
                 throw new \Exception("The configuration passed in is not a valid json array. Error: " . json_last_error_msg());
             }
         }
-        return static::fromConfiguration($config);
+        return $this->fromConfiguration($config);
     }
 
     /**

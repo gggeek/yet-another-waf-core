@@ -43,13 +43,11 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     }
 
     /**
-     * @param string $upstream
-     * @return mixed
      * @throws \Exception
      * @todo use more specific exceptions
-     * @todo add support for 'tcp:' upstreams
+     * @todo add support for 'http:' upstreams
      */
-    protected function setUpstream(string $upstream)
+    protected function setUpstream(string $upstream): void
     {
         $upstream = trim($upstream);
         if ($upstream === '') {
