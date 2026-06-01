@@ -48,8 +48,6 @@ class RuleFactory
             throw new \Exception("Bad configuration: the value for firewall rule should not have keys: " . implode(',', $badKeys));
         }
 
-/// @todo... validate types? (either here or in the constructor)
-
         $config = $config + [
             'req_match' => ['always' => true],
             'req_action' => Rule::ACTION_ALLOW,
@@ -58,13 +56,6 @@ class RuleFactory
             'resp_action' => Rule::ACTION_ALLOW,
             'resp_filters' => []
         ];
-
-/// @todo... only allow configs with no req_match to be accepted if
-///          1. req_action is not deny and
-///          2. either there are req_filters or resp_filters or resp_match+resp_action=deny
-
-/// @todo... throw if there are req_filters, resp_match, resp_action or resp_filters when req_action is deny
-/// @todo... throw if there are resp_filters when resp_action is deny
 
         $requestMatcherFactory = $this->getRequestMatcherFactory([]);
         $responseMatcherFactory = $this->getResponseMatcherFactory([]);

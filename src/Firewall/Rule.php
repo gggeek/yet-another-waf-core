@@ -40,7 +40,15 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
     public function __construct(RequestMatcherInterface $requestMatcher, array $requestFilters = [], string $requestAction = self::ACTION_ALLOW,
         ResponseMatcherInterface|null $responseMatcher = null, array $responseFilters = [], string $responseAction = self::ACTION_ALLOW)
     {
-/// @todo... add type-checking of filter arrays and validation of actions strings
+
+/// @todo... validate types
+/// @todo... only allow configs with no req_match to be accepted if
+///          1. req_action is not deny and
+///          2. either there are req_filters or resp_filters or resp_match+resp_action=deny
+
+/// @todo... throw if there are req_filters, resp_match, resp_action or resp_filters when req_action is deny
+/// @todo... throw if there are resp_filters when resp_action is deny
+
         $this->requestMatcher = $requestMatcher;
         $this->requestFilters = $requestFilters;
         $this->requestAction = $requestAction;

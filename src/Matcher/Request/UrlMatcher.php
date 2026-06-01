@@ -10,12 +10,19 @@ class UrlMatcher extends BaseMatcher
 {
     use RegExpListMatcherTrait;
 
+    protected bool $allowQueryString;
+    protected bool $allowAnchor;
+    protected string $prefixRegexp;
+
     /**
      * @param string|string[] $filter
      * @throws \Exception
      */
-    public function __construct(string|array $filter)
+    public function __construct(string|array $filter, bool $allowQueryString=false, bool $allowAnchor=false, $prefixRegexp='')
     {
+        $this->allowQueryString = $allowQueryString;
+        $this->allowAnchor = $allowAnchor;
+        $this->prefixRegexp = $prefixRegexp;
         $this->setMatchingValues($filter);
     }
 
@@ -26,19 +33,17 @@ class UrlMatcher extends BaseMatcher
 
     protected function normalizeMatchingRegexp(string $value): string
     {
-/// @todo... add support for allowing a path prefix, query strings and anchors
-        $prefix = '';
-        $postfix = '';
-        /*if (!str_contains($value, '?')) {
-            $postfix .= '?';
+        $postfixRegexp = '';
+        if ($this->allowQueryString && !str_contains($value, '?')) {
+            $postfixRegexp .= '?';
         }
-        if (!str_contains($value, '#')) {
-            $postfix .= '#';
+        if ($this->allowAnchor && !str_contains($value, '#')) {
+            $postfixRegexp .= '#';
         }
-        if ($postfix !== '') {
-            $postfix = "[$postfix].*";
-        }*/
+        if ($postfixRegexp !== '') {
+            $postfixRegexp = "[$postfixRegexp].*";
+        }
 
-        return '^' . $prefix . str_replace(['*'], ['.*'], preg_quote($value, $this->regexpDelimiter)) . $postfix . '$';
+        return '^' . $this->prefixRegexp . str_replace(['*'], ['.*'], preg_quote($value, $this->regexpDelimiter)) . $postfixRegexp . '$';
     }
 }

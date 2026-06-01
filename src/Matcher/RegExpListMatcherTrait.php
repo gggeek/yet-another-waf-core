@@ -5,6 +5,7 @@ namespace YAWAF\Core\Matcher;
 
 /**
  * Allows matching a string that must fall within an allowed list of regexes
+ * @todo allow to set (globally?) the regexpDelimiter
  */
 trait RegExpListMatcherTrait
 {
@@ -55,5 +56,10 @@ trait RegExpListMatcherTrait
     protected function wildcardToRegexp(string $value): string
     {
         return '^' . str_replace(['*'], ['.*'], preg_quote($value, $this->regexpDelimiter)) . '$';
+    }
+
+    public function getRegexpDelimiter(): string
+    {
+        return $this->regexpDelimiter;
     }
 }

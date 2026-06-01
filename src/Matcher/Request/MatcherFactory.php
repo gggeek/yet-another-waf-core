@@ -47,18 +47,28 @@ class MatcherFactory implements MatcherFactoryInterface
                 break;
             case 'http_header':
                 if (!is_array($values) || count($values) !== 1) {
-                    throw new \Exception("Invalid response matching configuration: '$type' should be followed with an object with 1 element only");
+                    throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");
                 }
                 $hv = reset($values);
                 $hn = array_key_first($values);
                 if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
-                    throw new \Exception("Invalid response matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
+                    throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
                 $matcher = new HeaderMatcher($hn, $hv);
                 break;
-                break;
             case 'http_method':
                 $matcher = new MethodMatcher($values);
+                break;
+            case 'query_string':
+                if (!is_array($values) || count($values) !== 1) {
+                    throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");
+                }
+                $qsv = reset($values);
+                $qsn = array_key_first($values);
+                if (!is_string($qsn) || !(is_string($qsv) || is_array($qsv))) {
+                    throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
+                }
+                $matcher = new QueryStringMatcher($qsn, $qsv);
                 break;
             case 'url':
                 $matcher = new UrlMatcher($values);
