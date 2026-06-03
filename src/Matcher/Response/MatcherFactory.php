@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 use YAWAF\Core\Matcher\MatcherFactoryInterface;
 use YAWAF\Core\Matcher\MatcherInterface;
 use YAWAF\Core\Matcher\Message\BodyMatcher;
+use YAWAF\Core\Matcher\Message\ContentTypeMatcher;
 use YAWAF\Core\Matcher\Message\HeaderMatcher;
 
 class MatcherFactory implements MatcherFactoryInterface
@@ -23,7 +24,7 @@ class MatcherFactory implements MatcherFactoryInterface
     public function supports(string $type): bool
     {
         $type = strtolower(preg_replace('/:[0-9]+$/', '', trim($type)));
-        return in_array($type, ['body', 'http_header']);
+        return in_array($type, ['body', 'content_type', 'http_header', 'status_code']);
     }
 
     /**
@@ -39,6 +40,9 @@ class MatcherFactory implements MatcherFactoryInterface
             case 'body':
                 $matcher = new BodyMatcher($values);
                 break;
+            case 'content_type':
+                $matcher = new ContentTypeMatcher($values);
+                break;
             case 'http_header':
                 if (!is_array($values) || count($values) !== 1) {
                     throw new \Exception("Invalid response matching configuration: '$type' should be followed with an object with 1 element only");
@@ -49,6 +53,9 @@ class MatcherFactory implements MatcherFactoryInterface
                     throw new \Exception("Invalid response matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
                 $matcher = new HeaderMatcher($hn, $hv);
+                break;
+            case 'status_code':
+                $matcher = new StatusCodeMatcher($values);
                 break;
             default:
                 throw new \Exception("Invalid response matching configuration: '$type' => " . var_export($values, true));

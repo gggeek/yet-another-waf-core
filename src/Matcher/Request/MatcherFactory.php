@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 use YAWAF\Core\Matcher\MatcherFactoryInterface;
 use YAWAF\Core\Matcher\MatcherInterface;
 use YAWAF\Core\Matcher\Message\BodyMatcher;
+use YAWAF\Core\Matcher\Message\ContentTypeMatcher;
 use YAWAF\Core\Matcher\Message\HeaderMatcher;
 
 class MatcherFactory implements MatcherFactoryInterface
@@ -23,13 +24,13 @@ class MatcherFactory implements MatcherFactoryInterface
     public function supports(string $type): bool
     {
         $type = strtolower(preg_replace('/:[0-9]+$/', '', trim($type)));
-        return in_array($type, ['body', 'client_address', 'client_port', 'http_header', 'http_method', 'url', 'user_agent']);
+        return in_array($type, ['body', 'client_address', 'client_port', 'content_type', 'http_header', 'http_method', 'query_string', 'url_path', 'user_agent']);
     }
 
     /**
      * @param string $type
      * @param mixed $values
-     * @return \YAWAF\Core\Matcher\MatcherInterface
+     * @return MatcherInterface
      * @throws \Exception
      */
     public function fromConfiguration(string $type, mixed $values): MatcherInterface
@@ -44,6 +45,9 @@ class MatcherFactory implements MatcherFactoryInterface
                 break;
             case 'client_port':
                 $matcher = new ClientPortMatcher($values);
+                break;
+            case 'content_type':
+                $matcher = new ContentTypeMatcher($values);
                 break;
             case 'http_header':
                 if (!is_array($values) || count($values) !== 1) {
@@ -70,11 +74,12 @@ class MatcherFactory implements MatcherFactoryInterface
                 }
                 $matcher = new QueryStringMatcher($qsn, $qsv);
                 break;
-            case 'url':
-                $matcher = new UrlMatcher($values);
+            case 'url_path':
+                $matcher = new PathMatcher($values);
                 break;
             case 'user_agent':
-                return new UserAgentMatcher($values);
+                $matcher = new UserAgentMatcher($values);
+                break;
             default:
                 throw new \Exception("Invalid request matching configuration: '$type' => " . var_export($values, true));
         }

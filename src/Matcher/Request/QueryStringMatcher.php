@@ -1,10 +1,8 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Matcher\Message;
+namespace YAWAF\Core\Matcher\Request;
 
-
-use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
 
@@ -12,7 +10,7 @@ class QueryStringMatcher extends BaseMatcher
 {
     use RegExpListMatcherTrait;
 
-    protected string $parameterName;
+    protected string $parameterNameRegexp;
 
     /**
      * @param string $parameterName
@@ -21,13 +19,19 @@ class QueryStringMatcher extends BaseMatcher
      */
     public function __construct(string $parameterName, string|array $filter)
     {
-        $this->parameterName = $parameterName;
+        $this->parameterNameRegexp = $this->regexpDelimiter . $this->wildcardToRegexp($parameterName) . $this->regexpDelimiter;
         $this->setMatchingValues($filter);
     }
 
     public function matchesRequest(ServerRequestInterface $request): bool
     {
-/// @todo...
+        $qs = $request->getUri()->getQuery();
+        parse_str($qs, $pieces);
+        foreach ($pieces as $name => $value) {
+            if (preg_match($this->parameterNameRegexp, $name)) {
+                return $this->matchesRegexp($value);
+            }
+        }
         return false;
     }
 

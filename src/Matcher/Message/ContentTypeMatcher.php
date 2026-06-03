@@ -1,11 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Matcher\Request;
+namespace YAWAF\Core\Matcher\Message;
 
-use YAWAF\Core\Matcher\Message\HeaderMatcher;
-
-class UserAgentMatcher extends HeaderMatcher
+class ContentTypeMatcher extends HeaderMatcher
 {
     /**
      * @param string|string[] $filter
@@ -13,6 +11,6 @@ class UserAgentMatcher extends HeaderMatcher
      */
     public function __construct(string|array $filter)
     {
-        parent::__construct('user-agent', $filter);
+        parent::__construct('content-type', $filter);
     }
 }
