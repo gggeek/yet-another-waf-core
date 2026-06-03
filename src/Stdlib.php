@@ -14,4 +14,14 @@ class Stdlib
         }
         return true;
     }
+
+    public static function array_of_array(array $array): bool
+    {
+        foreach ($array as $item) {
+            if (!is_array($item)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

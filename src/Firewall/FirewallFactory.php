@@ -5,13 +5,12 @@ namespace YAWAF\Core\Firewall;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
+use YAWAF\Core\Stdlib;
 
 class FirewallFactory
 {
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
-
-    protected array|null $fallbackConfiguration = null;
 
     public function __construct(LoggerInterface|null $logger = null)
     {
@@ -60,7 +59,7 @@ class FirewallFactory
     public function fromConfiguration(array $config): Firewall
     {
         if (!$config) {
-            $this->warning("Empty configuration passed in. The firewall will only let trough 'ping' API calls");
+            $this->warning("Empty configuration passed in. The firewall will block every request");
         }
 
         foreach($config as $ruleName => $ruleConfig) {
@@ -69,25 +68,14 @@ class FirewallFactory
             }
         }
 
-        if (array_key_exists('*', $config)) {
-            // add the fallback rules
-            $fallbackConfig = $config['*'] + $this->getFallbackConfiguration();
-            // make sure that this is the last rule
-            unset($config['*']);
-            $config['*'] = $fallbackConfig;
-
-        } else {
-            $config['*'] = $this->getFallbackConfiguration();
-        }
-
         $ruleFactory = new RuleFactory($this->logger);
         $rules = [];
+
+        /// @todo give warnings for config smells not caught by fromConfiguration
+
         foreach($config as $ruleName => $ruleSpec) {
             try {
                 $rule = $ruleFactory->fromConfiguration($ruleSpec);
-                //if ($logger && $rule instanceof LoggerAwareInterface) {
-                //    $rule->setLogger($logger);
-                //}
                 $rules[$ruleName] = $rule;
             } catch (\Exception $e) {
                 throw new \Exception("Error parsing firewall rule '$ruleName': " . $e->getMessage());
@@ -95,21 +83,5 @@ class FirewallFactory
         }
 
         return new Firewall($rules, $this->logger);
-    }
-
-    /**
-     * Returns the default filter applied to all clients - let ping and version requests through
-     * @return array
-     * @todo allow access to /events?
-     */
-    protected function getFallbackConfiguration(): array
-    {
-        return is_array($this->fallbackConfiguration) ? $this->fallbackConfiguration : Firewall::DefaultFallbackConfiguration;
-    }
-
-    public function setFallbackConfiguration(array $config): void
-    {
-        /// @todo validate the config now instead of relying on static::fromConfiguration
-        $this->fallbackConfiguration = $config;
     }
 }

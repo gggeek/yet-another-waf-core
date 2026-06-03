@@ -8,46 +8,67 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerAwareTrait;
 use YAWAF\Core\Filter\Request\RequestFilterInterface;
 use YAWAF\Core\Filter\Response\ResponseFilterInterface;
+use YAWAF\Core\Logger\PrivateLoggerTrait;
+use YAWAF\Core\Matcher\Logic\AlwaysMatcher;
 use YAWAF\Core\Matcher\Request\RequestMatcherInterface;
 use YAWAF\Core\Matcher\Response\ResponseMatcherInterface;
+use YAWAF\Core\Stdlib;
 
 class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseFilterInterface
 {
     const ACTION_ALLOW = 'allow';
     const ACTION_DENY = 'deny';
-    /// @todo (feature creep...)
+    /// @todo
     //const ACTION_RERUN = 'rerun';
 
     use LoggerAwareTrait;
+    use PrivateLoggerTrait;
 
     protected RequestMatcherInterface $requestMatcher;
     /** @var RequestFilterInterface[] */
     protected array $requestFilters = [];
-    protected string $requestAction = self::ACTION_ALLOW;
+    protected RuleAction $requestAction = RuleAction::Allow;
     protected null|ResponseMatcherInterface $responseMatcher;
     /** @var ResponseFilterInterface[] */
     protected array $responseFilters = [];
-    protected string $responseAction = self::ACTION_ALLOW;
+    protected RuleAction $responseAction = RuleAction::Allow;
 
     /**
      * @param RequestMatcherInterface[] $requestMatch
      * @param RequestFilterInterface[] $requestFilters
-     * @param string $requestAction
+     * @param RuleAction $requestAction
      * @param ResponseMatcherInterface[] $responseMatch
      * @param ResponseFilterInterface[] $responseFilters
-     * @param string $responseAction
+     * @param RuleAction $responseAction
+     * @throws \Exception
      */
-    public function __construct(RequestMatcherInterface $requestMatcher, array $requestFilters = [], string $requestAction = self::ACTION_ALLOW,
-        ResponseMatcherInterface|null $responseMatcher = null, array $responseFilters = [], string $responseAction = self::ACTION_ALLOW)
+    public function __construct(RequestMatcherInterface $requestMatcher, array $requestFilters = [], RuleAction $requestAction = RuleAction::Allow,
+        ResponseMatcherInterface|null $responseMatcher = null, array $responseFilters = [], RuleAction $responseAction = RuleAction::Allow)
     {
+        if (! Stdlib::array_of($requestFilters, RequestFilterInterface::class)) {
+            throw new \Exception('requestFilters argument to Rule constructor must be an array of RequestFilterInterface');
+        }
+        if (! Stdlib::array_of($responseFilters, ResponseFilterInterface::class)) {
+            throw new \Exception('responseFilters argument to Rule constructor must be an array of ResponseFilterInterface');
+        }
 
-/// @todo... validate types
-/// @todo... only allow configs with no req_match to be accepted if
-///          1. req_action is not deny and
-///          2. either there are req_filters or resp_filters or resp_match+resp_action=deny
+        if ($requestAction === RuleAction::Deny) {
+            if ($requestFilters || $responseFilters || $responseAction !== RuleAction::Allow) {
+                throw new \Exception('A firewall rule with Deny request action can never fulfill request filters, response filters or response actions');
+            }
+            if ($requestMatcher instanceof AlwaysMatcher) {
+                $this->warning('A firewall rule with Deny request action and matching all requests is a bad smell. The firewall default is to block all requests not matching any rule...');
+            }
 
-/// @todo... throw if there are req_filters, resp_match, resp_action or resp_filters when req_action is deny
-/// @todo... throw if there are resp_filters when resp_action is deny
+        }
+        if ($responseAction === RuleAction::Deny) {
+            if ($responseFilters) {
+                throw new \Exception('A firewall rule with Deny response action can never fulfill response filters');
+            }
+            if ($responseMatcher instanceof AlwaysMatcher) {
+                $this->warning('A firewall rule with Deny response action and matching all responses is a bad smell. Are you sure you did not mean to deny the request instead?');
+            }
+        }
 
         $this->requestMatcher = $requestMatcher;
         $this->requestFilters = $requestFilters;
@@ -73,7 +94,7 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
 
     public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface|false
     {
-        if ($this->requestAction === self::ACTION_DENY) {
+        if ($this->requestAction === RuleAction::Deny) {
             return false;
         }
 
@@ -94,7 +115,7 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
     public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface|false
     {
         if ($this->matchesResponse($response)) {
-            if ($this->responseAction === self::ACTION_DENY) {
+            if ($this->responseAction === RuleAction::Deny) {
                 return false;
             }
             foreach ($this->responseFilters as $responseFilter) {

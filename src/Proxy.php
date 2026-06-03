@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace YAWAF\Core;
 
-use Nyholm\Psr7\Response;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -17,7 +16,7 @@ use Symfony\Component\HttpClient\Psr18Client;
 use YAWAF\Core\Filter\Bidirectional\BidirectionalFilterInterface;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 
-class Proxy implements RequestHandlerInterface, LoggerAwareInterface
+abstract class Proxy implements RequestHandlerInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
@@ -127,28 +126,19 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
 
     /**
      * Generates an "access denied" response.
-     * Make sure to mimic what the upstream API returns by default for not-accepted requests - but give a specific error
-     * text (by default, we mimic the docker daemon: it says "page not found" for 404s)
+     * Make sure to mimic what the upstream API returns by default for not-accepted requests - but give a specific hint
+     * so that these responses can be told apart from the upstream's "access denied" ones.
      * @todo make it easy to set this response via configuration
-     * @return ResponseInterface
      */
-    protected function deniedResponse(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->debug("Access denied for request: " . $this->request2Log($request));
-        return new Response(404, ['content-type' => 'application/json'], json_encode(['message' => 'access denied']));
-    }
+    abstract protected function deniedResponse(ServerRequestInterface $request): ResponseInterface;
 
     /**
      * Generates an "error happened" response.
-     * Make sure to mimic correctly what the upstream API returns by default for failed requests
+     * Make sure to mimic correctly what the upstream API returns by default for failed requests - but give a specific hint
+     * so that these responses can be told apart from the upstream's "error happened" ones.
      * @todo make it easy to set this response via configuration
-     * @return ResponseInterface
      */
-    protected function errorResponse(ServerRequestInterface $request, \Exception|null $e = null): ResponseInterface
-    {
-        $this->warning('Upstream connection error for request: '  . $this->request2Log($request) . ' Error:' . $e->getMessage());
-        return new Response(500, ['content-type' => 'application/json'], json_encode(['message' => 'error ' . $e->getCode()]));
-    }
+    abstract protected function errorResponse(ServerRequestInterface $request, \Exception|null $e = null): ResponseInterface;
 
     // *** Logging ***
 

@@ -46,6 +46,10 @@ class Firewall implements BidirectionalFilterInterface, LoggerAwareInterface
         if (!Stdlib::array_of($rules, Rule::class)) {
             throw new \Exception("Array passed to " . static::class . " constructor must contain only instances of " . Rule::class);
         }
+        /// @todo remove this warning if implementing an `addRule` method
+        if (!$rules) {
+            $this->warning("Firewall was set up with no rules. This is most likely not what you wanted...");
+        }
         $this->rules = $rules;
     }
 

@@ -39,6 +39,7 @@ class RuleFactory
             throw new \Exception("Bad configuration: the value for firewall rule should not be an empty array");
         }
 
+        // Allow 'simplified' configuration
         if (!array_key_exists('req_match', $config) && !array_key_exists('req_action', $config) && !array_key_exists('req_filters', $config)
             && !array_key_exists('resp_match', $config) && !array_key_exists('resp_action', $config) && !array_key_exists('resp_filters', $config)) {
             $config = ['req_match' => $config];
@@ -50,23 +51,39 @@ class RuleFactory
 
         $config = $config + [
             'req_match' => ['always' => true],
-            'req_action' => Rule::ACTION_ALLOW,
             'req_filters' => [],
             'resp_match' => ['always' => true],
-            'resp_action' => Rule::ACTION_ALLOW,
             'resp_filters' => []
         ];
+
+        if (array_key_exists('req_action', $config)) {
+            $requestAction = RuleAction::tryFrom($config['req_action']);
+            if ($requestAction === null) {
+                throw new \Exception("Bad configuration: unsupported value for req_action '{$config['req_action']}'");
+            }
+        } else {
+            $requestAction = RuleAction::Allow;
+        }
+
+        if (array_key_exists('resp_action', $config)) {
+            $responseAction = RuleAction::tryFrom($config['resp_action']);
+            if ($requestAction === null) {
+                throw new \Exception("Bad configuration: unsupported value for resp_action '{$config['resp_action']}'");
+            }
+        } else {
+            $responseAction = RuleAction::Allow;
+        }
 
         $requestMatcherFactory = $this->getRequestMatcherFactory([]);
         $responseMatcherFactory = $this->getResponseMatcherFactory([]);
 
         $rule = new Rule(
             $this->parseMatcherConfiguration($config['req_match'], $requestMatcherFactory),
-            $this->parseFiltersConfiguration($config['req_filters']),
-            $config['req_action'],
+            $this->parseRequestFiltersConfiguration($config['req_filters']),
+            $requestAction,
             $this->parseMatcherConfiguration($config['resp_match'], $responseMatcherFactory),
-            $this->parseFiltersConfiguration($config['resp_filters']),
-            $config['resp_action']
+            $this->parseResponseFiltersConfiguration($config['resp_filters']),
+            $responseAction
         );
         if ($this->logger && $rule instanceof LoggerAwareInterface) {
             $rule->setLogger($this->logger);
@@ -94,11 +111,18 @@ class RuleFactory
         return $matcher;
     }
 
-    protected function parseFiltersConfiguration(array $ruleSpec): array
+    protected function parseRequestFiltersConfiguration(array $filtersSpec): array
     {
 /// @todo...
         return [];
     }
+
+    protected function parseResponseFiltersConfiguration(array $filtersSpec): array
+    {
+/// @todo...
+        return [];
+    }
+
 
     /**
      * @param array $config
@@ -125,7 +149,7 @@ class RuleFactory
     {
         if ($this->responseMatcherFactory === null) {
             $logicMatcherFactory = new LogicMatcherFactory($this->logger);
-            $this->responseMatcherFactory = new ChainFactory([new responseMatcherFactory($this->logger), $logicMatcherFactory]);
+            $this->responseMatcherFactory = new ChainFactory([new ResponseMatcherFactory($this->logger), $logicMatcherFactory]);
             // inception! ;-)
             $logicMatcherFactory->setMatcherFactory($this->responseMatcherFactory);
         }
