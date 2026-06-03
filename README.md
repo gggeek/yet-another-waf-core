@@ -5,6 +5,13 @@ A php library for building Web API Firewalls.
 Aka. small forward proxies for filtering the requests and responses of calls to HTTP APIs to only allow what you want
 to expose.
 
+Example usecases:
+- reducing the surface of an API, eg. only allowing READ requests or access to specific URLs
+- removing sensitive data from an API responses
+- rate limiting
+- adding/modifying/removing http headers
+- tracing of requests and responses
+
 ## Work In Progress
 
 See [Roadmap.md] for features not yet implemented
@@ -13,6 +20,7 @@ Not in scope (yet?):
 - a GUI
 - routing requests to multiple upstream backends
 - filtering request/response bodies other than Json
+- feature parity with Varnish or performance parity with HAProxy
 
 ## Installation
 
