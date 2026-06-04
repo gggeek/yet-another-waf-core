@@ -21,6 +21,9 @@
 
 - Proxy
   - test: support for `tcp:/` sockets, `http:/`, `https:/` upstreams
+  - allow users to specify preference for curl vs socket implementations
+    (note that native client does not support using the `bindto` option with unix sockets)
+  - add by default the http headers telling upstream about real-ip and real-protocol
   - tls & https support
   - review: can/should we drop `*FilterInterface` in favour of the PSR equivalent?
 
@@ -28,7 +31,5 @@
 
 - Loggers
   - improve message formatting: add context
-
-- add a testsuite
 
 - allow fine-tuning resource usage: timeouts, maxconn, etc... (here on in downstream projects?)

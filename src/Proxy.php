@@ -75,38 +75,52 @@ abstract class Proxy implements RequestHandlerInterface, LoggerAwareInterface
             $this->info("Proxying '$upstream' tcp upstream");
             return;
         }
-        throw new \Exception('Upstream not supported. Only unix sockets (paths starting with "/") and tcp sockets (urls starting with "tcp://") are');
+        if (str_starts_with($upstream, 'http://') || str_starts_with($upstream, 'https://')) {
+            $this->upstream = $upstream;
+            if (!$this->client) {
+                $this->client = new Psr18Client(HttpClient::create());
+            }
+            $this->info("Proxying '$upstream' http upstream");
+            return;
+        }
+        throw new \Exception('Upstream not supported. Only unix sockets (paths starting with "/"), tcp sockets (urls starting with "tcp://") and http urls are');
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $this->debug("Received request: " . $this->request2Log($request));
+        try {
+            $this->debug("Received request: " . $this->request2Log($request));
 
-        $filteredRequest = $this->filter->filterRequest($request);
-        if (!$filteredRequest) {
-            // Q: should we pass in $request or $filteredRequest?
-            return $this->deniedResponse($request);
+            $filteredRequest = $this->filter->filterRequest($request);
+            if (!$filteredRequest) {
+                // Q: should we pass in $request or $filteredRequest?
+                return $this->deniedResponse($request);
+            }
+            if ($filteredRequest instanceof ResponseInterface) {
+                return $filteredRequest;
+            }
+            $response = $this->forward($filteredRequest);
+            return $this->filter->filterResponse($response, $request);
+        } catch (\Throwable $e) {
+            $this->error("Exception thrown during processing of request: " . $e->getMessage());
+            return $this->errorResponse($request, $e);
         }
-        if ($filteredRequest instanceof ResponseInterface) {
-            return $filteredRequest;
-        }
-        $response = $this->forward($filteredRequest);
-        return $this->filter->filterResponse($response, $request);
     }
 
     /**
      * @param ServerRequestInterface $request
      * @return ResponseInterface
+     * @throws ClientExceptionInterface
      */
     protected function forward(ServerRequestInterface $request): ResponseInterface
     {
-        try {
+        //try {
             $client = $this->client;
             // avoid dns resolution, in case the http request we get uses a hostname
-/// @todo... we are only doing this for unix-socket upstreams, but we should probably do this as well for tcp/http ones
-            if (str_starts_with($this->upstream, '/') && method_exists($this->client, 'withOptions')) {
+            /// @todo... we are only doing this for unix-socket upstreams, but we should probably do this as well for tcp/http ones
+            if (/*str_starts_with($this->upstream, '/') &&*/ method_exists($this->client, 'withOptions')) {
                 $host = $request->getHeaderLine('Host');
-                /// @todo... match also IPV6 addresses (with optional port too!), see https://www.ietf.org/rfc/rfc2732.txt
+/// @todo... match also IPV6 addresses (with optional port too!), see https://www.ietf.org/rfc/rfc2732.txt
                 if (!preg_match('/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(?::[0-9]{1,5})?$/', $host)) {
                     $host = explode(':', $host, 2);
                     $host = $host[0];
@@ -119,9 +133,9 @@ abstract class Proxy implements RequestHandlerInterface, LoggerAwareInterface
             $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
                 $response->getReasonPhrase());
             return $response;
-        } catch(ClientExceptionInterface $e) {
-            return $this->errorResponse($request, $e);
-        }
+        //} catch(ClientExceptionInterface $e) {
+        //    return $this->errorResponse($request, $e);
+        //}
     }
 
     /**
@@ -138,7 +152,7 @@ abstract class Proxy implements RequestHandlerInterface, LoggerAwareInterface
      * so that these responses can be told apart from the upstream's "error happened" ones.
      * @todo make it easy to set this response via configuration
      */
-    abstract protected function errorResponse(ServerRequestInterface $request, \Exception|null $e = null): ResponseInterface;
+    abstract protected function errorResponse(ServerRequestInterface $request, \Throwable|null $e = null): ResponseInterface;
 
     // *** Logging ***
 

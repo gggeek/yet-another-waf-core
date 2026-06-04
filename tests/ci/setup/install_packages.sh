@@ -32,6 +32,6 @@ if [ "$UPDATE_INSTALLED" = true ]; then
 fi
 
 apt-get install -y \
-    git sudo unzip wget
+    curl git sudo unzip
 
 echo "Done installing base software packages"

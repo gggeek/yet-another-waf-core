@@ -6,5 +6,10 @@ declare(strict_types=1);
 /// @todo... allow usage of query string params or custom headers to force returning 40x, 50x responses, enabling/disabling http
 ///          features (compressed response bodies, keepalives, etc...)
 
-header('Content-type: application/json');
-echo json_encode(['result' => 'OK']);
+require __DIR__ . '/../../vendor/autoload.php';
+
+use YAWAF\Core\Tests\TestServer;
+
+$server = new TestServer();
+
+$server->respond();

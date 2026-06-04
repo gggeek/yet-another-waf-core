@@ -1,5 +1,5 @@
 # Uses env vars:
-# HTTPSERVER
+# HTTPSERVER (atm unused...)
 # TESTS_ROOT_DIR
 
 <IfModule http2_module>
@@ -13,15 +13,15 @@
     Protocols h2c http/1.1
   </IfModule>
 
-  DocumentRoot ${TESTS_ROOT_DIR}
+  DocumentRoot ${TESTS_ROOT_DIR}/tests/public
 
-  #ErrorLog "${TESTS_ROOT_DIR}/apache_error.log"
-  #CustomLog "${TESTS_ROOT_DIR}/apache_access.log" combined
+  #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
+  #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
 
   # Env vars used by the test code, which we get from the environment
-  SetEnv HTTPSERVER ${HTTPSERVER}
+  #SetEnv HTTPSERVER ${HTTPSERVER}
 
-  <Directory "${TESTS_ROOT_DIR}">
+  <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
     AllowOverride All
 
@@ -44,15 +44,15 @@
     Protocols h2 http/1.1
   </IfModule>
 
-  DocumentRoot ${TESTS_ROOT_DIR}
+  DocumentRoot ${TESTS_ROOT_DIR}/tests/public
 
-  #ErrorLog "${TESTS_ROOT_DIR}/apache_error.log"
-  #CustomLog "${TESTS_ROOT_DIR}/apache_access.log" combined
+  #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
+  #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
 
   # Env vars used by the test code, which we get from the environment
-  SetEnv HTTPSERVER ${HTTPSERVER}
+  #SetEnv HTTPSERVER ${HTTPSERVER}
 
-  <Directory "${TESTS_ROOT_DIR}">
+  <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
     AllowOverride All
 

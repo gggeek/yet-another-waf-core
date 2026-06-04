@@ -3,24 +3,33 @@
 <phpunit
     colors="true"
     cacheResult="false"
+    bootstrap="tests/bootstrap.php"
+    displayDetailsOnAllIssues="true"
 >
 
     <!-- code coverage reporting -->
-    <filter>
-        <whitelist>
-            <directory suffix=".php">./</directory>
-            <exclude>
-                <directory>./doc</directory>
-                <directory>./tests</directory>
-                <directory>./vendor</directory>
-            </exclude>
-        </whitelist>
-    </filter>
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+    </source>
 
     <testsuites>
         <testsuite name="YAWAF-Core Test Suite">
             <directory>./tests</directory>
         </testsuite>
     </testsuites>
+
+    <php>
+        <env name="HTTPSERVER_PROTOCOL" value="http"/>
+        <env name="HTTPSERVER_HOST" value="localhost"/>
+        <env name="HTTPSERVER_PORT" value=""/>
+        <env name="HTTPSERVER_PATH" value="/server.php"/>
+
+        <env name="PROXY_PROTOCOL" value="http"/>
+        <env name="PROXY_HOST" value="127.0.0.1"/>
+        <env name="PROXY_PORT" value="80"/>
+        <env name="PROXY_PATH" value="/proxy.php"/>
+    </php>
 
 </phpunit>

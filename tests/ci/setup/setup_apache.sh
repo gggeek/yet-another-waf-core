@@ -42,7 +42,7 @@ else
     # NB: TESTS_ROOT_DIR in /etc/apache2/envvars is reset by entrypoint.sh when running in a local container
     echo "export TESTS_ROOT_DIR=/var/www/html" >> /etc/apache2/envvars
 fi
-echo "export HTTPSERVER=localhost" >> /etc/apache2/envvars
+#echo "export HTTPSERVER=localhost" >> /etc/apache2/envvars
 
 service apache2 restart
 

@@ -18,8 +18,12 @@ export DEBIAN_FRONTEND=noninteractive
 
 configure_php_ini() {
     # note: these settings are not required for cli config
+    # shellcheck disable=SC2129
     echo "cgi.fix_pathinfo = 1" >> "${1}"
     echo "always_populate_raw_post_data = -1" >> "${1}"
+    # make all errors visible - this will make tests fail which hit a php warning server-side
+    echo "display_errors = 1" >> "${1}"
+    echo "error_level = -1" >> "${1}"
 
     # we disable xdebug for speed for both cli and web mode
     # @todo make this optional

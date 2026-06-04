@@ -85,6 +85,7 @@ sed -e "s?^listen.owner =.*?listen.owner = ${USERNAME}?g" --in-place "${FPMCONF}
 sed -e "s?^listen.group =.*?listen.group = ${USERNAME}?g" --in-place "${FPMCONF}"
 
 #  We make it optional to run composer at container start
+# @todo should we always run `composer dump-autoload` when not running `composer install`? Also, what about composer update?
 if [ "${INSTALL_ON_START}" = true ]; then
     /root/setup/setup_app.sh "${TESTS_ROOT_DIR}"
 fi

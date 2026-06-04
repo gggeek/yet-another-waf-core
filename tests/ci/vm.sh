@@ -148,15 +148,18 @@ start() {
                 --env "CONTAINER_USER_UID=$(id -u)" --env "CONTAINER_USER_GID=$(id -g)" \
                 --env "TESTS_ROOT_DIR=${CONTAINER_WORKSPACE_DIR}" \
                 --env "INSTALL_ON_START=${CONTAINER_INSTALL_ON_START}" \
-                --env HTTPSERVER=localhost \
-                --env HTTPURI=/tests/index.php?demo=server/server.php \
-                --env HTTPSSERVER=localhost \
-                --env HTTPSURI=/tests/index.php?demo=server/server.php \
-                --env PROXYSERVERHTTP=localhost:8080 \
-                --env PROXYSERVERHTTPS=localhost:8443 \
                 -v "${ROOT_DIR}:${CONTAINER_WORKSPACE_DIR}" \
                 -v "${ROOT_DIR}/tests/ci/var/composer_cache:/home/${CONTAINER_USER}/.cache/composer" \
                  "${IMAGE_NAME}"; then
+
+                # @todo... review these env vars
+                #--env HTTPSERVER=localhost \
+                #--env HTTPURI=/tests/index.php?demo=server/server.php \
+                #--env HTTPSSERVER=localhost \
+                #--env HTTPSURI=/tests/index.php?demo=server/server.php \
+                #--env PROXYSERVERHTTP=localhost:8080 \
+                #--env PROXYSERVERHTTPS=localhost:8443 \
+
                 wait_for_bootstrap
             fi
         fi
@@ -217,8 +220,8 @@ runtests() {
             --env "HTTPSVERIFYHOST=${HTTPSVERIFYHOST}" \
             --env "HTTPSIGNOREPEER=${HTTPSIGNOREPEER}" \
             --env "SSLVERSION=${SSLVERSION}" \
-            --env DEBUG="${DEBUG}" \
-            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit --display-incomplete --display-skipped $TESTSUITE"
+            --env "DEBUG=${DEBUG}" \
+            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit $TESTSUITE"
     } || {
         RETCODE="$?"
     }
@@ -245,8 +248,8 @@ runcoverage() {
             --env "HTTPSVERIFYHOST=${HTTPSVERIFYHOST}" \
             --env "HTTPSIGNOREPEER=${HTTPSIGNOREPEER}" \
             --env "SSLVERSION=${SSLVERSION}" \
-            --env DEBUG="${DEBUG}" \
-            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit --coverage-html tests/ci/var/coverage --display-incomplete --display-skipped tests"
+            --env "DEBUG=${DEBUG}" \
+            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit --coverage-html tests/ci/var/coverage tests"
         ${DOCKER_CMD} exec -t "${CONTAINER_NAME}" /root/setup/setup_code_coverage.sh disable
     } || {
        RETCODE="$?"
@@ -294,7 +297,7 @@ case "${ACTION}" in
             --env "HTTPSVERIFYHOST=${HTTPSVERIFYHOST}" \
             --env "HTTPSIGNOREPEER=${HTTPSIGNOREPEER}" \
             --env "SSLVERSION=${SSLVERSION}" \
-            --env DEBUG="${DEBUG}" \
+            --env "DEBUG=${DEBUG}" \
             "${CONTAINER_NAME}" su "${CONTAINER_USER}"
         ;;
 
@@ -305,7 +308,7 @@ case "${ACTION}" in
             --env "HTTPSVERIFYHOST=${HTTPSVERIFYHOST}" \
             --env "HTTPSIGNOREPEER=${HTTPSIGNOREPEER}" \
             --env "SSLVERSION=${SSLVERSION}" \
-            --env DEBUG="${DEBUG}" \
+            --env "DEBUG=${DEBUG}" \
             "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c '"$0" "$@"' -- "$@"
             # @todo which one is better? test with a command with spaces in options values, and with a composite command such as cd here && do that
             #"${CONTAINER_NAME}" sudo -iu "${CONTAINER_USER}" -- "$@"
