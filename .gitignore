@@ -1,4 +1,5 @@
 /.idea
+/tests/ci/var
 /vendor
 /var
 /composer.lock
