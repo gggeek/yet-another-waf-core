@@ -2,27 +2,27 @@
 
 namespace YAWAF\Core\Tests;
 
-use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
 /// @todo... bring back support for collecting code coverage of code executed via http calls
 abstract class ProxyTestCase extends TestCase
 {
-    /** @var string */
-    protected $testId;
+    protected string|null $testId;
     /** @var boolean */
     //protected $collectCodeCoverageInformation;
     /** @var string */
     //protected $coverageScriptUrl;
-    /** @var string */
-    protected static $randId;
+    protected static string|null $randId;
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
-        // Set up a database connection or other fixture which needs to be available.
+        // Set up a database connection or other fixture which needs to be available...
+
         self::$randId = uniqid();
         file_put_contents(sys_get_temp_dir() . '/phpunit_rand_id.txt', self::$randId);
     }
@@ -32,18 +32,28 @@ abstract class ProxyTestCase extends TestCase
         if (is_file(sys_get_temp_dir() . '/phpunit_rand_id.txt')) {
             unlink(sys_get_temp_dir() . '/phpunit_rand_id.txt');
         }
+        self::$randId =null;
 
         parent::tearDownAfterClass();
-        self::$randId =null;
     }
 
     public function setUp(): void
     {
         parent::setUp();
 
+        // make the test name a nice filename
+        $this->testId = str_replace([' ', '#'], '_', $this->nameWithDataSet());
+
         /// @todo...
         // assumes HTTPURI to be in the form /server.php?etc...
         //$this->coverageScriptUrl = $this->getServerBaseUri() . preg_replace('|/server\.php(\?.*)?|', '/phpunit_coverage.php', $this->getServerPath());
+    }
+
+    public function tearDown(): void
+    {
+        $this->testId = null;
+
+        parent::tearDown();
     }
 
     protected function request(array $options, string $method = 'GET', string $path = ''): ResponseInterface
@@ -52,15 +62,19 @@ abstract class ProxyTestCase extends TestCase
         return $client->request($method, trim($path) === '' ? $this->getProxyPath() : $path, $options);
     }
 
-    protected function getClient()
+    protected function getClient(): HttpClientInterface
     {
-/// @todo... allow the user to force usage of proxy in "transparent" mode - ie. as a reverse proxy, as well
-///       as asking for a per-test log and trace file, see YAWAF_LOG_FILE, YAWAF_TRACE_FILE
+/// @todo... allow the user to force usage of proxy in either "forward" or "reverse" mode - check the format supported for `proxy`
         $options = [
             'base_uri' => $this->getServerBaseUri(),
-            'query' => [],
-/// @todo... check the format supported for this
             //'proxy' => $this->getProxyBaseUri() . $this->getProxyPath(),
+            'query' => [
+                'YAWAF_LOG_FILE' => $this->testId . '.log',
+                'YAWAF_TEST_FILE' => $this->testId . '.trace',
+            ],
+            'headers' => [
+                'Cookie' => 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId,
+            ],
         ];
 
         /// @todo allow the user to force usage of native vs curl client

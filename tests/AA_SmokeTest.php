@@ -18,8 +18,7 @@ class AA_SmokeTest extends ProxyTestCase
 
     public function testProxy()
     {
-        $client = HttpClient::create(['base_uri' => $this->getProxyBaseUri()]);
-        $response = $client->request('GET', $this->getProxyPath());
+        $response = $this->request([]);
         // Without any config, the firewall should return a DENY response
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode());

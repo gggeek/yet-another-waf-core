@@ -1,9 +1,9 @@
-ARG UBUNTU_VERSION=resolute
+ARG UBUNTU_VERSION=noble
 
 FROM ubuntu:${UBUNTU_VERSION}
 
-ARG PHP_VERSION=default
-ARG UBUNTU_VERSION=resolute
+ARG PHP_VERSION=8.2
+ARG UBUNTU_VERSION=noble
 
 COPY --chmod=755 setup/*.sh /root/setup/
 COPY config/* /root/config/

@@ -8,10 +8,10 @@ set -e
 ACTION="${1}"
 
 # Valid values: 'default', 5.4 .. 5.6, 7.0 .. 7.4, 8.0 .. 8.5
-export PHP_VERSION=${PHP_VERSION:-default}
+export PHP_VERSION=${PHP_VERSION:-8.2}
 # Valid values: precise (12), trusty (14), xenial (16), bionic (18), focal (20), jammy (22), noble (24), resolute (26)
 # For end of support dates, see: https://wiki.ubuntu.com/Releases
-export UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}
+export UBUNTU_VERSION=${UBUNTU_VERSION:-noble}
 
 # @todo... drop these 3 env vars?
 HTTPSVERIFYHOST="${HTTPSVERIFYHOST:-0}"
@@ -22,7 +22,7 @@ DEBUG="${DEBUG:-0}"
 HOST_HTTPPORT="${HOST_HTTPPORT:-80}"
 HOST_HTTPSPORT="${HOST_HTTPSPORT:-443}"
 HOST_PROXYPORT_HTTP="${HOST_PROXYPORT_HTTP:-8080}"
-HOST_PROXYPORT_HTTPS="${HOST_PROXYPORT_HTTPS:-8080}"
+HOST_PROXYPORT_HTTPS="${HOST_PROXYPORT_HTTPS:-8443}"
 
 CONTAINER_INSTALL_ON_START="${CONTAINER_INSTALL_ON_START:-false}"
 CONTAINER_NAME_PREFIX="${CONTAINER_NAME_PREFIX:-yawaf}"
@@ -64,8 +64,8 @@ Options:
 
 Environment variables:
   used by the 'build' action
-    PHP_VERSION       default value: 'default', ie. the stock php version from the Ubuntu version in use. Other possible values: 8.2 .. 8.5
-    UBUNTU_VERSION    default value: resolute. Other possible values: xenial, bionic, focal, jammy, noble
+    PHP_VERSION       default value: '8.2'. Use 'default' for the stock php version from the Ubuntu version in use. Other possible values: 8.2 .. 8.5
+    UBUNTU_VERSION    default value: noble. Other possible values: xenial, bionic, focal, jammy, resolute
 "
 }
 

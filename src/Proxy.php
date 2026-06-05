@@ -119,7 +119,10 @@ abstract class Proxy implements RequestHandlerInterface, LoggerAwareInterface
             // avoid dns resolution, in case the http request we get uses a hostname
             /// @todo... we are only doing this for unix-socket upstreams, but we should probably do this as well for tcp/http ones
             if (/*str_starts_with($this->upstream, '/') &&*/ method_exists($this->client, 'withOptions')) {
+//var_dump($request->getUri());
+//var_dump($request->getRequestTarget());
                 $host = $request->getHeaderLine('Host');
+//var_dump($host);
 /// @todo... match also IPV6 addresses (with optional port too!), see https://www.ietf.org/rfc/rfc2732.txt
                 if (!preg_match('/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(?::[0-9]{1,5})?$/', $host)) {
                     $host = explode(':', $host, 2);
