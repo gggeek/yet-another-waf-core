@@ -5,7 +5,7 @@ A php library for building Web API Firewalls.
 Aka. small forward proxies for filtering the requests and responses of calls to HTTP APIs to only allow what you want
 to expose.
 
-Example usecases:
+Example use-cases:
 - reducing the surface of an API, eg. only allowing READ requests or access to specific URLs
 - removing sensitive data from an API responses
 - rate limiting
@@ -52,3 +52,15 @@ Which translates into:
 ## FAQ
 
 ...
+
+## License
+
+Use of this software is subject to the terms in the [LICENSE](LICENSE) file
+
+
+[![License](https://poser.pugx.org/gggeek/yet-another-waf-core/license)](https://packagist.org/packages/gggeek/yet-another-waf-core)
+[![Latest Stable Version](https://poser.pugx.org/gggeek/yet-another-waf-core/v/stable)](https://packagist.org/packages/gggeek/yet-another-waf-core)
+[![Total Downloads](https://poser.pugx.org/gggeek/yet-another-waf-core/downloads)](https://packagist.org/packages/gggeek/yet-another-waf-core)
+
+[![Build Status](https://github.com/gggeek/yet-another-waf-core/actions/workflows/ci.yaml/badge.svg)](https://github.com/gggeek/yet-another-waf-core/actions/workflows/ci.yaml)
+[![Code Coverage](https://codecov.io/gh/gggeek/yet-another-waf-core/branch/master/graph/badge.svg)](https://app.codecov.io/gh/gggeek/yet-another-waf-core)
