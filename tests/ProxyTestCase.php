@@ -70,7 +70,7 @@ abstract class ProxyTestCase extends TestCase
             //'proxy' => $this->getProxyBaseUri() . $this->getProxyPath(),
             'query' => [
                 'YAWAF_LOG_FILE' => $this->testId . '.log',
-                'YAWAF_TEST_FILE' => $this->testId . '.trace',
+                'YAWAF_TRACE_FILE' => $this->testId . '.trace',
             ],
             'headers' => [
                 'Cookie' => 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId,
@@ -144,5 +144,16 @@ abstract class ProxyTestCase extends TestCase
         }
 
         return $url;
+    }
+
+    protected function dumpResponse(ResponseInterface $response): string
+    {
+        /// @todo can we improve the fidelity of the response dump?
+        $out = "Received response: HTTP/x.y " . $response->getStatusCode() . " ...\n";
+        foreach ($response->getHeaders(false) as $name => $values) {
+            $out .= ucfirst($name) . ': ' . implode(',', $values) . "\n";
+        }
+        $out .= "\n" . $response->getContent(false);
+        return $out;
     }
 }

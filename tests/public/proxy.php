@@ -18,6 +18,9 @@ use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Tests\TestProxy;
 
+ini_set('error_reporting', E_ALL);
+ini_set('display_errors', true);
+
 ProxyPage::preflight();
 ProxyPage::proxyRequest();
 ProxyPage::postflight();
@@ -35,7 +38,7 @@ class ProxyPage
         $randId = $_COOKIE['PHPUNIT_RANDOM_TEST_ID'] ?? '';
         $fileId = file_exists($idFile) ? file_get_contents($idFile) : '';
         if ($randId == '' || $fileId == '' || $fileId !== $randId) {
-            /// @todo add an access-denied header, 401 or 403?
+            /// @todo add a 403 access-denied / 400 bad-request header?
             //header('HTTP/1.1 500 Internal Server Error');
             die('This url can only be accessed by the test suite');
         }
@@ -53,6 +56,7 @@ class ProxyPage
                 chmod($GLOBALS['PHPUNIT_COVERAGE_DATA_DIRECTORY'], 0777);
             }
 
+/// @todo vendorize this
             include_once __DIR__ . '/../../vendor/phpunit/phpunit-selenium/PHPUnit/Extensions/SeleniumCommon/prepend.php';
 
             self::$phpunitSeleniumTestId = $_COOKIE['PHPUNIT_SELENIUM_TEST_ID'];
@@ -64,6 +68,7 @@ class ProxyPage
     public static function postflight(): void
     {
         if (self::$phpunitSeleniumTestId !== null) {
+/// @todo vendorize this
             include_once __DIR__ . '/../../vendor/phpunit/phpunit-selenium/PHPUnit/Extensions/SeleniumCommon/append.php';
         }
     }
@@ -76,18 +81,23 @@ class ProxyPage
         try {
             // set up a logger whose output can be inspected by the caller
             if (array_key_exists('YAWAF_LOG_FILE', $_GET) && trim($_GET['YAWAF_LOG_FILE']) !== '') {
+                $logFileName = sys_get_temp_dir() . '/' . basename($_GET['YAWAF_LOG_FILE']);
+                /// @todo should we allow the logs + traces to be stored in a custom dir, making it easy to map it to the host filesystem?
                 //if (!self::fileIsInTestsDir('ci/var/' . $_GET['YAWAF_LOG_FILE'])) {
                 //    throw new \Exception("Can not use trace file defined in GET var YAWAF_LOG_FILE: outside tests root");
                 //}
-                $logger = new FileLogger(sys_get_temp_dir() . '/' . basename($_GET['YAWAF_LOG_FILE']), LogLevel::DEBUG);
+                if (file_exists($logFileName)) {
+                    file_put_contents($logFileName, '');
+                }
+                $logger = new FileLogger($logFileName, LogLevel::DEBUG);
             }
 
-/// @todo... allow this to be set via a GET parameter
+/// @todo... allow this to be set via a GET parameter, to test http:// vs tcp:// vs unix://
             $upstream = TestProxy::DEFAULT_UPSTREAM;
 
             $firewallFactory = new FirewallFactory($logger);
             $config = array_key_exists('YAWAF_CONFIG', $_GET) ? trim($_GET['YAWAF_CONFIG']) : '';
-            $configFile = array_key_exists('YAWAF_CONFIG_FILE', $_SERVER) ? trim($_SERVER['YAWAF_CONFIG_FILE']) : '';
+            $configFile = array_key_exists('YAWAF_CONFIG_FILE', $_GET) ? trim($_GET['YAWAF_CONFIG_FILE']) : '';
             if ($configFile !== '') {
                 if ($config !== '') {
                     throw new \Exception("Can not use at the same time GET vars YAWAF_CONFIG and YAWAF_CONFIG_FILE");
@@ -95,8 +105,11 @@ class ProxyPage
                 if (!self::fileIsInTestsDir('configs/' . $configFile)) {
                     throw new \Exception("Can not use config file defined in GET var YAWAF_CONFIG_FILE: outside tests root");
                 }
-                $firewall = $firewallFactory->fromConfigFile('configs/' . basename($configFile));
+                $firewall = $firewallFactory->fromConfigFile(__DIR__ . '/../configs/' . $configFile);
             } else {
+                if ($config !== '') {
+                    $logger->info('Loading firewall configuration from string received as query string arg YAWAF_CONFIG');
+                }
                 $firewall = $firewallFactory->fromConfigString($config);
             }
 
@@ -104,7 +117,11 @@ class ProxyPage
                 //if (!self::fileIsInTestsDir('ci/var/' . $_GET['YAWAF_TRACE_FILE'])) {
                 //    throw new \Exception("Can not use trace file defined in GET var YAWAF_TRACE_FILE: outside tests root");
                 //}
-                $firewall = new FilterChain([new Tracer(sys_get_temp_dir() . '/' . basename($_GET['YAWAF_TRACE_FILE'])), $firewall]);
+                $traceFileName = sys_get_temp_dir() . '/' . basename($_GET['YAWAF_TRACE_FILE']);
+                if (file_exists($traceFileName)) {
+                    file_put_contents($traceFileName, '');
+                }
+                $firewall = new FilterChain([new Tracer($traceFileName), $firewall]);
             }
 
             // clean up the data we forward to the server
@@ -142,6 +159,6 @@ class ProxyPage
 
     protected static function fileIsInTestsDir($fileName): bool
     {
-        return str_starts_with(realpath(__DIR__ . '/..'), realpath(__DIR__ . '/../' . $fileName));
+        return str_starts_with(realpath(__DIR__ . '/../' . $fileName), realpath(__DIR__ . '/..'));
     }
 }

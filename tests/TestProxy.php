@@ -11,8 +11,7 @@ use YAWAF\Core\Proxy;
 class TestProxy extends Proxy
 {
     const DEFAULT_UPSTREAM = 'http://127.0.0.1/server.php';
-    /// @todo... use 401 Unauthorized or 403 Forbidden?
-    const ACCESS_DENIED_STATUS_CODE = 404;
+    const ACCESS_DENIED_STATUS_CODE = 403;
     const ACCESS_DENIED_RESPONSE = ['result' => 'Access denied'];
     const ERROR_STATUS_CODE = 500;
     const ERROR_RESPONSE = ['result' => 'Error'];

@@ -18,6 +18,7 @@ class FileLogger extends AbstractLogger
 
     use ConditionalLoggerTrait;
 
+    /// @todo (feature creep) allow log file creation+truncation on logger creation
     public function __construct(string $fileName, string $level = LogLevel::WARNING /*, string $format=''*/)
     {
         $this->fileName = $fileName;

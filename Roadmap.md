@@ -17,6 +17,7 @@
   - create a flow diagram with req/resp matching and filtering
   - clean up the `*MatcherInterface` mess: drop MatcherInterface; move Logic/* matchers to MessageInterface?
   - allow 'restart' as action for (Request) rules
+  - allow failures of the MethodMatcher to generate a 501 response instead of the default 403?
   - can we make filters add "tags" to requests/responses?
 
 - Proxy
