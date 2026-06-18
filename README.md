@@ -14,7 +14,7 @@ Example use-cases:
 
 ## Work In Progress
 
-See [Roadmap.md] for features not yet implemented
+See the [Roadmap](Roadmap.md) for features not yet implemented
 
 Not in scope (yet?):
 - a GUI
