@@ -146,12 +146,12 @@ abstract class ProxyTestCase extends TestCase
         return $url;
     }
 
-    protected function dumpResponse(ResponseInterface $response): string
+    protected function response2Log(ResponseInterface $response): string
     {
         /// @todo can we improve the fidelity of the response dump?
-        $out = "Received response: HTTP/x.y " . $response->getStatusCode() . " ...\n";
+        $out = 'HTTP/x.y ' . $response->getStatusCode() . " ...\n";
         foreach ($response->getHeaders(false) as $name => $values) {
-            $out .= ucfirst($name) . ': ' . implode(',', $values) . "\n";
+            $out .= ucwords($name, " \t\r\n\f\v-") . ': ' . implode(',', $values) . "\n";
         }
         $out .= "\n" . $response->getContent(false);
         return $out;

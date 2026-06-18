@@ -13,7 +13,8 @@ class AB_MatchingTest extends ProxyTestCase
     public function testInvalidRules($configAsString)
     {
         $response = $this->request(['query' => ['YAWAF_CONFIG' => $configAsString]]);
-        $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode());
+        $failureMessage = 'Received response: ' . $this->response2Log($response);
+        $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
         $this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
     }
 
@@ -45,7 +46,7 @@ class AB_MatchingTest extends ProxyTestCase
     public function testPassingRules(string $config)
     {
         $response = $this->request(['query' => ['YAWAF_CONFIG_FILE' => 'matchers/passing/' . $config]]);
-        $failureMessage = $this->dumpResponse($response);
+        $failureMessage = 'Received response: ' . $this->response2Log($response);
         $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
         //$this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
     }
@@ -66,7 +67,7 @@ class AB_MatchingTest extends ProxyTestCase
     public function testFailingRules(string $config)
     {
         $response = $this->request(['query' => ['YAWAF_CONFIG_FILE' => 'matchers/failing/' . $config]]);
-        $failureMessage = $this->dumpResponse($response);
+        $failureMessage = 'Received response: ' . $this->response2Log($response);
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
         $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
     }
