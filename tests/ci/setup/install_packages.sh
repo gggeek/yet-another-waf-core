@@ -31,6 +31,7 @@ if [ "$UPDATE_INSTALLED" = true ]; then
     apt-get upgrade -y
 fi
 
+# @todo is curl required?
 apt-get install -y \
     curl git sudo unzip
 

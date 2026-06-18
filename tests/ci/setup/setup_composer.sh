@@ -11,25 +11,38 @@ fi
 
 ### Code below taken from https://getcomposer.org/doc/faqs/how-to-install-composer-programmatically.md
 
-EXPECTED_SIGNATURE="$(curl https://composer.github.io/installer.sig)"
-php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-ACTUAL_SIGNATURE="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
 
-if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]
+if [ -z "$EXPECTED_CHECKSUM" ]
 then
-    >&2 echo 'ERROR: Invalid installer signature'
+    >&2 echo 'ERROR: Failed downloading composer installer checksum'
+    exit 1
+fi
+
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+
+if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]
+then
+    >&2 echo 'ERROR: Invalid installer checksum'
     rm composer-setup.php
     exit 1
 fi
 
-php composer-setup.php --quiet --install-dir=/usr/local/bin
+
+php composer-setup.php --quiet
 RESULT=$?
 rm composer-setup.php
 
 ###
 
-if [ -f /usr/local/bin/composer.phar ] && [ "$RESULT" = 0 ]; then
-    mv /usr/local/bin/composer.phar /usr/local/bin/composer && chmod 755 /usr/local/bin/composer
+if [ "$RESULT" = 0 ]; then
+    if [ -f ./composer.phar ]; then
+        mv ./composer.phar /usr/local/bin/composer && chmod 755 /usr/local/bin/composer
+    fi
+    if [ -f /usr/local/bin/composer.phar ]; then
+        mv /usr/local/bin/composer.phar /usr/local/bin/composer && chmod 755 /usr/local/bin/composer
+    fi
 fi
 
 echo "Done installing Composer"

@@ -147,4 +147,7 @@ if [ -n "$(dpkg --list | grep apache)" ]; then
     service apache2 restart
 fi
 
+php -v
+echo
+
 echo "Done installing PHP"
