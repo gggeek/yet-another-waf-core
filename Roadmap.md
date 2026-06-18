@@ -32,4 +32,8 @@
 - Loggers
   - improve message formatting: add context
 
+- Testing
+  - move from apache to nginx, as it can listen on unix sockets
+  - bring back code coverage injection of code executed via http requests, without installing phpunit-selenium
+
 - allow fine-tuning resource usage: timeouts, maxconn, etc... (here on in downstream projects?)

@@ -1,17 +1,17 @@
 #!/bin/sh
 
 # @todo rename: this is not based on a vm. Also, the 'ci' folder should really be called 'env' or 'testenv'...
-# @todo support getting the various settings as cli options as well as via env vars (use getopts)
+# @todo support getting the various settings as cli options as well as / instead of via env vars? (use getopts)
 
 set -e
 
 ACTION="${1}"
 
-# Valid values: 'default', 5.4 .. 5.6, 7.0 .. 7.4, 8.0 .. 8.5
-export PHP_VERSION=${PHP_VERSION:-8.2}
+# Valid values: 'default', 5.4 .. 5.6, 7.0 .. 7.4, 8.0 .. 8.5 (but the php app requires php 8.2 and up!)
+export PHP_VERSION=${PHP_VERSION:-default}
 # Valid values: precise (12), trusty (14), xenial (16), bionic (18), focal (20), jammy (22), noble (24), resolute (26)
 # For end of support dates, see: https://wiki.ubuntu.com/Releases
-export UBUNTU_VERSION=${UBUNTU_VERSION:-noble}
+export UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}
 
 # @todo... drop these 3 env vars?
 HTTPSVERIFYHOST="${HTTPSVERIFYHOST:-0}"
@@ -64,8 +64,8 @@ Options:
 
 Environment variables:
   used by the 'build' action
-    PHP_VERSION       default value: '8.2'. Use 'default' for the stock php version from the Ubuntu version in use. Other possible values: 8.2 .. 8.5
-    UBUNTU_VERSION    default value: noble. Other possible values: xenial, bionic, focal, jammy, resolute
+    PHP_VERSION       default value: 'default'. Use 'default' for the stock php version from the Ubuntu version in use. Other possible values: 8.2 .. 8.5
+    UBUNTU_VERSION    default value: resolut. Other possible values: xenial, bionic, focal, jammy, noble
 "
 }
 
@@ -83,6 +83,7 @@ check_requirements() {
             if [ "$(id -u)" != 0 ]; then
                  case "$DOCKER_CMD" in
                    *sudo*) ;;
+# @todo PHP_VERSION and UBUNTU_VERSION will not be visible by docker in this case!!!
                    *) DOCKER_CMD="sudo ${DOCKER_CMD}" ;;
                  esac
 
