@@ -13,12 +13,16 @@ jobs:
                     # @todo run some tests on 'windows-latest' (needs test env setup scripts for windows to be developed)
                     -   php: '8.5'
                         operating-system: ubuntu-26.04
+                        webserver: nginx
                     -   php: '8.4'
                         operating-system: ubuntu-24.04
+                        webserver: nginx
                     -   php: '8.3'
                         operating-system: ubuntu-22.04
+                        webserver: nginx
                     -   php: default # 8.2
                         operating-system: ubuntu-26.04
+                        webserver: nginx
 
         steps:
             -    name: checkout code
@@ -40,14 +44,20 @@ jobs:
                 run: |
                     chmod 755 ./tests/ci/setup/*.sh
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/install_packages.sh
-                    #sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_apache.sh
-                    sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_nginx.sh
+                    # @todo install apache instead of nginx based on matrix vars
+                    if [ '${{ matrix.webserver }}' = 'apache2' ]; then
+                        sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_apache.sh
+                    else
+                        sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_nginx.sh
+                    fi
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_php.sh ${{ matrix.php }}
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_composer.sh
                     # fix fs perms for recent Apache versions configuration (ie. starting from Jammy)
                     f="$(pwd)"; while [[ $f != / ]]; do sudo chmod +rx "$f"; f="$(dirname "$f")"; done;
                     find . -type d -exec chmod +rx {} \;
                     find . -type f -exec chmod +r {} \;
+
+                    sudo service '${{ matrix.webserver }}' start
 
             # Avoid downloading composer deps on every workflow run. Is this useful for us? Caching the installation of
             # php/apache/privoxy/perl would be more useful...
