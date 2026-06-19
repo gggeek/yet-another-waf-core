@@ -1,8 +1,11 @@
 <?php
+declare(strict_types=1);
 
 namespace YAWAF\Core\Tests;
 
+use Symfony\Component\HttpClient\CurlHttpClient;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpClient\NativeHttpClient;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
@@ -56,13 +59,21 @@ abstract class ProxyTestCase extends TestCase
         parent::tearDown();
     }
 
-    protected function request(array $options, string $method = 'GET', string $path = ''): ResponseInterface
+    /**
+     * @throws \Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface
+     * @throws \Exception
+     */
+    protected function request(array $options, string $method = 'GET', string $path = '', string $clientPreferredType='any'): ResponseInterface
     {
-        $client = $this->getClient();
+        $client = $this->getClient($clientPreferredType);
         return $client->request($method, trim($path) === '' ? $this->getProxyPath() : $path, $options);
     }
 
-    protected function getClient(): HttpClientInterface
+    /**
+     * @throws \Exception
+     * @todo allow DataProvider functions that iterate the tests over http features, such as req/resp compression, charsets, etc...
+     */
+    protected function getClient(string $preferredType='any'): HttpClientInterface
     {
 /// @todo... allow the user to force usage of proxy in either "forward" or "reverse" mode - check the format supported for `proxy`
         $options = [
@@ -77,10 +88,17 @@ abstract class ProxyTestCase extends TestCase
             ],
         ];
 
-        /// @todo allow the user to force usage of native vs curl client
-        $client = HttpClient::create($options);
-
-        return $client;
+        switch ($preferredType) {
+            case 'any':
+                return HttpClient::create($options);
+            case 'curl':
+                // the constructor already checks for the curl extension - no need to do it here
+                return new CurlHttpClient($options);
+            case 'native':
+                return new NativeHttpClient($options);
+            default:
+                throw new \Exception("Unsupported preferred client type: '$preferredType'");
+        }
     }
 
     protected function getServerBaseUri(): string
@@ -146,19 +164,37 @@ abstract class ProxyTestCase extends TestCase
         return $url;
     }
 
-    protected function testDetails(ResponseInterface $response): string
+    protected static function getSupportedClientTypes(): array
     {
-        $out = $this->serverSideTestLog();
+        return extension_loaded('curl') ? ['native', 'curl'] : ['native'];
+    }
+
+    protected function getTestDetails(ResponseInterface $response): string
+    {
+        $out = $this->getServerSideRequestTrace();
         if ($out != '') {
-            $out = "\nServer log: $out";
+            $out = "\nRequest received by the server:\n$out";
         } else {
             $out = (string)$out;
         }
-        $out .= "\nReceived response: " . $this->response2Log($response);
+        $log = $this->getServerSideTestLog();
+        if ($out != '') {
+            $out .= "\nServer log:\n$log";
+        }
+        $out .= "\nResponse received by the test code:\n" . $this->response2Log($response);
         return $out . "\n";
     }
 
-    protected function serverSideTestLog(): string|null|false
+    protected function getServerSideRequestTrace(): string|null|false
+    {
+        $serverSideTraceFile = sys_get_temp_dir() . '/' . $this->testId . '.trace';
+        if (is_file($serverSideTraceFile)) {
+            return file_get_contents($serverSideTraceFile);
+        }
+        return null;
+    }
+
+    protected function getServerSideTestLog(): string|null|false
     {
         $serverSideLogFile = sys_get_temp_dir() . '/' . $this->testId . '.log';
         if (is_file($serverSideLogFile)) {

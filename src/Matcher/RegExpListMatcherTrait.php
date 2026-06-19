@@ -40,6 +40,8 @@ trait RegExpListMatcherTrait
 
     protected function matchesRegexp(string $value): bool
     {
+file_put_contents('/tmp/a.out', var_export($this->regexp, true) . "\n", FILE_APPEND);
+file_put_contents('/tmp/a.out', var_export($value, true) . "\n", FILE_APPEND);
         return (bool)preg_match($this->regexp, $value);
     }
 
