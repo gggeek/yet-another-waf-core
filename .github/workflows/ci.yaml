@@ -40,7 +40,8 @@ jobs:
                 run: |
                     chmod 755 ./tests/ci/setup/*.sh
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/install_packages.sh
-                    sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_apache.sh
+                    #sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_apache.sh
+                    sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_nginx.sh
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_php.sh ${{ matrix.php }}
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_composer.sh
                     # fix fs perms for recent Apache versions configuration (ie. starting from Jammy)
@@ -88,4 +89,6 @@ jobs:
                 run: |
                     if [ -d /var/log/apache2 ]; then sudo cat /var/log/apache2/error.log; fi
                     if [ -d /var/log/apache2 ]; then sudo cat /var/log/apache2/other_vhosts_access.log; fi
+                    if [ -d /var/log/nginx ]; then sudo cat /var/log/nginx/error.log; fi
+                    if [ -d /var/log/nginx ]; then sudo cat /var/log/nginx/access.log; fi
                     sudo cat /var/log/php*.log

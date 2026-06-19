@@ -87,9 +87,21 @@ if [ -z "${DEBIAN_VERSION}" ]; then
     DEBIAN_VERSION=$(grep 'VERSION=' /etc/os-release | grep 'VERSION=' | sed 's/VERSION=//' | sed 's/"[0-9.]\+ *(\?//' | sed 's/)\?"//' | tr '[:upper:]' '[:lower:]' | sed 's/lts, *//' | sed 's/ \+tahr//')
 fi
 
-# @todo use native packages if requested for a specific version and that is the same as available in the os repos
+# use native packages if requested for a specific version and that is the same as available in the os repos
 
-if [ "${PHP_VERSION}" = default ]; then
+DEFAULT_PHP_VERSION=
+if [ "${DEBIAN_VERSION}" = 'focal' ]; then
+    DEFAULT_PHP_VERSION=7.4
+elif [ "${DEBIAN_VERSION}" = 'jammy' ]; then
+    DEFAULT_PHP_VERSION=8.1
+elif [ "${DEBIAN_VERSION}" = 'noble' ]; then
+    DEFAULT_PHP_VERSION=8.3
+elif [ "${DEBIAN_VERSION}" = 'resolute' ]; then
+    DEFAULT_PHP_VERSION=8.5
+fi
+
+
+if [ "${PHP_VERSION}" = default ] || [ "${PHP_VERSION}" = "${DEFAULT_PHP_VERSION}" ]; then
     install_native
 else
     # on GHA runners ubuntu version, php 7.4 and 8.0 seem to be preinstalled. Remove them if found
@@ -100,7 +112,7 @@ else
     done
 
     # @todo move to using ondrej packages for php 8.5 when they become available
-    if [ "${PHP_VERSION}" = 5.3 ] || [ "${PHP_VERSION}" = 5.4 ] || [ "${PHP_VERSION}" = 5.5 ] || [ "${PHP_VERSION}" = 8.5 ] || \
+    if [ "${PHP_VERSION}" = 5.3 ] || [ "${PHP_VERSION}" = 5.4 ] || [ "${PHP_VERSION}" = 5.5 ] || \
         [ "${DEBIAN_VERSION}" = focal ] || [ "${DEBIAN_VERSION}" = bionic ] || [ "${DEBIAN_VERSION}" = xenial ] || [ "${DEBIAN_VERSION}" = trusty ]; then
         install_shivammatur
     else

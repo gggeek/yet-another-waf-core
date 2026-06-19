@@ -21,7 +21,7 @@
   - can we make filters add "tags" to requests/responses?
 
 - Proxy
-  - test: support for `tcp:/` sockets, `http:/`, `https:/` upstreams
+  - test: support for `unix:/` and `tcp://` sockets, `https://` upstreams
   - add by default the http headers telling upstream about real-ip and real-protocol, patch hop-by-hop headers
     see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
   - allow users to specify preference for curl vs socket implementations for the client to upstream
