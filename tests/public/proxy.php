@@ -18,9 +18,6 @@ use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Tests\TestProxy;
 
-ini_set('error_reporting', E_ALL);
-ini_set('display_errors', true);
-
 ProxyPage::preflight();
 ProxyPage::proxyRequest();
 ProxyPage::postflight();
@@ -56,8 +53,7 @@ class ProxyPage
                 chmod($GLOBALS['PHPUNIT_COVERAGE_DATA_DIRECTORY'], 0777);
             }
 
-/// @todo vendorize this
-            include_once __DIR__ . '/../../vendor/phpunit/phpunit-selenium/PHPUnit/Extensions/SeleniumCommon/prepend.php';
+            include_once __DIR__ . '/../PhpunitSelenium/prepend.php';
 
             self::$phpunitSeleniumTestId = $_COOKIE['PHPUNIT_SELENIUM_TEST_ID'];
         } else {
@@ -68,8 +64,8 @@ class ProxyPage
     public static function postflight(): void
     {
         if (self::$phpunitSeleniumTestId !== null) {
-/// @todo vendorize this
-            include_once __DIR__ . '/../../vendor/phpunit/phpunit-selenium/PHPUnit/Extensions/SeleniumCommon/append.php';
+            $_COOKIE['PHPUNIT_SELENIUM_TEST_ID'] = self::$phpunitSeleniumTestId;
+            include_once __DIR__ . '/../PhpunitSelenium/append.php';
         }
     }
 
@@ -124,18 +120,6 @@ class ProxyPage
                 $firewall = new FilterChain([new Tracer($traceFileName), $firewall]);
             }
 
-            // clean up the data we forward to the server
-            foreach ($_GET as $name => $value) {
-                if (str_starts_with($name, 'YAWAF_')) {
-                    unset($_GET[$name]);
-                }
-            }
-            foreach ($_COOKIE as $name => $value) {
-                if (str_starts_with($name, 'PHPUNIT_')) {
-                    unset($_GET[$name]);
-                }
-            }
-
             $proxy = new TestProxy($firewall, $upstream, null, $logger);
 
             $psr17Factory = new Psr17Factory();
@@ -147,6 +131,28 @@ class ProxyPage
             );
 
             $serverRequest = $creator->fromGlobals();
+
+            // clean up the data we forward to the server
+/// @todo... check if this works as intended
+            $cleanedQueryParams = $queryParams = $serverRequest->getQueryParams();
+            foreach ($queryParams as $name => $value) {
+                if (str_starts_with($name, 'YAWAF_')) {
+                    unset($cleanedQueryParams[$name]);
+                }
+            }
+            if (count($cleanedQueryParams) < count($queryParams)) {
+                $serverRequest = $serverRequest->withQueryParams($cleanedQueryParams);
+            }
+            $cleanedCookieParams = $cookieParams = $serverRequest->getCookieParams();
+            foreach ($cookieParams as $name => $value) {
+                if (str_starts_with($name, 'PHPUNIT_')) {
+                    unset($cleanedCookieParams[$name]);
+                }
+            }
+            if (count($cleanedCookieParams) < count($cookieParams)) {
+                $serverRequest = $serverRequest->withCookieParams($cleanedCookieParams);
+            }
+
             $response = $proxy->handle($serverRequest);
             $emitter->emit($response);
 

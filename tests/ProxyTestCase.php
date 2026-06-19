@@ -146,6 +146,27 @@ abstract class ProxyTestCase extends TestCase
         return $url;
     }
 
+    protected function testDetails(ResponseInterface $response): string
+    {
+        $out = $this->serverSideTestLog();
+        if ($out != '') {
+            $out = "\nServer log: $out";
+        } else {
+            $out = (string)$out;
+        }
+        $out .= "\nReceived response: " . $this->response2Log($response);
+        return $out . "\n";
+    }
+
+    protected function serverSideTestLog(): string|null|false
+    {
+        $serverSideLogFile = sys_get_temp_dir() . '/' . $this->testId . '.log';
+        if (is_file($serverSideLogFile)) {
+            return file_get_contents($serverSideLogFile);
+        }
+        return null;
+    }
+
     protected function response2Log(ResponseInterface $response): string
     {
         /// @todo can we improve the fidelity of the response dump?
