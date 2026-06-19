@@ -1,3 +1,5 @@
+# @todo... Add vhosts w. rewrite for the proxy; set a custom log format
+
 # Uses env vars:
 # HTTPSERVER (atm unused...)
 # TESTS_ROOT_DIR

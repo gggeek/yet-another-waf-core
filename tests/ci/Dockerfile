@@ -2,6 +2,7 @@ ARG UBUNTU_VERSION=resolute
 
 FROM ubuntu:${UBUNTU_VERSION}
 
+ARG APT_PACKAGE_PROXY=none
 ARG PHP_VERSION=default
 ARG UBUNTU_VERSION=resolute
 
@@ -13,6 +14,7 @@ RUN if [ ! -f /.dockerenv ]; then touch /.dockerenv; fi && \
   ./install_packages.sh -u && \
   ./create_user.sh && \
   ./setup_apache.sh && \
+  ./setup_nginx.sh && \
   ./setup_php.sh "${PHP_VERSION}" && \
   ./setup_composer.sh && \
   apt-get -y autoremove && apt-get -y autoclean && apt-get -y clean && \

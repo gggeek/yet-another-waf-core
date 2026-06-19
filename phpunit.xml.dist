@@ -28,7 +28,8 @@
 
         <env name="PROXY_PROTOCOL" value="http"/>
         <env name="PROXY_HOST" value="127.0.0.1"/>
-        <env name="PROXY_PORT" value="80"/>
+        <env name="PROXY_PORT" value="8080"/>
+        <!-- This is only used to test direct access to the proxy script as part of smoke-testing the webserver+php configuration -->
         <env name="PROXY_PATH" value="/proxy.php"/>
     </php>
 

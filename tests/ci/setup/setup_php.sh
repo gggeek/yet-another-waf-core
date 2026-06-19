@@ -144,7 +144,7 @@ if [ -n "$(dpkg --list | grep apache)" ]; then
     a2dismod mpm_prefork
     a2enmod mpm_event
     a2enconf php${PHPVER}-fpm
-    service apache2 restart
+    #service apache2 restart
 fi
 
 php -v

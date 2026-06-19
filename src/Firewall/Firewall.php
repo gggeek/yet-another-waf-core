@@ -56,7 +56,7 @@ class Firewall implements BidirectionalFilterInterface, LoggerAwareInterface
     public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|false
     {
         $this->currentRule = null;
-        foreach($this->rules as $ruleName => $rule) {
+        foreach ($this->rules as $ruleName => $rule) {
             if ($rule->matchesRequest($request)) {
                 $this->debug("Firewall rule '$ruleName' matched request: " . $this->request2Log($request));
                 $this->currentRule = $rule;

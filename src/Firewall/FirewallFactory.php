@@ -62,8 +62,8 @@ class FirewallFactory
             $this->warning("Empty configuration passed in. The firewall will block every request");
         }
 
-        foreach($config as $ruleName => $ruleConfig) {
-            if (!is_array($ruleConfig)) {
+        foreach ($config as $ruleName => $ruleSpec) {
+            if (!is_array($ruleSpec)) {
                 throw new \Exception("Bad configuration: the value for firewall rule '$ruleName' should be an array");
             }
         }
@@ -73,7 +73,7 @@ class FirewallFactory
 
         /// @todo give warnings for config smells not caught by fromConfiguration
 
-        foreach($config as $ruleName => $ruleSpec) {
+        foreach ($config as $ruleName => $ruleSpec) {
             try {
                 $rule = $ruleFactory->fromConfiguration($ruleSpec);
                 $rules[$ruleName] = $rule;

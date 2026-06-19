@@ -11,7 +11,7 @@ class AB_MatchingTest extends ProxyTestCase
     #[DataProvider('invalidRulesDataProvider')]
     public function testInvalidRules($configAsString, string $clientType='any')
     {
-        $response = $this->request(['query' => ['YAWAF_CONFIG' => $configAsString]], 'GET', '', $clientType);
+        $response = $this->request(['headers' => ['X-YAWAF-Config' => $configAsString]], 'GET', '', $clientType);
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
         $this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
@@ -52,7 +52,7 @@ class AB_MatchingTest extends ProxyTestCase
     #[DataProvider('passingRulesDataProvider')]
     public function testPassingRules(string $configFileName, string $clientType='any')
     {
-        $response = $this->request(['query' => ['YAWAF_CONFIG_FILE' => 'matchers/passing/' . $configFileName]], 'GET', '', $clientType);
+        $response = $this->request(['headers' => ['X-YAWAF-Config-File' => 'matchers/passing/' . $configFileName]], 'GET', '', $clientType);
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
         //$this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
@@ -75,7 +75,7 @@ class AB_MatchingTest extends ProxyTestCase
     #[DataProvider('failingRulesDataProvider')]
     public function testFailingRules(string $configFileName, string $clientType='any')
     {
-        $response = $this->request(['query' => ['YAWAF_CONFIG_FILE' => 'matchers/failing/' . $configFileName]], 'GET', '', $clientType);
+        $response = $this->request(['headers' => ['X-YAWAF-Config-File' => 'matchers/failing/' . $configFileName]], 'GET', '', $clientType);
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
         $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);

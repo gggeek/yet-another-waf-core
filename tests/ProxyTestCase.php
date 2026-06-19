@@ -47,7 +47,7 @@ abstract class ProxyTestCase extends TestCase
         // make the test name a nice filename
         $this->testId = str_replace([' ', '#'], '_', $this->nameWithDataSet());
 
-        /// @todo...
+/// @todo...
         // assumes HTTPURI to be in the form /server.php?etc...
         //$this->coverageScriptUrl = $this->getServerBaseUri() . preg_replace('|/server\.php(\?.*)?|', '/phpunit_coverage.php', $this->getServerPath());
     }
@@ -65,29 +65,15 @@ abstract class ProxyTestCase extends TestCase
      */
     protected function request(array $options, string $method = 'GET', string $path = '', string $clientPreferredType='any'): ResponseInterface
     {
-        $client = $this->getClient($clientPreferredType);
-        return $client->request($method, trim($path) === '' ? $this->getProxyPath() : $path, $options);
+        $client = $this->getProxyClient($clientPreferredType);
+        return $client->request($method, $this->getServerBaseUri() . (trim($path) === '' ? $this->getServerPath() : $path), $options);
     }
 
     /**
      * @throws \Exception
-     * @todo allow DataProvider functions that iterate the tests over http features, such as req/resp compression, charsets, etc...
      */
-    protected function getClient(string $preferredType='any'): HttpClientInterface
+    protected function getClient(array $options = [], string $preferredType='any'): HttpClientInterface
     {
-/// @todo... allow the user to force usage of proxy in either "forward" or "reverse" mode - check the format supported for `proxy`
-        $options = [
-            'base_uri' => $this->getServerBaseUri(),
-            //'proxy' => $this->getProxyBaseUri() . $this->getProxyPath(),
-            'query' => [
-                'YAWAF_LOG_FILE' => $this->testId . '.log',
-                'YAWAF_TRACE_FILE' => $this->testId . '.trace',
-            ],
-            'headers' => [
-                'Cookie' => 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId,
-            ],
-        ];
-
         switch ($preferredType) {
             case 'any':
                 return HttpClient::create($options);
@@ -99,6 +85,35 @@ abstract class ProxyTestCase extends TestCase
             default:
                 throw new \Exception("Unsupported preferred client type: '$preferredType'");
         }
+    }
+
+    /**
+     * @throws \Exception
+     */
+    protected function getTestClient(array $options = [], string $preferredType='any'): HttpClientInterface
+    {
+        $options = $options + [
+            'headers' => [
+                'Cookie' => 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId,
+                'X-YAWAF-Log-File' => $this->testId . '.log',
+                'X-YAWAF-Trace-File' => $this->testId . '.trace',
+            ],
+        ];
+        return $this->getClient($options, $preferredType);
+    }
+
+    /**
+     * @throws \Exception
+     * @todo allow DataProvider functions that iterate the tests over http features, such as req/resp compression, charsets,
+     *       etc... (here or ?)
+     */
+    protected function getProxyClient(string $preferredType='any'): HttpClientInterface
+    {
+        $options = [
+            'proxy' => $this->getProxyBaseUri(),
+        ];
+
+        return $this->getTestClient($options, $preferredType);
     }
 
     protected function getServerBaseUri(): string
@@ -124,6 +139,9 @@ abstract class ProxyTestCase extends TestCase
         ]);
     }
 
+    /**
+     * Only to be used for accessing the proxy endpoint directly
+     */
     protected function getProxyPath(): string
     {
         return $_ENV['PROXY_PATH'];
@@ -164,6 +182,15 @@ abstract class ProxyTestCase extends TestCase
         return $url;
     }
 
+    public static function clientTypesDataProvider(): array
+    {
+        $out = [];
+        foreach (static::getSupportedClientTypes() as $type) {
+            $out[] = [$type];
+        }
+        return $out;
+    }
+
     protected static function getSupportedClientTypes(): array
     {
         return extension_loaded('curl') ? ['native', 'curl'] : ['native'];
@@ -171,21 +198,21 @@ abstract class ProxyTestCase extends TestCase
 
     protected function getTestDetails(ResponseInterface $response): string
     {
-        $out = $this->getServerSideRequestTrace();
+        $out = $this->getProxyRequestTrace();
         if ($out != '') {
-            $out = "\nRequest received by the server:\n$out";
+            $out = "\nRequest received by the proxy (and possibly response generated):\n$out";
         } else {
             $out = (string)$out;
         }
-        $log = $this->getServerSideTestLog();
-        if ($out != '') {
+        $log = $this->getProxyTestLog();
+        if ($log != '') {
             $out .= "\nServer log:\n$log";
         }
         $out .= "\nResponse received by the test code:\n" . $this->response2Log($response);
         return $out . "\n";
     }
 
-    protected function getServerSideRequestTrace(): string|null|false
+    protected function getProxyRequestTrace(): string|null|false
     {
         $serverSideTraceFile = sys_get_temp_dir() . '/' . $this->testId . '.trace';
         if (is_file($serverSideTraceFile)) {
@@ -194,7 +221,7 @@ abstract class ProxyTestCase extends TestCase
         return null;
     }
 
-    protected function getServerSideTestLog(): string|null|false
+    protected function getProxyTestLog(): string|null|false
     {
         $serverSideLogFile = sys_get_temp_dir() . '/' . $this->testId . '.log';
         if (is_file($serverSideLogFile)) {

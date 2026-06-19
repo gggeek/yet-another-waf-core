@@ -25,7 +25,14 @@ done
 
 if [ ! -d /usr/share/man/man1 ]; then mkdir -p /usr/share/man/man1; fi
 
-apt-get update
+# Allow the user to specify a proxy for speeding up downloading of apt packages
+if [ "${APT_PACKAGE_PROXY}" != "none" ]; then
+    printf "Acquire::http::Proxy \"${APT_PACKAGE_PROXY}\";\nAcquire::https::Proxy \"DIRECT\";\n" > /etc/apt/apt.conf.d/00proxy
+fi
+
+# @todo allow the user to specify an ubuntu mirror for speeding up downloading of apt packages
+
+apt-get update --allow-releaseinfo-change
 
 if [ "$UPDATE_INSTALLED" = true ]; then
     apt-get upgrade -y

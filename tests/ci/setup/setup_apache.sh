@@ -2,7 +2,7 @@
 
 # Install and configure apache2
 # Has to be run as root
-# @todo make sure this works across all ubuntu versions (precise to noble)
+# @todo make sure this works across all ubuntu versions (precise to resolute)
 
 echo "Installing and configuring Apache2..."
 
@@ -12,7 +12,7 @@ SCRIPT_DIR="$(dirname -- "$(readlink -f "$0")")"
 
 export DEBIAN_FRONTEND=noninteractive
 
-apt-get install -y apache2
+apt-get install -y apache2 ssl-cert
 
 # set up Apache for php-fpm
 
@@ -26,8 +26,9 @@ if [ -n "$(ls /etc/apache2/mods-enabled/php* 2>/dev/null)" ]; then
     rm /etc/apache2/mods-enabled/php*
 fi
 
-# configure apache virtual hosts
+# configure virtual hosts
 
+# this overwrites the default vhost
 cp -f "$SCRIPT_DIR/../config/apache_vhost" /etc/apache2/sites-available/000-default.conf
 
 # default apache siteaccess found in GHA Ubuntu. We remove it just in case
@@ -44,6 +45,6 @@ else
 fi
 #echo "export HTTPSERVER=localhost" >> /etc/apache2/envvars
 
-service apache2 restart
+#service apache2 restart
 
 echo "Done Installing and configuring Apache2"

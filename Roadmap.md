@@ -13,7 +13,7 @@
     - client_address: support v6 IPs without forcing users to write a complex regexp
     - other? eg. ssl on
     - review: can we do the same (but better) as all the haproxy rules in NC-AIO haproxy.cfg?
-  - finish and test filtering support
+  - implement and test filtering support
   - create a flow diagram with req/resp matching and filtering
   - clean up the `*MatcherInterface` mess: drop MatcherInterface; move Logic/* matchers to MessageInterface?
   - allow 'restart' as action for (Request) rules
@@ -22,19 +22,22 @@
 
 - Proxy
   - test: support for `tcp:/` sockets, `http:/`, `https:/` upstreams
-  - allow users to specify preference for curl vs socket implementations
+  - add by default the http headers telling upstream about real-ip and real-protocol, patch hop-by-hop headers
+    see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
+  - allow users to specify preference for curl vs socket implementations for the client to upstream
     (note that native client does not support using the `bindto` option with unix sockets)
-  - add by default the http headers telling upstream about real-ip and real-protocol
   - tls & https support
   - review: can/should we drop `*FilterInterface` in favour of the PSR equivalent?
+  - make it easy to implement a reverse proxy + give examples on how to do that
 
 - add config examples for common use-cases, eg. 'all readonly', 'redact secrets', 'fix Host', etc...
+  see fe. all cases listed at https://codingchallenges.fyi/challenges/challenge-forward-proxy/
 
 - Loggers
   - improve message formatting: add context
 
 - Testing
-  - move from apache to nginx, as it can listen on unix sockets
   - bring back code coverage injection of code executed via http requests, without installing phpunit-selenium
+  - on GH, run tests on a matrix of various php / ubuntu / webserver versions (finish apache vhost setup 1st)
 
 - allow fine-tuning resource usage: timeouts, maxconn, etc... (here on in downstream projects?)

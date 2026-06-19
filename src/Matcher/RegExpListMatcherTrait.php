@@ -40,8 +40,6 @@ trait RegExpListMatcherTrait
 
     protected function matchesRegexp(string $value): bool
     {
-file_put_contents('/tmp/a.out', var_export($this->regexp, true) . "\n", FILE_APPEND);
-file_put_contents('/tmp/a.out', var_export($value, true) . "\n", FILE_APPEND);
         return (bool)preg_match($this->regexp, $value);
     }
 
@@ -57,7 +55,7 @@ file_put_contents('/tmp/a.out', var_export($value, true) . "\n", FILE_APPEND);
 
     protected function wildcardToRegexp(string $value): string
     {
-        return '^' . str_replace(['*'], ['.*'], preg_quote($value, $this->regexpDelimiter)) . '$';
+        return '^' . str_replace(['\\*'], ['.*'], preg_quote($value, $this->regexpDelimiter)) . '$';
     }
 
     public function getRegexpDelimiter(): string

@@ -12,6 +12,7 @@ export PHP_VERSION=${PHP_VERSION:-default}
 # Valid values: precise (12), trusty (14), xenial (16), bionic (18), focal (20), jammy (22), noble (24), resolute (26)
 # For end of support dates, see: https://wiki.ubuntu.com/Releases
 export UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}
+export APT_PACKAGE_PROXY=${APT_PACKAGE_PROXY:-none}
 
 # @todo... drop these 3 env vars?
 HTTPSVERIFYHOST="${HTTPSVERIFYHOST:-0}"
@@ -19,12 +20,14 @@ HTTPSIGNOREPEER="${HTTPSIGNOREPEER:-1}"
 SSLVERSION="${SSLVERSION:-0}"
 DEBUG="${DEBUG:-0}"
 
+# Webserver ports exposed to the host. Set to 'no' for no port mapping
 HOST_HTTPPORT="${HOST_HTTPPORT:-80}"
 HOST_HTTPSPORT="${HOST_HTTPSPORT:-443}"
 HOST_PROXYPORT_HTTP="${HOST_PROXYPORT_HTTP:-8080}"
 HOST_PROXYPORT_HTTPS="${HOST_PROXYPORT_HTTPS:-8443}"
 
 CONTAINER_INSTALL_ON_START="${CONTAINER_INSTALL_ON_START:-false}"
+CONTAINER_WEBSERVER="${CONTAINER_WEBSERVER:-nginx}"
 CONTAINER_NAME_PREFIX="${CONTAINER_NAME_PREFIX:-yawaf}"
 CONTAINER_IMAGE_PREFIX="${CONTAINER_IMAGE_PREFIX:-yawaf_}"
 CONTAINER_USER=docker
@@ -64,8 +67,19 @@ Options:
 
 Environment variables:
   used by the 'build' action
+    APT_PACKAGE_PROXY default value: 'none'. Use eg. 'http://127.0.0.1:3142' and run apt-cacher-rs as sidecar container
     PHP_VERSION       default value: 'default'. Use 'default' for the stock php version from the Ubuntu version in use. Other possible values: 8.2 .. 8.5
-    UBUNTU_VERSION    default value: resolut. Other possible values: xenial, bionic, focal, jammy, noble
+    UBUNTU_VERSION    default value: 'resolute'. Other possible values: xenial, bionic, focal, jammy, noble
+  used by the 'start' action
+    CONTAINER_INSTALL_ON_START default value: false. Set to true to run a 'composer install' on container start
+    CONTAINER_WEBSERVER    default value: 'nginx'. Can be set to 'apache'
+    HOST_HTTPPORT          default value: 80. Set to 'no' to disable exposing the container port to the host
+    HOST_HTTPSPORT         default value: 443. Set to 'no' to disable exposing the container port to the host
+    HOST_PROXYPORT_HTTP    default value: 8080. Set to 'no' to disable exposing the container port to the host
+    HOST_PROXYPORT_HTTPS   default value: 8443. Set to 'no' to disable exposing the container port to the host
+  used by both build and start:
+    CONTAINER_IMAGE_PREFIX default value: 'yawaf'. Change if you build/run many containers in parallel
+    CONTAINER_NAME_PREFIX   default value: 'yawaf_'. Change if you build/run many containers in parallel
 "
 }
 
@@ -83,8 +97,7 @@ check_requirements() {
             if [ "$(id -u)" != 0 ]; then
                  case "$DOCKER_CMD" in
                    *sudo*) ;;
-# @todo PHP_VERSION and UBUNTU_VERSION will not be visible by docker in this case!!!
-                   *) DOCKER_CMD="sudo ${DOCKER_CMD}" ;;
+                   *) DOCKER_CMD="sudo --preserve-env=PHP_VERSION,UBUNTU_VERSION,APT_PACKAGE_PROXY ${DOCKER_CMD}" ;;
                  esac
 
             fi
@@ -94,7 +107,7 @@ check_requirements() {
 
 
 build() {
-    if ${DOCKER_CMD} build --build-arg PHP_VERSION --build-arg UBUNTU_VERSION -t "${IMAGE_NAME}" .; then
+    if ${DOCKER_CMD} build --build-arg PHP_VERSION --build-arg UBUNTU_VERSION --build-arg APT_PACKAGE_PROXY -t "${IMAGE_NAME}" .; then
         if [ "$1" = '-r' ]; then
             # stop and remove existing containers built from a previous version of this image
             if ${DOCKER_CMD} inspect "${CONTAINER_NAME}" >/dev/null 2>/dev/null; then
@@ -149,6 +162,7 @@ start() {
                 --env "CONTAINER_USER_UID=$(id -u)" --env "CONTAINER_USER_GID=$(id -g)" \
                 --env "TESTS_ROOT_DIR=${CONTAINER_WORKSPACE_DIR}" \
                 --env "INSTALL_ON_START=${CONTAINER_INSTALL_ON_START}" \
+                --env "START_WEBSERVER=${CONTAINER_WEBSERVER}" \
                 -v "${ROOT_DIR}:${CONTAINER_WORKSPACE_DIR}" \
                 -v "${ROOT_DIR}/tests/ci/var/composer_cache:/home/${CONTAINER_USER}/.cache/composer" \
                  "${IMAGE_NAME}"; then

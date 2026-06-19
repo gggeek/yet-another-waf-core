@@ -29,7 +29,7 @@ class HeaderMatcher extends BaseMatcher
         if (!$message->hasHeader($this->headerName)) {
             return false;
         }
-        foreach($message->getHeader($this->headerName) as $headerValue) {
+        foreach ($message->getHeader($this->headerName) as $headerValue) {
             if ($this->matchesRegexp($headerValue)) {
                 return true;
             }

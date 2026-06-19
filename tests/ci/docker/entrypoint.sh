@@ -1,6 +1,8 @@
 #!/bin/sh
 
 USERNAME="${1:-docker}"
+INSTALL_ON_START="${INSTALL_ON_START:-false}"
+START_WEBSERVER="${START_WEBSERVER:-nginx}"
 
 echo "[$(date)] Bootstrapping the Test container..."
 
@@ -19,8 +21,11 @@ clean_up() {
     # Perform program exit housekeeping
 
     echo "[$(date)] Stopping the Web server"
-    service apache2 stop
-
+    if [ "$START_WEBSERVER" = apache ] || [ "$START_WEBSERVER" = apache2 ]; then
+        service apache2 stop
+    else
+        service nginx stop
+    fi
     echo "[$(date)] Stopping FPM"
     service php-fpm stop
 
@@ -64,15 +69,26 @@ fi
 #    DIR="$(dirname "$DIR")"
 #done
 
-echo "[$(date)] Fixing Apache configuration..."
+#echo "[$(date)] Fixing Apache configuration..."
+#
+#sed -e "s?^export TESTS_ROOT_DIR=.*?export TESTS_ROOT_DIR=${TESTS_ROOT_DIR}?g" --in-place /etc/apache2/envvars
+#sed -e "s?^export APACHE_RUN_USER=.*?export APACHE_RUN_USER=${USERNAME}?g" --in-place /etc/apache2/envvars
+#sed -e "s?^export APACHE_RUN_GROUP=.*?export APACHE_RUN_GROUP=${USERNAME}?g" --in-place /etc/apache2/envvars
 
-sed -e "s?^export TESTS_ROOT_DIR=.*?export TESTS_ROOT_DIR=${TESTS_ROOT_DIR}?g" --in-place /etc/apache2/envvars
-sed -e "s?^export APACHE_RUN_USER=.*?export APACHE_RUN_USER=${USERNAME}?g" --in-place /etc/apache2/envvars
-sed -e "s?^export APACHE_RUN_GROUP=.*?export APACHE_RUN_GROUP=${USERNAME}?g" --in-place /etc/apache2/envvars
+PHPVER="$(php -r 'echo implode(".",array_slice(explode(".",PHP_VERSION),0,2));' 2>/dev/null)"
+PHP_FPM_SOCKET="unix:/run/php/php${PHPVER}-fpm.sock"
+
+echo "[$(date)] Fixing Nginx configuration..."
+
+# @todo this only works on the 1st start of the container. If it gets stopped+restarted, and the env vars changed, it will not work.
+#       Fix that
+sed -e "s?{{TESTS_ROOT_DIR}}?${TESTS_ROOT_DIR}?g" --in-place /etc/nginx/sites-available/default
+sed -e "s?{{PHP_FPM_SOCKET}}?${PHP_FPM_SOCKET}?g" --in-place /etc/nginx/sites-available/default
+
+sed -e "s?user .*?user ${USERNAME};?g" --in-place /etc/nginx/nginx.conf
 
 echo "[$(date)] Fixing FPM configuration..."
 
-PHPVER="$(php -r 'echo implode(".",array_slice(explode(".",PHP_VERSION),0,2));' 2>/dev/null)"
 if [ -f "/usr/local/php/${PHPVER}/etc/php-fpm.conf" ]; then
     # presumably a php installation from shivammathur/php5-ubuntu, which does not have separate files in a pool.d dir
     FPMCONF="/usr/local/php/${PHPVER}/etc/php-fpm.conf"
@@ -92,11 +108,17 @@ fi
 
 trap clean_up TERM
 
+# @todo exit/fail on failure to start nginx or php-fpm ?
+
 echo "[$(date)] Starting FPM..."
 service php-fpm start
 
 echo "[$(date)] Starting the Web server..."
-service apache2 start
+if [ "$START_WEBSERVER" = apache ] || [ "$START_WEBSERVER" = apache2 ]; then
+    service apache2 start
+else
+    service nginx start
+fi
 
 echo "[$(date)] Bootstrap finished"
 
