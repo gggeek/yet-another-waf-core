@@ -132,15 +132,22 @@ class ProxyPage
 
             $serverRequest = $creator->fromGlobals();
 
-            // clean up the data we forward to the server
-/// @todo... check if this works as intended
+            // clean up ("patch") the data we allow the Proxy to handle - remove test-managing flags
+            /// @todo move all test-managing flags to cookies, to simplify handling
+
             $cleanedQueryParams = $queryParams = $serverRequest->getQueryParams();
+            $uri = $serverRequest->getUri();
+            $qs = $uri->getQuery();
             foreach ($queryParams as $name => $value) {
                 if (str_starts_with($name, 'YAWAF_')) {
                     unset($cleanedQueryParams[$name]);
+                    $qs = preg_replace('/' . preg_quote($name, '/') . '=[^&]*&?/', '', $qs);
                 }
             }
             if (count($cleanedQueryParams) < count($queryParams)) {
+                $uri = $uri->withQuery($qs);
+                $serverRequest = $serverRequest->withUri($uri);
+                // q: is this needed, or does withUri automatically fix that?
                 $serverRequest = $serverRequest->withQueryParams($cleanedQueryParams);
             }
             $cleanedCookieParams = $cookieParams = $serverRequest->getCookieParams();

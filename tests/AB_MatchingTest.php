@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace YAWAF\Core\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
-use Symfony\Contracts\HttpClient\ResponseInterface;
 
 /// @todo declare dependency on SmokeTest
 class AB_MatchingTest extends ProxyTestCase
