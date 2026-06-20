@@ -46,7 +46,7 @@ class ProxyPage
 
         // Out-of-band information: let the client manipulate the page operations
         if (isset($_COOKIE['PHPUNIT_SELENIUM_TEST_ID']) && extension_loaded('xdebug')) {
-            // NB: this has to be kept in sync with phunit_coverage.php
+            // NB: this has to be kept in sync with phpunit_coverage.php
             $GLOBALS['PHPUNIT_COVERAGE_DATA_DIRECTORY'] = sys_get_temp_dir() . '/yawaf_coverage';
             if (!is_dir($GLOBALS['PHPUNIT_COVERAGE_DATA_DIRECTORY'])) {
                 mkdir($GLOBALS['PHPUNIT_COVERAGE_DATA_DIRECTORY']);

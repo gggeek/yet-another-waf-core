@@ -14,12 +14,6 @@ export PHP_VERSION=${PHP_VERSION:-default}
 export UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}
 export APT_PACKAGE_PROXY=${APT_PACKAGE_PROXY:-none}
 
-# @todo... drop these 3 env vars?
-HTTPSVERIFYHOST="${HTTPSVERIFYHOST:-0}"
-HTTPSIGNOREPEER="${HTTPSIGNOREPEER:-1}"
-SSLVERSION="${SSLVERSION:-0}"
-DEBUG="${DEBUG:-0}"
-
 # Webserver ports exposed to the host. Set to 'no' for no port mapping
 HOST_HTTPPORT="${HOST_HTTPPORT:-80}"
 HOST_HTTPSPORT="${HOST_HTTPSPORT:-443}"
@@ -166,15 +160,6 @@ start() {
                 -v "${ROOT_DIR}:${CONTAINER_WORKSPACE_DIR}" \
                 -v "${ROOT_DIR}/tests/ci/var/composer_cache:/home/${CONTAINER_USER}/.cache/composer" \
                  "${IMAGE_NAME}"; then
-
-                # @todo... review these env vars
-                #--env HTTPSERVER=localhost \
-                #--env HTTPURI=/tests/index.php?demo=server/server.php \
-                #--env HTTPSSERVER=localhost \
-                #--env HTTPSURI=/tests/index.php?demo=server/server.php \
-                #--env PROXYSERVERHTTP=localhost:8080 \
-                #--env PROXYSERVERHTTPS=localhost:8443 \
-
                 wait_for_bootstrap
             fi
         fi
@@ -232,10 +217,6 @@ runtests() {
     {
         ${DOCKER_CMD} exec $USE_TTY "${CONTAINER_NAME}" /root/setup/setup_app.sh "${CONTAINER_WORKSPACE_DIR}"
         ${DOCKER_CMD} exec -i $USE_TTY \
-            --env "HTTPSVERIFYHOST=${HTTPSVERIFYHOST}" \
-            --env "HTTPSIGNOREPEER=${HTTPSIGNOREPEER}" \
-            --env "SSLVERSION=${SSLVERSION}" \
-            --env "DEBUG=${DEBUG}" \
             "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit $TESTSUITE"
     } || {
         RETCODE="$?"
@@ -260,10 +241,6 @@ runcoverage() {
         if [ ! -d ./var/coverage ]; then mkdir -p ./var/coverage; fi
         ${DOCKER_CMD} exec -t "${CONTAINER_NAME}" /root/setup/setup_code_coverage.sh enable
         ${DOCKER_CMD} exec -i $USE_TTY \
-            --env "HTTPSVERIFYHOST=${HTTPSVERIFYHOST}" \
-            --env "HTTPSIGNOREPEER=${HTTPSIGNOREPEER}" \
-            --env "SSLVERSION=${SSLVERSION}" \
-            --env "DEBUG=${DEBUG}" \
             "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit --coverage-html tests/ci/var/coverage tests"
         ${DOCKER_CMD} exec -t "${CONTAINER_NAME}" /root/setup/setup_code_coverage.sh disable
     } || {
@@ -309,10 +286,6 @@ case "${ACTION}" in
     enter | shell | cli)
         # @todo allow login as root - use either a cli option or a separate action?
         ${DOCKER_CMD} exec -it \
-            --env "HTTPSVERIFYHOST=${HTTPSVERIFYHOST}" \
-            --env "HTTPSIGNOREPEER=${HTTPSIGNOREPEER}" \
-            --env "SSLVERSION=${SSLVERSION}" \
-            --env "DEBUG=${DEBUG}" \
             "${CONTAINER_NAME}" su "${CONTAINER_USER}"
         ;;
 
@@ -320,10 +293,6 @@ case "${ACTION}" in
         shift
         test -t 1 && USE_TTY="-t"
         ${DOCKER_CMD} exec -i $USE_TTY \
-            --env "HTTPSVERIFYHOST=${HTTPSVERIFYHOST}" \
-            --env "HTTPSIGNOREPEER=${HTTPSIGNOREPEER}" \
-            --env "SSLVERSION=${SSLVERSION}" \
-            --env "DEBUG=${DEBUG}" \
             "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c '"$0" "$@"' -- "$@"
             # @todo which one is better? test with a command with spaces in options values, and with a composite command such as cd here && do that
             #"${CONTAINER_NAME}" sudo -iu "${CONTAINER_USER}" -- "$@"

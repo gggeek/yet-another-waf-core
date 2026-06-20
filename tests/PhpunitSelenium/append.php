@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * PHPUnit
  *
@@ -63,7 +65,7 @@ if ( isset($_COOKIE['PHPUNIT_SELENIUM_TEST_ID']) &&
     }
 
     $sanitizedCookieName = str_replace(array('\\'), '_', $_COOKIE['PHPUNIT_SELENIUM_TEST_ID']);
-    $fullPath = $file . '.' . md5(uniqid(rand(), TRUE)) . '.' . $sanitizedCookieName;
+    $fullPath = $file . '.' . md5(uniqid((string)rand(), true)) . '.' . $sanitizedCookieName;
 
     file_put_contents($fullPath, serialize($data));
 }

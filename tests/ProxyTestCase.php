@@ -3,22 +3,23 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Tests;
 
+use PHPUnit\Runner\CodeCoverage;
+use SebastianBergmann\CodeCoverage\Data\RawCodeCoverageData;
 use Symfony\Component\HttpClient\CurlHttpClient;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\NativeHttpClient;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
+use YAWAF\Core\Tests\PhpunitSelenium\RemoteCoverageCollector;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
 /// @todo... bring back support for collecting code coverage of code executed via http calls
 abstract class ProxyTestCase extends TestCase
 {
     protected string|null $testId;
-    /** @var boolean */
-    //protected $collectCodeCoverageInformation;
-    /** @var string */
-    //protected $coverageScriptUrl;
     protected static string|null $randId;
+    /** @var string[] */
+    protected static array $testIds = [];
 
     public static function setUpBeforeClass(): void
     {
@@ -35,7 +36,12 @@ abstract class ProxyTestCase extends TestCase
         if (is_file(sys_get_temp_dir() . '/phpunit_rand_id.txt')) {
             unlink(sys_get_temp_dir() . '/phpunit_rand_id.txt');
         }
-        self::$randId =null;
+        self::$randId = null;
+
+        if (self::shouldCollectCodeCoverageInformation()) {
+            self::retrieveRemoteCodeCoverage();
+        }
+        self::$testIds = [];
 
         parent::tearDownAfterClass();
     }
@@ -46,10 +52,7 @@ abstract class ProxyTestCase extends TestCase
 
         // make the test name a nice filename
         $this->testId = str_replace([' ', '#'], '_', $this->nameWithDataSet());
-
-/// @todo...
-        // assumes HTTPURI to be in the form /server.php?etc...
-        //$this->coverageScriptUrl = $this->getServerBaseUri() . preg_replace('|/server\.php(\?.*)?|', '/phpunit_coverage.php', $this->getServerPath());
+        self::$testIds[] = $this->testId;
     }
 
     public function tearDown(): void
@@ -66,7 +69,7 @@ abstract class ProxyTestCase extends TestCase
     protected function request(array $options, string $method = 'GET', string $path = '', string $clientPreferredType='any'): ResponseInterface
     {
         $client = $this->getProxyClient([], $clientPreferredType);
-        return $client->request($method, $this->getServerBaseUri() . (trim($path) === '' ? $this->getServerPath() : $path), $options);
+        return $client->request($method, static::getServerBaseUri() . (trim($path) === '' ? static::getServerPath() : $path), $options);
     }
 
     /**
@@ -95,9 +98,13 @@ abstract class ProxyTestCase extends TestCase
      */
     protected function getTestClient(array $options = [], string $preferredType='any'): HttpClientInterface
     {
+        $cookie = 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId;
+        if (self::shouldCollectCodeCoverageInformation()) {
+            $cookie .= ';  PHPUNIT_SELENIUM_TEST_ID=' . $this->testId;
+        }
         $options = $options + [
             'headers' => [
-                'Cookie' => 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId,
+                'Cookie' => $cookie,
                 'X-YAWAF-Log-File' => $this->testId . '.log',
                 'X-YAWAF-Trace-File' => $this->testId . '.trace',
             ],
@@ -114,29 +121,29 @@ abstract class ProxyTestCase extends TestCase
     protected function getProxyClient(array $options = [], string $preferredType='any'): HttpClientInterface
     {
         $options = $options + [
-            'proxy' => $this->getProxyBaseUri(),
+            'proxy' => static::getProxyBaseUri(),
         ];
 
         return $this->getTestClient($options, $preferredType);
     }
 
-    protected function getServerBaseUri(): string
+    protected static function getServerBaseUri(): string
     {
-        return $this->buildUrl([
+        return static::buildUrl([
             'scheme' => $_ENV['HTTPSERVER_PROTOCOL'],
             'host' => $_ENV['HTTPSERVER_HOST'],
             'port' => $_ENV['HTTPSERVER_PORT'],
         ]);
     }
 
-    protected function getServerPath(): string
+    protected static function getServerPath(): string
     {
         return $_ENV['HTTPSERVER_PATH'];
     }
 
-    protected function getProxyBaseUri(): string
+    protected static function getProxyBaseUri(): string
     {
-        return $this->buildUrl([
+        return static::buildUrl([
             'scheme' => $_ENV['PROXY_PROTOCOL'],
             'host' => $_ENV['PROXY_HOST'],
             'port' => $_ENV['PROXY_PORT'],
@@ -146,15 +153,27 @@ abstract class ProxyTestCase extends TestCase
     /**
      * Only to be used for accessing the proxy endpoint directly
      */
-    protected function getProxyPath(): string
+    protected static function getProxyPath(): string
     {
         return $_ENV['PROXY_PATH'];
+    }
+
+    protected static function getRemoteCoverageBaseUri(): string
+    {
+        /// @todo allow this to be set via an env var, fall back on server if that is not defined
+        return static::getServerBaseUri();
+    }
+
+    protected static function getRemoteCoveragePath(): string
+    {
+        // @todo allow this to be set via an env var
+        return '/phpunit_coverage.php';
     }
 
     /**
      * Generate URL from its components (i.e., opposite of built-in php function, parse_url())
      */
-    protected function buildUrl(array $components): string
+    protected static function buildUrl(array $components): string
     {
         $url = ! empty($components['scheme']) ? $components['scheme'] . '://' : '';
 
@@ -243,5 +262,24 @@ abstract class ProxyTestCase extends TestCase
         }
         $out .= "\n" . $response->getContent(false);
         return $out;
+    }
+
+    protected static function shouldCollectCodeCoverageInformation(): bool
+    {
+        return CodeCoverage::instance()->isActive();
+    }
+
+    protected static function retrieveRemoteCodeCoverage(): void
+    {
+        foreach (self::$testIds as $testId) {
+            $collector = new RemoteCoverageCollector(
+                static::getRemoteCoverageBaseUri() . static::getRemoteCoveragePath(),
+                $testId
+            );
+            $data = $collector->get();
+            if ($data) {
+                CodeCoverage::instance()->codeCoverage()->append(RawCodeCoverageData::fromXdebugWithoutPathCoverage($data), $testId);
+            }
+        }
     }
 }

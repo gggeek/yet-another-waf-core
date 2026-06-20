@@ -37,7 +37,6 @@
   - improve message formatting: add context
 
 - Testing
-  - bring back code coverage injection of code executed via http requests, without installing phpunit-selenium
   - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions (finish apache vhost setup 1st)
 
 - allow fine-tuning resource usage: timeouts, maxconn, etc... (here on in downstream projects?)

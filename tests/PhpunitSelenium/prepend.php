@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * PHPUnit
  *
@@ -44,13 +46,12 @@
 
 use YAWAF\Core\Tests\PhpunitSelenium\ExitHandler;
 
-// By default the code coverage files are written to the same directory
+// By default, the code coverage files are written to the same directory
 // that contains the covered sourcecode files. Use this setting to change
 // the default behaviour and set a specific directory to write the files to.
 // If you change the default setting, please make sure to also configure
 // the same directory in phpunit_coverage.php. Also note that the webserver
 // needs write access to the directory.
-
 if (!isset($GLOBALS['PHPUNIT_COVERAGE_DATA_DIRECTORY'])) {
     $GLOBALS['PHPUNIT_COVERAGE_DATA_DIRECTORY'] = FALSE;
 }
@@ -61,7 +62,7 @@ if ( isset($_COOKIE['PHPUNIT_SELENIUM_TEST_ID']) &&
     $GLOBALS['PHPUNIT_FILTERED_FILES'] = array(__FILE__);
 
     xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE);
-}
 
-include ('ExitHandler.php');
-ExitHandler::init();
+    include_once __DIR__ . '/ExitHandler.php';
+    ExitHandler::init();
+}

@@ -15,6 +15,7 @@ jobs:
                     -   php: '8.5' # native on ubuntu-26
                         operating-system: ubuntu-26.04
                         webserver: nginx
+                        code-coverage: true
                     -   php: '8.4'
                         operating-system: ubuntu-24.04
                         webserver: nginx
@@ -77,14 +78,23 @@ jobs:
                     else
                         ./tests/ci/setup/setup_code_coverage.sh enable
                         ./vendor/bin/phpunit --coverage-clover=coverage.clover tests
-                        if [ -f coverage.clover ]; then
-                            wget https://uploader.codecov.io/latest/linux/codecov && \
-                            chmod +x codecov && \
-                            ./codecov -f coverage.clover
-                        else
+                        if [ ! -f coverage.clover ]; then
+                        #    wget https://uploader.codecov.io/latest/linux/codecov && \
+                        #    chmod +x codecov && \
+                        #    ./codecov -f coverage.clover
+                        #else
                             echo "WARNING: code coverage not generated. Is xdebug disabled?"
                         fi
                     fi
+
+            -   name: Upload coverage reports to Codecov
+                uses: codecov/codecov-action@v7
+                # @todo avoid running this for tests cancelled or where coverage.clover was not generated
+                if: ${{ matrix.code-coverage }}
+                with:
+                    token: ${{ secrets.CODECOV_TOKEN }}
+                    disable_search: true
+                    files: coverage.clover
 
             # @todo would it be useful to run a 2nd test with composer --prefer-lowest?
 
