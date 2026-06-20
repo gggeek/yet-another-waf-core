@@ -7,10 +7,21 @@ START_WEBSERVER="${START_WEBSERVER:-nginx}"
 echo "[$(date)] Bootstrapping the Test container..."
 
 # load values for UBUNTU_VERSION, PHP_VERSION
-. /etc/build-info
+# @todo instead of relying on . /etc/build-info, determine those in the same way setup_php.sh does
+if [ -f /etc/build-info ]; then
+    . /etc/build-info
+else
+    echo "WARNING: file /etc/build-info not found. It is used to set env variables such as UBUNTU_VERSION, PHP_VERSION" >&2
+fi
 # NB: the following line does not account for 'default'
 #PHP_VERSION="$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')"
 #UBUNTU_VERSION="$(fgrep DISTRIB_CODENAME /etc/lsb-release | sed 's/DISTRIB_CODENAME=//')"
+
+if [ -z "${TESTS_ROOT_DIR}" ] || [ -z "${UBUNTU_VERSION}" ] || [ -z "${PHP_VERSION}" ]; then
+    echo "ERROR: empty value not supported for env vars TESTS_ROOT_DIR, UBUNTU_VERSION, PHP_VERSION" >&2
+    exit 1
+fi
+
 BOOTSTRAP_OK_FILE="${TESTS_ROOT_DIR}/tests/ci/var/bootstrap_ok_${UBUNTU_VERSION}_${PHP_VERSION}"
 
 if [ -f "${BOOTSTRAP_OK_FILE}" ]; then
@@ -60,7 +71,7 @@ if [ "$(stat -c '%u' "${CONTAINER_USER_HOME}")" != "${CONTAINER_USER_UID}" ] || 
     fi
 fi
 # @todo do the same chmod for ${TESTS_ROOT_DIR}, if it's not within CONTAINER_USER_HOME
-#       Also, the composer cache dir, while within the user home dir, is mounted via docker and might have faulty ownership  or perms
+#       Also, the composer cache dir, while within the user home dir, is mounted (or might be) via docker and might have faulty ownership  or perms
 
 # @todo the following snippet does not seem to be required on any vm - but we might want to run a chown/chmod on $TESTS_ROOT_DIR
 #DIR="$(dirname "$TESTS_ROOT_DIR")"
@@ -69,23 +80,24 @@ fi
 #    DIR="$(dirname "$DIR")"
 #done
 
-#echo "[$(date)] Fixing Apache configuration..."
-#
-#sed -e "s?^export TESTS_ROOT_DIR=.*?export TESTS_ROOT_DIR=${TESTS_ROOT_DIR}?g" --in-place /etc/apache2/envvars
-#sed -e "s?^export APACHE_RUN_USER=.*?export APACHE_RUN_USER=${USERNAME}?g" --in-place /etc/apache2/envvars
-#sed -e "s?^export APACHE_RUN_GROUP=.*?export APACHE_RUN_GROUP=${USERNAME}?g" --in-place /etc/apache2/envvars
+if [ -f /etc/apache2/envvars ]; then
+    echo "[$(date)] Fixing Apache configuration..."
+
+    sed -e "s|^export TESTS_ROOT_DIR=.*|export TESTS_ROOT_DIR=${TESTS_ROOT_DIR}|g" --in-place /etc/apache2/envvars
+    sed -e "s|^export APACHE_RUN_USER=.*|export APACHE_RUN_USER=${USERNAME}|g" --in-place /etc/apache2/envvars
+    sed -e "s|^export APACHE_RUN_GROUP=.*|export APACHE_RUN_GROUP=${USERNAME}?g" --in-place /etc/apache2/envvars
+fi
 
 PHPVER="$(php -r 'echo implode(".",array_slice(explode(".",PHP_VERSION),0,2));' 2>/dev/null)"
-PHP_FPM_SOCKET="unix:/run/php/php${PHPVER}-fpm.sock"
 
-echo "[$(date)] Fixing Nginx configuration..."
+if [ -f /etc/nginx/sites-available/default ]; then
+    echo "[$(date)] Fixing Nginx configuration..."
 
-# @todo this only works on the 1st start of the container. If it gets stopped+restarted, and the env vars changed, it will not work.
-#       Fix that
-sed -e "s?{{TESTS_ROOT_DIR}}?${TESTS_ROOT_DIR}?g" --in-place /etc/nginx/sites-available/default
-sed -e "s?{{PHP_FPM_SOCKET}}?${PHP_FPM_SOCKET}?g" --in-place /etc/nginx/sites-available/default
-
-sed -e "s?user .*?user ${USERNAME};?g" --in-place /etc/nginx/nginx.conf
+    PHP_FPM_SOCKET="unix:/run/php/php${PHPVER}-fpm.sock"
+    sed -e "s?^ *set \\\$tests_root_dir .*?    set \$tests_root_dir ${TESTS_ROOT_DIR}/tests/public;?g" --in-place /etc/nginx/sites-available/default
+    sed -e "s?^ *set \\\$php_fpm_socket .*?    set \$php_fpm_socket ${PHP_FPM_SOCKET};?g" --in-place /etc/nginx/sites-available/default
+    sed -e "s?^ *user .*?user ${USERNAME};?g" --in-place /etc/nginx/nginx.conf
+fi
 
 echo "[$(date)] Fixing FPM configuration..."
 

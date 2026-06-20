@@ -7,12 +7,16 @@ log_format extended '$remote_addr - $remote_user [$time_local] '
 
 server {
 
+    set $tests_root_dir /var/www/tests/public;
+    # eg: '127.0.0.1:9000' or 'unix:/run/php/php8.5-fpm.sock'
+    set $php_fpm_socket unix:/run/php/php8.5-fpm.sock;
+
     listen 80 default_server;
     listen [::]:80 default_server;
 
     access_log /var/log/nginx/access.log extended;
 
-    root {{TESTS_ROOT_DIR}}/tests/public;
+    root $tests_root_dir;
 
     index index.php;
 
@@ -29,7 +33,7 @@ server {
            include snippets/fastcgi-php.conf;
 
            # With php-fpm (or other unix sockets):
-           fastcgi_pass {{PHP_FPM_SOCKET}};
+           fastcgi_pass $php_fpm_socket;
            # With php-cgi (or other tcp sockets):
            #fastcgi_pass 127.0.0.1:9000;
     }
@@ -44,12 +48,16 @@ server {
 
 server {
 
+    set $tests_root_dir /var/www/tests/public;
+    # eg: '127.0.0.1:9000' or 'unix:/run/php/php8.5-fpm.sock'
+    set $php_fpm_socket unix:/run/php/php8.5-fpm.sock;
+
     listen 8080 default_server;
     listen [::]:8080 default_server;
 
     access_log /var/log/nginx/access.log extended;
 
-    root {{TESTS_ROOT_DIR}}/tests/public;
+    root $tests_root_dir;
 
     index proxy.php;
 
@@ -66,11 +74,11 @@ server {
            include snippets/fastcgi-php.conf;
 
            # With php-fpm (or other unix sockets):
-           fastcgi_pass {{PHP_FPM_SOCKET}};
+           fastcgi_pass $php_fpm_socket;
            # With php-cgi (or other tcp sockets):
            #fastcgi_pass 127.0.0.1:9000;
 
-           fastcgi_param SCRIPT_FILENAME {{TESTS_ROOT_DIR}}/tests/public/proxy.php;
+           fastcgi_param SCRIPT_FILENAME $tests_root_dir/proxy.php;
     }
 
     # deny access to .htaccess files, if Apache's document root
@@ -83,6 +91,10 @@ server {
 
 server {
 
+    set $tests_root_dir /var/www/tests/public;
+    # eg: '127.0.0.1:9000' or 'unix:/run/php/php8.5-fpm.sock'
+    set $php_fpm_socket unix:/run/php/php8.5-fpm.sock;
+
     listen 443 ssl default_server;
     listen [::]:443 ssl default_server;
 
@@ -91,7 +103,7 @@ server {
 
     access_log /var/log/nginx/access.log extended;
 
-    root {{TESTS_ROOT_DIR}}/tests/public;
+    root $tests_root_dir;
 
     index index.php;
 
@@ -108,7 +120,7 @@ server {
            include snippets/fastcgi-php.conf;
 
            # With php-fpm (or other unix sockets):
-           fastcgi_pass {{PHP_FPM_SOCKET}};
+           fastcgi_pass $php_fpm_socket;
            # With php-cgi (or other tcp sockets):
            #fastcgi_pass 127.0.0.1:9000;
     }
@@ -123,6 +135,10 @@ server {
 
 server {
 
+    set $tests_root_dir /var/www/tests/public;
+    # eg: '127.0.0.1:9000' or 'unix:/run/php/php8.5-fpm.sock'
+    set $php_fpm_socket unix:/run/php/php8.5-fpm.sock;
+
     listen 8443 ssl default_server;
     listen [::]:8443 ssl default_server;
 
@@ -131,7 +147,7 @@ server {
 
     access_log /var/log/nginx/access.log extended;
 
-    root {{TESTS_ROOT_DIR}}/tests/public;
+    root $tests_root_dir;
 
     index proxy.php;
 
@@ -148,11 +164,11 @@ server {
            include snippets/fastcgi-php.conf;
 
            # With php-fpm (or other unix sockets):
-           fastcgi_pass {{PHP_FPM_SOCKET}};
+           fastcgi_pass $php_fpm_socket;
            # With php-cgi (or other tcp sockets):
            #fastcgi_pass 127.0.0.1:9000;
 
-           fastcgi_param SCRIPT_FILENAME {{TESTS_ROOT_DIR}}/tests/public/proxy.php;
+           fastcgi_param SCRIPT_FILENAME $tests_root_dir/proxy.php;
     }
 
     # deny access to .htaccess files, if Apache's document root
