@@ -31,14 +31,20 @@ Via Composer: `composer require gggeek/yet-another-waf-core:dev-main`
 See projects https://github.com/gggeek/yet-another-docker-socket-proxy and https://github.com/gggeek/yet-another-waf
 as examples.
 
+Or take a look at the Proxy used for the unit testing suite
+
 ## Design principles
 
 1. Security first. No requests are allowed by default, everything has to be whitelisted.
 2. Ease of use. Error messages should be clear and rather verbose than cryptic. Logging facilities should be extensive.
    Ambiguous configuration should be rejected.
-3. Flexibility. The proxies should be easy to configure for common scenarios and extend to achieve uncommon ones
-4. Performance. Maximum speed of execution and minimum cpu usage / memory usage are _important_. But not the main concern,
+3. Flexibility. The proxies should be easy to configure for common scenarios and extend to achieve uncommon ones.
+   A Docker image shall be provided to get started running a "whitelabel" Firewall with no fuss.
+4. Stability. No API breackage allowed after milestone 1 is released. Strict adherence to semantic versioning.
+5. Performance. Maximum speed of execution and minimum cpu usage / memory usage are _important_. But not the main concern,
    safety, robustness and flexibility come first.
+6. Versatility. Proxies and Firewalls built on this library should work the same regardless of the webserver used to
+   run PHP, be it Apache, Nginx, FrankenPHP or anything else.
 
 Which translates into:
 - PHP 8.2 and up
@@ -48,6 +54,7 @@ Which translates into:
 - avoid relying on too many dependencies - f.e. no Monolog, Symfony ConfigTreeBuilder
 - delegate all possible processing to a 'bootstrap' phase, so that the processing loop can be as efficient as possible
   when used in eg. `worker` mode with FrankenPHP
+- taking care about memory leaks
 
 ## FAQ
 
