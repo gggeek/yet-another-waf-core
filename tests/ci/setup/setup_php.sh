@@ -62,6 +62,8 @@ install_native() {
 install_ondrej() {
     echo "Using PHP packages from ondrej/php..."
 
+    # @todo... if ubuntu is version is 26 or greater, the installation instructions are different. See: https://codeberg.org/oerdnj/deb.sury.org/issues/91
+
     apt-get install -y language-pack-en-base software-properties-common
     LC_ALL=en_US.UTF-8 add-apt-repository ppa:ondrej/php
     apt-get update
