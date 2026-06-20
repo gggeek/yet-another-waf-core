@@ -1,0 +1,302 @@
+<?php
+declare(strict_types=1);
+
+namespace YAWAF\Core;
+
+use Psr\Http\Message\ServerRequestFactoryInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\StreamInterface;
+use Psr\Http\Message\UploadedFileFactoryInterface;
+use Psr\Http\Message\UploadedFileInterface;
+use Psr\Http\Message\UriFactoryInterface;
+use Psr\Http\Message\UriInterface;
+use YAWAF\Core\Stdlib;
+
+/**
+ * A reimplementation of Nyholm\Psr7Server\ServerRequestCreator, attempting to suit better the forward-proxy usecase and
+ * fixing a few known bugs (see https://github.com/Nyholm/psr7-server/issues).
+ *
+ * @todo add support for trusted proxies in front of us: allow whitelisting their IPs and the headers such as x-forwarded-...
+ *
+ * @see https://github.com/Nyholm/psr7-server/issues/62
+ */
+class ServerRequestCreator
+{
+    protected ServerRequestFactoryInterface $serverRequestFactory;
+
+    protected UriFactoryInterface $uriFactory;
+
+    protected UploadedFileFactoryInterface $uploadedFileFactory;
+
+    protected StreamFactoryInterface $streamFactory;
+
+    public function __construct(
+        ServerRequestFactoryInterface $serverRequestFactory,
+        UriFactoryInterface $uriFactory,
+        UploadedFileFactoryInterface $uploadedFileFactory,
+        StreamFactoryInterface $streamFactory
+    ) {
+        $this->serverRequestFactory = $serverRequestFactory;
+        $this->uriFactory = $uriFactory;
+        $this->uploadedFileFactory = $uploadedFileFactory;
+        $this->streamFactory = $streamFactory;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fromGlobals(): ServerRequestInterface
+    {
+        $server = $_SERVER;
+        if (false === isset($server['REQUEST_METHOD'])) {
+            $server['REQUEST_METHOD'] = 'GET';
+        }
+
+        // yawaf change: never call 'getallheaders' - we allow callers to monkey-patch $_SERVER
+        $headers = Stdlib::getHeadersFromServer($server);
+
+        $post = null;
+        if ('POST' === $server['REQUEST_METHOD']) {
+            foreach ($headers as $headerName => $headerValue) {
+                if (true === \is_int($headerName) || 'content-type' !== \strtolower($headerName)) {
+                    continue;
+                }
+                if (\in_array(
+                    \strtolower(\trim(\explode(';', $headerValue, 2)[0])),
+                    ['application/x-www-form-urlencoded', 'multipart/form-data']
+                )) {
+                    $post = $_POST;
+
+                    break;
+                }
+            }
+        }
+
+        return $this->fromArrays($server, $headers, $_COOKIE, $_GET, $post, $_FILES, \fopen('php://input', 'r') ?: null);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fromArrays(array $server, array $headers = [], array $cookie = [], array $get = [], ?array $post = null, array $files = [], $body = null): ServerRequestInterface
+    {
+        $method = $server['REQUEST_METHOD'];
+        $uri = $this->getUriFromEnvWithHTTP($server);
+        $protocol = isset($server['SERVER_PROTOCOL']) ? \str_replace('HTTP/', '', $server['SERVER_PROTOCOL']) : '1.1';
+
+/// @todo... analyze and reconcile differences between $_GET and $server['QUERY_STRING'], as well as between
+///          $_COOKIE and $headers['cookie']
+
+        $serverRequest = $this->serverRequestFactory->createServerRequest($method, $uri, $server);
+
+        foreach ($headers as $name => $value) {
+            // Because PHP automatically casts array keys set with numeric strings to integers, we have to make sure
+            // that numeric headers will not be sent along as integers, as withAddedHeader can only accept strings.
+            if (\is_int($name)) {
+                $name = (string) $name;
+            }
+
+            // yawaf change: handle the case where request already has an `host` header because the $uri passed in to
+            // `createServerRequest` is absolute.
+            // We prefer the 'host' header received from the server to the one rebuilt from the uri.
+            // NB: this works best when assuming that there is a single HTTP_HOST in $_SERVER_. That is part of the http
+            // spec, so we trust the webserver to enforce it for us (note that some webservers might concatenate tmultiple
+            // host headers in a single, csv-formatted value)
+            if ($name === 'host' && $serverRequest->hasHeader('host')) {
+                $serverRequest = $serverRequest->withoutHeader('host');
+            }
+            $serverRequest = $serverRequest->withAddedHeader($name, $value);
+        }
+
+        $serverRequest = $serverRequest
+            ->withProtocolVersion($protocol)
+            ->withCookieParams($cookie)
+            ->withQueryParams($get)
+            ->withParsedBody($post)
+            ->withUploadedFiles($this->normalizeFiles($files));
+
+        if (null === $body) {
+            return $serverRequest;
+        }
+
+        if (\is_resource($body)) {
+            $body = $this->streamFactory->createStreamFromResource($body);
+        } elseif (\is_string($body)) {
+            $body = $this->streamFactory->createStream($body);
+        } elseif (!$body instanceof StreamInterface) {
+            throw new \InvalidArgumentException('The $body parameter to ServerRequestCreator::fromArrays must be string, resource or StreamInterface');
+        }
+
+        return $serverRequest->withBody($body);
+    }
+
+    // yawaf change: removed, since we inject 'REQUEST_METHOD' into $server if it is not there in the 1st place
+    /*private function getMethodFromEnv(array $environment): string
+    {
+        if (false === isset($environment['REQUEST_METHOD'])) {
+            throw new \InvalidArgumentException('Cannot determine HTTP method');
+        }
+
+        return $environment['REQUEST_METHOD'];
+    }*/
+
+    private function getUriFromEnvWithHTTP(array $environment): UriInterface
+    {
+        $uri = $this->createUriFromArray($environment);
+        if (empty($uri->getScheme())) {
+            $uri = $uri->withScheme('http');
+        }
+
+        return $uri;
+    }
+
+    /**
+     * Return an UploadedFile instance array.
+     *
+     * @param array $files An array which respect $_FILES structure
+     *
+     * @return UploadedFileInterface[]
+     *
+     * @throws \InvalidArgumentException for unrecognized values
+     */
+    private function normalizeFiles(array $files): array
+    {
+        $normalized = [];
+
+        foreach ($files as $key => $value) {
+            if ($value instanceof UploadedFileInterface) {
+                $normalized[$key] = $value;
+            } elseif (\is_array($value) && isset($value['tmp_name'])) {
+                $normalized[$key] = $this->createUploadedFileFromSpec($value);
+            } elseif (\is_array($value)) {
+                $normalized[$key] = $this->normalizeFiles($value);
+            } else {
+                throw new \InvalidArgumentException('Invalid value in files specification');
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Create and return an UploadedFile instance from a $_FILES specification.
+     *
+     * If the specification represents an array of values, this method will
+     * delegate to normalizeNestedFileSpec() and return that return value.
+     *
+     * @param array $value $_FILES struct
+     *
+     * @return array|UploadedFileInterface
+     */
+    private function createUploadedFileFromSpec(array $value)
+    {
+        if (\is_array($value['tmp_name'])) {
+            return $this->normalizeNestedFileSpec($value);
+        }
+
+        if (UPLOAD_ERR_OK !== $value['error']) {
+            $stream = $this->streamFactory->createStream();
+        } else {
+            try {
+                $stream = $this->streamFactory->createStreamFromFile($value['tmp_name']);
+            } catch (\RuntimeException $e) {
+                $stream = $this->streamFactory->createStream();
+            }
+        }
+
+        return $this->uploadedFileFactory->createUploadedFile(
+            $stream,
+            (int) $value['size'],
+            (int) $value['error'],
+            $value['name'],
+            $value['type']
+        );
+    }
+
+    /**
+     * Normalize an array of file specifications.
+     *
+     * Loops through all nested files and returns a normalized array of
+     * UploadedFileInterface instances.
+     *
+     * @return UploadedFileInterface[]
+     */
+    private function normalizeNestedFileSpec(array $files = []): array
+    {
+        $normalizedFiles = [];
+
+        foreach (\array_keys($files['tmp_name']) as $key) {
+            $spec = [
+                'tmp_name' => $files['tmp_name'][$key],
+                'size' => $files['size'][$key],
+                'error' => $files['error'][$key],
+                'name' => $files['name'][$key],
+                'type' => $files['type'][$key],
+            ];
+            $normalizedFiles[$key] = $this->createUploadedFileFromSpec($spec);
+        }
+
+        return $normalizedFiles;
+    }
+
+    /**
+     * Create a new uri from server variable.
+     * NB: eschews access to $_GET.
+     * NB: trusts the Host header over SERVER_PORT, SERVER_NAME
+     *
+     * @param array $server typically $_SERVER or similar structure
+     */
+    private function createUriFromArray(array $server): UriInterface
+    {
+        $uri = $this->uriFactory->createUri('');
+
+        // yawaf change: do not trust X-FORWARDED-PROTO. We have to add 1st support for trusted proxies IPs
+        /// @see https://github.com/Nyholm/psr7-server/issues/63
+        //if (isset($server['HTTP_X_FORWARDED_PROTO'])) {
+        //    $uri = $uri->withScheme($server['HTTP_X_FORWARDED_PROTO']);
+        //} else {
+            if (isset($server['REQUEST_SCHEME'])) {
+                $uri = $uri->withScheme($server['REQUEST_SCHEME']);
+            } elseif (isset($server['HTTPS'])) {
+                $uri = $uri->withScheme('on' === $server['HTTPS'] ? 'https' : 'http');
+            }
+
+            if (isset($server['SERVER_PORT'])) {
+                $uri = $uri->withPort($server['SERVER_PORT']);
+            }
+        //}
+
+        if (isset($server['HTTP_HOST'])) {
+            if (1 === \preg_match('/^(.+)\:(\d+)$/', $server['HTTP_HOST'], $matches)) {
+                $uri = $uri->withHost($matches[1])->withPort($matches[2]);
+            } else {
+                // yawaf change: in case the Host header misses a port, use the default port for the current scheme
+                // instead of the one from $server['SERVER_PORT']
+                if ($scheme = $uri->getScheme() !== '') {
+                    if ($scheme === 'http') {
+                        $uri = $uri->withPort(80);
+                    } elseif($scheme === 'https') {
+                        $uri = $uri->withPort(443);
+                    }
+                }
+                $uri = $uri->withHost($server['HTTP_HOST']);
+            }
+        } elseif (isset($server['SERVER_NAME'])) {
+            $uri = $uri->withHost($server['SERVER_NAME']);
+        }
+
+        if (isset($server['REQUEST_URI'])) {
+            // yawaf change: optimize (for weird cases)
+            $uri = $uri->withPath(\current(\explode('?', $server['REQUEST_URI'], 2)));
+
+            // NB: we do _not_ have to handle the fragment part here, as that is in fact handled purely in-browser
+        }
+
+        if (isset($server['QUERY_STRING'])) {
+            $uri = $uri->withQuery($server['QUERY_STRING']);
+        }
+
+        return $uri;
+    }
+}

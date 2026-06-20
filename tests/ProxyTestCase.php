@@ -65,11 +65,12 @@ abstract class ProxyTestCase extends TestCase
      */
     protected function request(array $options, string $method = 'GET', string $path = '', string $clientPreferredType='any'): ResponseInterface
     {
-        $client = $this->getProxyClient($clientPreferredType);
+        $client = $this->getProxyClient([], $clientPreferredType);
         return $client->request($method, $this->getServerBaseUri() . (trim($path) === '' ? $this->getServerPath() : $path), $options);
     }
 
     /**
+     * Creates an http client with the given options.
      * @throws \Exception
      */
     protected function getClient(array $options = [], string $preferredType='any'): HttpClientInterface
@@ -88,6 +89,8 @@ abstract class ProxyTestCase extends TestCase
     }
 
     /**
+     * Creates an http client with the given options, adding to its requests http headers used by the test proxy page
+     * to drive its operations
      * @throws \Exception
      */
     protected function getTestClient(array $options = [], string $preferredType='any'): HttpClientInterface
@@ -103,13 +106,14 @@ abstract class ProxyTestCase extends TestCase
     }
 
     /**
+     * Creates an http client with the given options, making its requests go through the proxy
      * @throws \Exception
      * @todo allow DataProvider functions that iterate the tests over http features, such as req/resp compression, charsets,
      *       etc... (here or ?)
      */
-    protected function getProxyClient(string $preferredType='any'): HttpClientInterface
+    protected function getProxyClient(array $options = [], string $preferredType='any'): HttpClientInterface
     {
-        $options = [
+        $options = $options + [
             'proxy' => $this->getProxyBaseUri(),
         ];
 
