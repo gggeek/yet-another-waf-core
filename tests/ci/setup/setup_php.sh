@@ -12,6 +12,8 @@ set -e
 
 echo "Installing PHP version '${1}'..."
 
+PHP_VERSION="$1"
+
 SCRIPT_DIR="$(dirname -- "$(readlink -f "$0")")"
 
 export DEBIAN_FRONTEND=noninteractive
@@ -77,7 +79,6 @@ install_ondrej() {
 }
 
 # install php
-PHP_VERSION="$1"
 # `lsb-release` is not necessarily onboard. We parse /etc/os-release instead
 DEBIAN_VERSION=$(grep 'VERSION_CODENAME=' /etc/os-release | sed 's/VERSION_CODENAME=//')
 if [ -z "${DEBIAN_VERSION}" ]; then
@@ -90,16 +91,31 @@ fi
 # use native packages if requested for a specific version and that is the same as available in the os repos
 
 DEFAULT_PHP_VERSION=
-if [ "${DEBIAN_VERSION}" = 'focal' ]; then
+if [ "${DEBIAN_VERSION}" = 'precise' ]; then
+    # aka. ubuntu 12.04
+    DEFAULT_PHP_VERSION=5.3
+elif [ "${DEBIAN_VERSION}" = 'trusty' ]; then
+    # aka. ubuntu 14.04
+    DEFAULT_PHP_VERSION=5.5
+elif [ "${DEBIAN_VERSION}" = 'xenial' ]; then
+    # aka. ubuntu 16.04
+    DEFAULT_PHP_VERSION=7.0
+elif [ "${DEBIAN_VERSION}" = 'bionic' ]; then
+    # aka. ubuntu 18.04
+    DEFAULT_PHP_VERSION=7.2
+elif [ "${DEBIAN_VERSION}" = 'focal' ]; then
+    # aka. ubuntu 20.04
     DEFAULT_PHP_VERSION=7.4
 elif [ "${DEBIAN_VERSION}" = 'jammy' ]; then
+    # aka. ubuntu 22.04
     DEFAULT_PHP_VERSION=8.1
 elif [ "${DEBIAN_VERSION}" = 'noble' ]; then
+    # aka. ubuntu 24.04
     DEFAULT_PHP_VERSION=8.3
 elif [ "${DEBIAN_VERSION}" = 'resolute' ]; then
+    # aka. ubuntu 26.04
     DEFAULT_PHP_VERSION=8.5
 fi
-
 
 if [ "${PHP_VERSION}" = default ] || [ "${PHP_VERSION}" = "${DEFAULT_PHP_VERSION}" ]; then
     install_native
@@ -111,7 +127,7 @@ else
         fi
     done
 
-    # @todo move to using ondrej packages for php 8.5 when they become available
+    # @todo test usage of ondrej packages for php 8.5
     if [ "${PHP_VERSION}" = 5.3 ] || [ "${PHP_VERSION}" = 5.4 ] || [ "${PHP_VERSION}" = 5.5 ] || \
         [ "${DEBIAN_VERSION}" = focal ] || [ "${DEBIAN_VERSION}" = bionic ] || [ "${DEBIAN_VERSION}" = xenial ] || [ "${DEBIAN_VERSION}" = trusty ]; then
         install_shivammatur
@@ -119,7 +135,6 @@ else
         install_ondrej
     fi
 fi
-
 
 PHPVER=$(php -r 'echo implode(".",array_slice(explode(".",PHP_VERSION),0,2));' 2>/dev/null)
 

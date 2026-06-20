@@ -20,7 +20,8 @@ jobs:
                     -   php: '8.3'
                         operating-system: ubuntu-22.04
                         webserver: nginx
-                    -   php: default # 8.2
+                    -   php: '8.2'
+                        # nb: ubuntu-22 images are not available anymore for github-hosted runners, as of 2026/6
                         operating-system: ubuntu-26.04
                         webserver: nginx
 
@@ -44,11 +45,10 @@ jobs:
                 run: |
                     chmod 755 ./tests/ci/setup/*.sh
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/install_packages.sh
-                    # @todo install apache instead of nginx based on matrix vars
                     if [ '${{ matrix.webserver }}' = 'apache2' ]; then
                         sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_apache.sh
                     else
-                        sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_nginx.sh
+                        sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_nginx.sh ${{ matrix.php }}
                     fi
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_php.sh ${{ matrix.php }}
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_composer.sh

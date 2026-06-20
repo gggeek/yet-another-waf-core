@@ -4,9 +4,9 @@
 # Has to be run as root
 # @todo make sure this works across all ubuntu versions (precise to resolute)
 
-echo "Installing and configuring Apache2..."
-
 set -e
+
+echo "Installing and configuring Apache2..."
 
 SCRIPT_DIR="$(dirname -- "$(readlink -f "$0")")"
 
