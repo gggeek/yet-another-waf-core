@@ -63,4 +63,4 @@ Use of this software is subject to the terms in the [LICENSE](LICENSE) file
 [![Total Downloads](https://poser.pugx.org/gggeek/yet-another-waf-core/downloads)](https://packagist.org/packages/gggeek/yet-another-waf-core)
 
 [![Build Status](https://github.com/gggeek/yet-another-waf-core/actions/workflows/ci.yaml/badge.svg)](https://github.com/gggeek/yet-another-waf-core/actions/workflows/ci.yaml)
-[![Code Coverage](https://codecov.io/gh/gggeek/yet-another-waf-core/branch/master/graph/badge.svg)](https://app.codecov.io/gh/gggeek/yet-another-waf-core)
+[![Code Coverage](https://codecov.io/github/gggeek/yet-another-waf-core/branch/main/graph/badge.svg)](https://app.codecov.io/github/gggeek/yet-another-waf-core)
