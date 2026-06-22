@@ -16,7 +16,7 @@ class TestProxy extends FilteringProxy
     const DEFAULT_UPSTREAMS = [
         'http' => 'http://127.0.0.1/server.php',
         'tcp' => 'tcp://127.0.0.1:80',
-        'unix' => 'unix:/run/nginx/server.sock',
+        'unix' => 'unix:/run/nginx.server.sock',
 
     ];
     const ACCESS_DENIED_STATUS_CODE = 403;
