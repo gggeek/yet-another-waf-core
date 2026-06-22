@@ -12,8 +12,8 @@
       - for which matcher a 'literal' version is importamt? body, header, user_agent, query_string, ...
     - client_address: support v6 IPs without forcing users to write a complex regexp
     - other? eg. ssl on
-    - review: can we do the same (but better) as all the haproxy rules in NC-AIO haproxy.cfg?
   - implement and test filtering support
+  - review: can we do the same (but better) as all the haproxy rules in NC-AIO haproxy.cfg?
   - create a flow diagram with req/resp matching and filtering
   - clean up the `*MatcherInterface` mess: drop MatcherInterface; move Logic/* matchers to MessageInterface?
   - allow 'restart' as action for (Request) rules
@@ -26,7 +26,7 @@
       of a waf to remote apps, or would it need some api changes?
 
 - Proxy
-  - test: support for `unix:/` and `tcp://` sockets
+  - test: support for `unix:/` (server-side: ok) and `tcp://` sockets
   - add by default the http headers telling upstream about real-ip and x-forwarded-protocol, patch hop-by-hop headers
     see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
   - tls & https support
@@ -52,8 +52,7 @@
   - improve message formatting: add context
 
 - Testing
-  - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions (finish apache vhost setup 1st),
-    and guzzle/sf http clients (the latter with both native and curl transports)
+  - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions (finish apache vhost setup 1st)
   - add tests which make use of middleware from other projects, eg. rate-limiting and caching
 
 - Misc

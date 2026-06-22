@@ -119,10 +119,13 @@ class AB_MatchingTest extends ProxyTestCase
         foreach (self::getSupportedServerSchemes() as $serverScheme) {
             foreach (self::getSupportedProxySchemes() as $proxyScheme) {
                 foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
-                    if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'sfhc_native' )) {
+                    if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'sfhc_native')) {
                         continue;
                     }
                     foreach (self::getSupportedClientTypes() as $clientType) {
+                        if ($proxyScheme === 'unix' && $clientType === 'native') {
+                            continue;
+                        }
                         $out[] = [$clientType, $upstreamClientType, $proxyScheme, $serverScheme];
                     }
                 }
