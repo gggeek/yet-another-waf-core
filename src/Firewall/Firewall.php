@@ -5,17 +5,19 @@ namespace YAWAF\Core\Firewall;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
-use YAWAF\Core\Filter\Bidirectional\BidirectionalFilterInterface;
+use YAWAF\Core\Exception\RequestDenied;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\Stdlib;
 
 /**
  * The class doing the actual filtering of Requests and Responses
  */
-class Firewall implements BidirectionalFilterInterface, LoggerAwareInterface
+class Firewall implements MiddlewareInterface, LoggerAwareInterface
 {
     public const DefaultFallbackConfiguration = [
         'req_match' => [
@@ -53,7 +55,22 @@ class Firewall implements BidirectionalFilterInterface, LoggerAwareInterface
         $this->rules = $rules;
     }
 
-    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|false
+    /**
+     * @throws RequestDenied
+     */
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+        $request = $this->filterRequest($request);
+        $response = $handler->handle($request);
+/// @todo should we clone the original request and pass that one to filterResponse() ?
+        $response = $this->filterResponse($response, $request);
+        return $response;
+    }
+
+    /**
+     * @throws RequestDenied
+     */
+    protected function filterRequest(ServerRequestInterface $request): ServerRequestInterface
     {
         $this->currentRule = null;
         foreach ($this->rules as $ruleName => $rule) {
@@ -63,11 +80,13 @@ class Firewall implements BidirectionalFilterInterface, LoggerAwareInterface
                 return $rule->filterRequest($request);
             }
         }
+
         $this->debug("No firewall rule matched request: " . $this->request2Log($request));
-        return false;
+        //return false;
+        throw new RequestDenied();
     }
 
-    public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface|false
+    protected function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface|false
     {
         $response = $this->currentRule->filterResponse($response, $request);
         $this->currentRule = null;

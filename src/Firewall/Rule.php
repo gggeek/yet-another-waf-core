@@ -92,7 +92,7 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
         return $this->requestMatcher->matchesRequest($request);
     }
 
-    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface|false
+    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface
     {
         if ($this->requestAction === RuleAction::Deny) {
             return false;
@@ -112,7 +112,7 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
         return $this->responseMatcher->matchesResponse($response);
     }
 
-    public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface|false
+    public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface
     {
         if ($this->matchesResponse($response)) {
             if ($this->responseAction === RuleAction::Deny) {

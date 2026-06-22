@@ -11,10 +11,11 @@ require __DIR__ . '/../../vendor/autoload.php';
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Log\LogLevel;
-use YAWAF\Core\Filter\Bidirectional\FilterChain;
-use YAWAF\Core\Filter\Bidirectional\Tracer;
 use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
+use YAWAF\Core\Middleware\Dispatcher;
+use YAWAF\Core\Middleware\Tracer;
+use YAWAF\Core\Proxy\UpstreamConnector;
 use YAWAF\Core\ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
 
@@ -118,13 +119,14 @@ class ProxyPage
                 if (file_exists($traceFileName)) {
                     file_put_contents($traceFileName, '');
                 }
-                $firewall = new FilterChain([new Tracer($traceFileName), $firewall]);
+                $firewall = new Dispatcher([new Tracer($traceFileName), $firewall]);
             }
 
             // NB: calling this results in manipulation of $_SERVER and co
             $serverRequest = $this->fromGlobals();
 
-            $proxy = new TestProxy($firewall, $upstream, null, $logger);
+            $upstreamConnector = new UpstreamConnector($upstream, null, $logger);
+            $proxy = new TestProxy($firewall, $upstreamConnector, $logger);
             $response = $proxy->handle($serverRequest);
             $emitter->emit($response);
 

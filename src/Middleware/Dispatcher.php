@@ -1,0 +1,51 @@
+<?php
+declare(strict_types=1);
+
+namespace YAWAF\Core\Middleware;
+
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+
+class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
+{
+    /** @var MiddlewareInterface[] */
+    protected array $middlewares = [];
+    protected RequestHandlerInterface $requestHandler;
+    protected int $current = 0;
+
+    /**
+     * @param MiddlewareInterface[] $middlewares
+     * @param RequestHandlerInterface $requestHandler
+     */
+    public function __construct(array $middlewares)
+    {
+
+        foreach ($middlewares as $filter) {
+            $this->addMiddleware($filter);
+        }
+    }
+
+    public function addMiddleware(MiddlewareInterface $filter)
+    {
+        $this->middlewares[] = $filter;
+    }
+
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+/// @todo... should we throw if there are 0 middlewares added? It seems more likely to be a config error than a real need
+        $this->requestHandler = $handler;
+        $this->current = 0;
+        return $this->middlewares[$this->current]->process($request, $this);
+    }
+
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        if ($this->current < count($this->middlewares)) {
+            $this->current++;
+            return $this->middlewares[$this->current]->process($request, $this);
+        }
+        return $this->requestHandler->handle($request);
+    }
+}

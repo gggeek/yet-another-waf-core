@@ -1,10 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Filter\Bidirectional;
+namespace YAWAF\Core\Middleware;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * NB: despite the output format being basically the same as what you from CURL, and despite the name, there is
@@ -12,25 +14,19 @@ use Psr\Http\Message\ServerRequestInterface;
  *
  * @todo investigate if we can somehow fix that
  */
-class Tracer implements BidirectionalFilterInterface
+class Tracer implements MiddlewareInterface
 {
-    protected $fileName;
+    protected string $fileName;
 
     public function __construct(string $fileName)
     {
         $this->fileName = $fileName;
     }
 
-    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface|false
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // We could serialize the request in the `filterResponse` method, bot doing it here means we will have a trace
-        // of the request in case there is a fatal error before we get to trace the response
         file_put_contents($this->fileName, $this->serializeRequest($request), FILE_APPEND);
-        return $request;
-    }
-
-    public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface|false
-    {
+        $response = $handler->handle($request);
         file_put_contents($this->fileName, $this->serializeResponse($response) . "--\n", FILE_APPEND);
         return $response;
     }
