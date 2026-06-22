@@ -97,11 +97,6 @@ if [ -f /etc/nginx/sites-available/default ]; then
     sed -e "s?^ *set \\\$tests_root_dir .*?    set \$tests_root_dir ${TESTS_ROOT_DIR}/tests/public;?g" --in-place /etc/nginx/sites-available/default
     sed -e "s?^ *set \\\$php_fpm_socket .*?    set \$php_fpm_socket ${PHP_FPM_SOCKET};?g" --in-place /etc/nginx/sites-available/default
     sed -e "s?^ *user .*?user ${USERNAME};?g" --in-place /etc/nginx/nginx.conf
-
-    # set up the dir for the sockets defined in the vhost
-    # @todo grab the dir from grepping through /etc/nginx/sites-available/default
-    mkdir /run/nginx/
-    chown www-data:www-data /run/nginx/
 fi
 
 echo "[$(date)] Fixing FPM configuration..."

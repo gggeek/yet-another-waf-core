@@ -193,7 +193,7 @@ server {
     # eg: '127.0.0.1:9000' or 'unix:/run/php/php8.5-fpm.sock'
     set $php_fpm_socket unix:/run/php/php8.5-fpm.sock;
 
-    listen unix:/var/run/nginx/server.sock default_server;
+    listen unix:/run/nginx.server.sock default_server;
 
     access_log /var/log/nginx/access.log extended;
 
@@ -233,7 +233,7 @@ server {
     # eg: '127.0.0.1:9000' or 'unix:/run/php/php8.5-fpm.sock'
     set $php_fpm_socket unix:/run/php/php8.5-fpm.sock;
 
-    listen unix:/var/run/nginx/proxy.sock default_server;
+    listen unix:/run/nginx.proxy.sock default_server;
 
     access_log /var/log/nginx/access.log extended;
 
