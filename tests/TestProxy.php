@@ -6,10 +6,9 @@ namespace YAWAF\Core\Tests;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use YAWAF\Core\Proxy\Server;
+use YAWAF\Core\Proxy\FilteringProxy;
 
-/// @to rename to testFirewall?
-class TestProxy extends Server
+class TestProxy extends FilteringProxy
 {
     const DEFAULT_UPSTREAMS = [
         'http' => 'http://127.0.0.1/server.php',

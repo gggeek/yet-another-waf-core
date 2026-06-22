@@ -15,7 +15,7 @@ use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
 use YAWAF\Core\Middleware\Tracer;
-use YAWAF\Core\Proxy\UpstreamConnector;
+use YAWAF\Core\Proxy\Proxy;
 use YAWAF\Core\ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
 
@@ -122,10 +122,11 @@ class ProxyPage
                 $firewall = new Dispatcher([new Tracer($traceFileName), $firewall]);
             }
 
-            // NB: calling this results in manipulation of $_SERVER and co
-            $serverRequest = $this->fromGlobals();
+/// @todo... allow usage of a custom http header to drive usage of sf-curl vs sf-native vs guzzle
+            $httpClient = null;
 
-            $upstreamConnector = new UpstreamConnector($upstream, null, $logger);
+            $serverRequest = $this->fromGlobals();
+            $upstreamConnector = new Proxy($upstream, $httpClient, $logger);
             $proxy = new TestProxy($firewall, $upstreamConnector, $logger);
             $response = $proxy->handle($serverRequest);
             $emitter->emit($response);
@@ -137,6 +138,9 @@ class ProxyPage
         }
     }
 
+    /**
+     * NB: calling this results in manipulation of $_SERVER and co.
+     */
     protected function fromGlobals()
     {
         // Clean up ("patch") the data we allow the Proxy to handle - remove test-managing headers and cookies
@@ -173,6 +177,6 @@ class ProxyPage
     protected function removeCookieFromEnv($cookieName)
     {
         unset($_COOKIE[$cookieName]);
-/// @todo... patch as well $_SERVER['HTTP_COOKIE']
+/// @todo... patch as well $_SERVER['HTTP_COOKIE'] for consistency
     }
 }

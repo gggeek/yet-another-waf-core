@@ -14,15 +14,12 @@ use YAWAF\Core\Exception\RequestDenied;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 
 /**
- * @todo rename, or tweak the API a bit?
- *       even though the proxy is passed in the connector to upstream as a RequestHandlerInterface, it does not make a
- *       lot of sense to make it a Middleware, as it can not be hooked onto _any kind_ of RequestHandlerInterface.
- *       Exposing both interfaces is not a good idea as it would leave users wondering about intended usage.
- *       In fact, it might make more sense rename the UpstreamConnector class `Proxy`, rename this to something
- *       different (what? it is a middleware-cum-filters-and-logging...) and possibly make this a Middleware...
- *       Also, rename $this->filter to Firewall?
+ * Allows adding middlewares to execute logic before forwarding the request upstream / after having received the response,
+ * such as e.g. a firewall component.
+ * Note: what makes this a proxy really is the fact that a proper Proxy is passed in as $upstreamConnector...
+ * Should we change the typehint for $upstreamConnector to eg. a specific subclass of RequestHandlerInterface?
  */
-abstract class Server implements RequestHandlerInterface, LoggerAwareInterface
+abstract class FilteringProxy implements RequestHandlerInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
