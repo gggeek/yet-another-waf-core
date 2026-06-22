@@ -57,7 +57,8 @@ jobs:
                     f="$(pwd)"; while [[ $f != / ]]; do sudo chmod +rx "$f"; f="$(dirname "$f")"; done;
                     find . -type d -exec chmod +rx {} \;
                     find . -type f -exec chmod +r {} \;
-
+                    # make sure the dir exists for the nginx sockets
+                    mkdir /run/nginx && chown www-data:www-data /run/nginx/
                     sudo service '${{ matrix.webserver }}' start
 
             # Avoid downloading composer deps on every workflow run. Is this useful for us? Caching the installation of
