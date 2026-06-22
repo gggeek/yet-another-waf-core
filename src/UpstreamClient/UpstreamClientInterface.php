@@ -17,4 +17,6 @@ interface UpstreamClientInterface extends ClientInterface
      * @throws \Exception
      */
     public function withOptions(array $options): UpstreamClientInterface;
+
+    public function getUserAgent(): string;
 }

@@ -18,9 +18,9 @@ class AA_SmokeTest extends ProxyTestCase
     }
 
     #[DataProvider('clientTypesDataProvider')]
-    public function testProxyAsUpstreamNoTestCookie(string $clientType = 'any')
+    public function testProxyAsUpstreamNoTestCookie(string|null $clientType = null)
     {
-        $client = $this->getClient(['base_uri' => static::getProxyBaseUri()], $clientType);
+        $client = $this->getClient(['base_uri' => static::getProxyBaseUri()], ['client_type' => $clientType]);
         $response = $client->request('GET', static::getProxyPath());
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertEquals(400, $response->getStatusCode(), $response->getContent(false));
@@ -28,9 +28,9 @@ class AA_SmokeTest extends ProxyTestCase
     }
 
     #[DataProvider('clientTypesDataProvider')]
-    public function testProxyAsUpstreamWithTestCookie(string $clientType = 'any')
+    public function testProxyAsUpstreamWithTestCookie(string|null $clientType = null)
     {
-        $client = $this->getTestClient(['base_uri' => static::getProxyBaseUri()], $clientType);
+        $client = $this->getTestClient(['base_uri' => static::getProxyBaseUri()], ['client_type' => $clientType]);
         $response = $client->request('GET', static::getProxyPath());
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $response->getContent(false));
@@ -38,9 +38,9 @@ class AA_SmokeTest extends ProxyTestCase
     }
 
     #[DataProvider('clientTypesDataProvider')]
-    public function testProxyAsProxyWithoutRules(string $clientType = 'any')
+    public function testProxyAsProxyWithoutRules(string|null $clientType = null)
     {
-        $response = $this->request([], 'GET', '', $clientType);
+        $response = $this->request([], 'GET', '', ['client_type' => $clientType]);
         // Without any config, the firewall should return a DENY response
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $response->getContent(false));

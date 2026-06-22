@@ -66,50 +66,50 @@ abstract class ProxyTestCase extends TestCase
      * @throws \Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface
      * @throws \Exception
      */
-    protected function request(array $options, string $method = 'GET', string $path = '', string $clientPreferredType='any'): ResponseInterface
+    protected function request(array $requestOptions, string $method = 'GET', string $path = '', array $testOptions = []): ResponseInterface
     {
-        $client = $this->getProxyClient([], $clientPreferredType);
-        return $client->request($method, static::getServerBaseUri() . (trim($path) === '' ? static::getServerPath() : $path), $options);
+        $client = $this->getProxyClient([], $testOptions);
+        return $client->request($method, static::getServerBaseUri() . (trim($path) === '' ? static::getServerPath() : $path), $requestOptions);
     }
 
     /**
      * Creates an http client with the given options.
      * @throws \Exception
      */
-    protected function getClient(array $options = [], string $preferredType='any'): HttpClientInterface
+    protected function getClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
     {
-        switch ($preferredType) {
-            case 'any':
-                return HttpClient::create($options);
+        switch (@$testOptions['client_type']) {
             case 'curl':
                 // the constructor already checks for the curl extension - no need to do it here
-                return new CurlHttpClient($options);
+                return new CurlHttpClient($clientOptions);
             case 'native':
-                return new NativeHttpClient($options);
+                return new NativeHttpClient($clientOptions);
+            case null:
+            case 'any':
+                return HttpClient::create($clientOptions);
             default:
-                throw new \Exception("Unsupported preferred client type: '$preferredType'");
+                throw new \Exception("Unsupported preferred client type: '{$testOptions['preferred_client_type']}'");
         }
     }
 
     /**
      * Creates an http client with the given options, adding to its requests http headers used by the test proxy page
-     * to drive its operations
+     * to drive its operations.
      * @throws \Exception
      */
-    protected function getTestClient(array $options = [], string $preferredType='any'): HttpClientInterface
+    protected function getTestClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
     {
         $cookie = 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId;
         if (self::shouldCollectCodeCoverageInformation()) {
             $cookie .= ';  PHPUNIT_SELENIUM_TEST_ID=' . $this->testId;
         }
-        $options = $options + [
-            'headers' => [
-                'Cookie' => $cookie,
-                'X-YAWAF-Log-File' => $this->testId . '.log',
-                'X-YAWAF-Trace-File' => $this->testId . '.trace',
-            ],
-        ];
-        return $this->getClient($options, $preferredType);
+        $clientOptions['headers'] = [
+            'Cookie' => $cookie,
+            'X-YAWAF-Log-File' => $this->testId . '.log',
+            'X-YAWAF-Trace-File' => $this->testId . '.trace',
+        ] + ($clientOptions['headers'] ?? []);
+
+        return $this->getClient($clientOptions, $testOptions);
     }
 
     /**
@@ -118,22 +118,33 @@ abstract class ProxyTestCase extends TestCase
      * @todo allow DataProvider functions that iterate the tests over http features, such as req/resp compression, charsets,
      *       etc... (here or ?)
      */
-    protected function getProxyClient(array $options = [], string $preferredType='any'): HttpClientInterface
+    protected function getProxyClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
     {
-        $options = $options + [
+        $clientOptions = $clientOptions + [
             'proxy' => static::getProxyBaseUri(),
         ];
+        if (@$testOptions['upstream_client_type'] !== null) {
+            $clientOptions['headers'] = ['X-YAWAF-Upstream-Client-Type' => $testOptions['upstream_client_type']] + ($clientOptions['headers'] ?? []);
+        }
 
-        return $this->getTestClient($options, $preferredType);
+        return $this->getTestClient($clientOptions, $testOptions);
     }
 
-    protected static function getServerBaseUri(): string
+    protected static function getServerBaseUri($scheme = 'http'): string
     {
-        return static::buildUrl([
-            'scheme' => $_ENV['HTTPSERVER_PROTOCOL'],
-            'host' => $_ENV['HTTPSERVER_HOST'],
-            'port' => $_ENV['HTTPSERVER_PORT'],
-        ]);
+        switch ($scheme) {
+            case 'http':
+            case 'https':
+                return static::buildUrl([
+                    'scheme' => $scheme,
+                    'host' => $_ENV['HTTPSERVER_HOST'],
+                    'port' => $_ENV['HTTPSERVER_PORT'],
+                ]);
+            case 'unix':
+                return 'unix:' . $_ENV['HTTPSERVER_SOCKET'];
+            default:
+                throw new \Exception("Unsupported server scheme: $scheme");
+        }
     }
 
     protected static function getServerPath(): string
@@ -141,13 +152,21 @@ abstract class ProxyTestCase extends TestCase
         return $_ENV['HTTPSERVER_PATH'];
     }
 
-    protected static function getProxyBaseUri(): string
+    protected static function getProxyBaseUri($scheme = 'http'): string
     {
-        return static::buildUrl([
-            'scheme' => $_ENV['PROXY_PROTOCOL'],
-            'host' => $_ENV['PROXY_HOST'],
-            'port' => $_ENV['PROXY_PORT'],
-        ]);
+        switch ($scheme) {
+            case 'http':
+            case 'https':
+                return static::buildUrl([
+                    'scheme' => $scheme,
+                    'host' => $_ENV['PROXY_HOST'],
+                    'port' => $_ENV['PROXY_PORT'],
+                ]);
+            case 'unix':
+                return 'unix:' . $_ENV['PROXY_SOCKET'];
+            default:
+                throw new \Exception("Unsupported proxy scheme: $scheme");
+        }
     }
 
     /**
@@ -214,9 +233,40 @@ abstract class ProxyTestCase extends TestCase
         return $out;
     }
 
+    /**
+     * These are the types of symfony http clients used to query the server/proxy
+     * @return string[]
+     */
     protected static function getSupportedClientTypes(): array
     {
         return extension_loaded('curl') ? ['native', 'curl'] : ['native'];
+    }
+
+    protected static function getSupportedServerSchemes(): array
+    {
+        $schemes = ['http'];
+        if (isset($_ENV['HTTPSERVER_SOCKET']) && trim($_ENV['HTTPSERVER_SOCKET']) !== '') {
+            $schemes[] = 'unix';
+        }
+        return $schemes;
+    }
+
+    protected static function getSupportedProxySchemes(): array
+    {
+        $schemes = ['http'];
+        if (isset($_ENV['PROXY_SOCKET']) && trim($_ENV['PROXY_SOCKET']) !== '') {
+            $schemes[] = 'unix';
+        }
+        return $schemes;
+    }
+
+    /**
+     * NB: we _presume_ that the proxy used to run the tests has installed php-curl, sf-http-client and guzzle
+     * @return string[]
+     */
+    protected static function getSupportedProxyClientTypes(): array
+    {
+        return ['sfhc_native', 'sfhc_curl', 'guzzle'];
     }
 
     protected function getTestDetails(ResponseInterface $response): string

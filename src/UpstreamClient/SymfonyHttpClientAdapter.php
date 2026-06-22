@@ -87,4 +87,9 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         }
         return $mappedOptions;
     }
+
+    public function getUserAgent(): string
+    {
+        return 'Sf' . strrchr(get_class($this->httpClient), '\\');
+    }
 }

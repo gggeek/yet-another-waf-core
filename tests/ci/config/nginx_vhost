@@ -1,9 +1,13 @@
-# @todo listen on 2 unix sockets, one for the proxy and one for the server
-
 # add server-side port and http `Host` header to the access log, to help with troubleshooting
 log_format extended '$remote_addr - $remote_user [$time_local] '
                     '"$request" $status $body_bytes_sent '
                     '"$http_referer" "$http_user_agent" $server_port "$http_host"';
+
+# @todo should we split the access log file in many separate ones?
+#       A single log file is nice to see the timin/interleaving of client requests to the proxy with proxy requests to the server.
+#       Otoh it makes it slightly harder to tell apart requests received on the various ports/sockets...
+
+# HTTP
 
 server {
 
@@ -89,6 +93,8 @@ server {
     }
 }
 
+# HTTPS
+
 server {
 
     set $tests_root_dir /var/www/tests/public;
@@ -155,6 +161,90 @@ server {
             # First attempt to serve request as file, then
             # as directory, then fall back to displaying a 404.
             try_files $uri $uri/ =404;
+    }
+
+    # pass PHP scripts to FastCGI server
+    # NB: the stock php-fpm config for apache also serves .phar and .phtml files. And it prevents files named `.php`
+    #     We replicate it here
+    location ~ [^/]+\.ph(?:p|ar|html)$ {
+           include snippets/fastcgi-php.conf;
+
+           # With php-fpm (or other unix sockets):
+           fastcgi_pass $php_fpm_socket;
+           # With php-cgi (or other tcp sockets):
+           #fastcgi_pass 127.0.0.1:9000;
+
+           fastcgi_param SCRIPT_FILENAME $tests_root_dir/proxy.php;
+    }
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    location ~ /\.ht {
+           deny all;
+    }
+}
+
+# UNIX SOCKET
+
+server {
+
+    set $tests_root_dir /var/www/tests/public;
+    # eg: '127.0.0.1:9000' or 'unix:/run/php/php8.5-fpm.sock'
+    set $php_fpm_socket unix:/run/php/php8.5-fpm.sock;
+
+    listen unix:/var/run/nginx/server.sock default_server;
+
+    access_log /var/log/nginx/access.log extended;
+
+    root $tests_root_dir;
+
+    index index.php;
+
+    location / {
+            # First attempt to serve request as file, then
+            # as directory, then fall back to displaying a 404.
+            try_files $uri $uri/ =404;
+    }
+
+    # pass PHP scripts to FastCGI server
+    # NB: the stock php-fpm config for apache also serves .phar and .phtml files. And it prevents files named `.php`
+    #     We replicate it here
+    location ~ [^/]+\.ph(?:p|ar|html)$ {
+           include snippets/fastcgi-php.conf;
+
+           # With php-fpm (or other unix sockets):
+           fastcgi_pass $php_fpm_socket;
+           # With php-cgi (or other tcp sockets):
+           #fastcgi_pass 127.0.0.1:9000;
+    }
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    location ~ /\.ht {
+           deny all;
+    }
+}
+
+server {
+
+    set $tests_root_dir /var/www/tests/public;
+    # eg: '127.0.0.1:9000' or 'unix:/run/php/php8.5-fpm.sock'
+    set $php_fpm_socket unix:/run/php/php8.5-fpm.sock;
+
+    listen unix:/var/run/nginx/proxy.sock default_server;
+
+    access_log /var/log/nginx/access.log extended;
+
+    root $tests_root_dir;
+
+    index proxy.php;
+
+    location / {
+            # First attempt to serve request as file, then
+            # as directory, then fall back to displaying a 404.
+            try_files proxy.php =404;
     }
 
     # pass PHP scripts to FastCGI server

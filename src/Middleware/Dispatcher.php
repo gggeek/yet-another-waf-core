@@ -21,7 +21,6 @@ class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
      */
     public function __construct(array $middlewares)
     {
-
         foreach ($middlewares as $filter) {
             $this->addMiddleware($filter);
         }
@@ -34,7 +33,7 @@ class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-/// @todo... should we throw if there are 0 middlewares added? It seems more likely to be a config error than a real need
+/// @todo... should we throw with a nice message if there are 0 middlewares added? It seems more likely to be a config error than a real need
         $this->requestHandler = $handler;
         $this->current = 0;
         return $this->middlewares[$this->current]->process($request, $this);
@@ -42,8 +41,8 @@ class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        $this->current++;
         if ($this->current < count($this->middlewares)) {
-            $this->current++;
             return $this->middlewares[$this->current]->process($request, $this);
         }
         return $this->requestHandler->handle($request);

@@ -21,16 +21,21 @@
     </testsuites>
 
     <php>
-        <env name="HTTPSERVER_PROTOCOL" value="http"/>
+        <!--env name="HTTPSERVER_PROTOCOL" value="http"/-->
         <env name="HTTPSERVER_HOST" value="localhost"/>
         <env name="HTTPSERVER_PORT" value=""/>
         <env name="HTTPSERVER_PATH" value="/server.php"/>
+        <!-- Set to an empty string to disable testing this, eg. when running the test against Apache -->
+        <env name="HTTPSERVER_SOCKET" value="/run/nginx/server.sock"/>
 
-        <env name="PROXY_PROTOCOL" value="http"/>
+        <!--env name="PROXY_PROTOCOL" value="http" /-->
         <env name="PROXY_HOST" value="127.0.0.1"/>
         <env name="PROXY_PORT" value="8080"/>
         <!-- This is only used to test direct access to the proxy script as part of smoke-testing the webserver+php configuration -->
         <env name="PROXY_PATH" value="/proxy.php"/>
+        <!-- Set to an empty string to disable testing this, eg. when running the test against Apache -->
+        <env name="PROXY_SOCKET" value="/run/nginx/server.sock"/>
+
     </php>
 
 </phpunit>

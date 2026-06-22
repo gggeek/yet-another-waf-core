@@ -78,6 +78,6 @@ abstract class FilteringProxy implements RequestHandlerInterface, LoggerAwareInt
 
     protected function response2Log(ResponseInterface $response): string
     {
-        return $response->getHeaderLine();
+        return $response->getStatusCode() . ' ' . $response->getReasonPhrase();
     }
 }

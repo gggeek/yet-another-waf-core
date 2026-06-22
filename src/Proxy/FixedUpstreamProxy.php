@@ -23,6 +23,7 @@ class FixedUpstreamProxy extends Proxy
         // set first the logger
         $this->logger = $logger;
         $this->client = $this->setUpstream($upstream, $httpClient);
+        $this->clientUserAgent = $this->client->getUserAgent();
     }
 
     /**

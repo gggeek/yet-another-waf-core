@@ -81,17 +81,18 @@ class ProxyPage
             if (array_key_exists('HTTP_X_YAWAF_LOG_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_LOG_FILE']) !== '') {
                 $logFileName = sys_get_temp_dir() . '/' . basename($_SERVER['HTTP_X_YAWAF_LOG_FILE']);
                 /// @todo should we allow the logs + traces to be stored in a custom dir, making it easy to map it to the host filesystem?
-                //if (!$this->fileIsInTestsDir('ci/var/' . $_GET['YAWAF_LOG_FILE'])) {
-                //    throw new \Exception("Can not use trace file defined in GET var YAWAF_LOG_FILE: outside tests root");
-                //}
                 if (file_exists($logFileName)) {
                     file_put_contents($logFileName, '');
                 }
                 $logger = new FileLogger($logFileName, LogLevel::DEBUG);
             }
 
-/// @todo... allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
-            $upstream = TestProxy::DEFAULT_UPSTREAMS['http'];
+            // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
+            if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_SCHEME', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']) !== '') {
+                $upstream = TestProxy::getUpstream($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']);
+            } else {
+                $upstream = TestProxy::getUpstream();
+            }
 
             $firewallFactory = new FirewallFactory($logger);
             $config = array_key_exists('HTTP_X_YAWAF_CONFIG', $_SERVER) ? trim($_SERVER['HTTP_X_YAWAF_CONFIG']) : '';
@@ -112,9 +113,6 @@ class ProxyPage
             }
 
             if (array_key_exists('HTTP_X_YAWAF_TRACE_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_TRACE_FILE']) !== '') {
-                //if (!$this->fileIsInTestsDir('ci/var/' . $_GET['YAWAF_TRACE_FILE'])) {
-                //    throw new \Exception("Can not use trace file defined in GET var YAWAF_TRACE_FILE: outside tests root");
-                //}
                 $traceFileName = sys_get_temp_dir() . '/' . basename($_SERVER['HTTP_X_YAWAF_TRACE_FILE']);
                 if (file_exists($traceFileName)) {
                     file_put_contents($traceFileName, '');
@@ -122,8 +120,11 @@ class ProxyPage
                 $firewall = new Dispatcher([new Tracer($traceFileName), $firewall]);
             }
 
-/// @todo... allow usage of a custom http header to drive usage of sf-curl vs sf-native vs guzzle
-            $httpClient = null;
+            if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
+                $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);
+            } else {
+                $httpClient = null;
+            }
 
             $serverRequest = $this->fromGlobals();
             $upstreamConnector = new FixedUpstreamProxy($upstream, $httpClient, $logger);

@@ -61,4 +61,9 @@ class GuzzleAdapter implements UpstreamClientInterface
         }
         return $mappedOptions;
     }
+
+    public function getUserAgent(): string
+    {
+        return 'GuzzleHttp\Client';
+    }
 }

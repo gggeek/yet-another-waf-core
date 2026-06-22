@@ -26,6 +26,7 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
 
     protected array $upstream;
     protected UpstreamClientInterface $client;
+    protected string $clientUserAgent;
 
     /**
      * @throws \Exception
@@ -38,6 +39,7 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
             $httpClient = (new UpstreamClientFactory())->createClient();
         }
         $this->client = $httpClient;
+        $this->clientUserAgent = $this->client->getUserAgent();
     }
 
     /**
@@ -62,6 +64,7 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     {
 /// @todo... add x-forwarded headers and co., strip/massage hop-by-hop headers (use a dedicated function)
 
+        /// @todo delegate
         $request = $request->withHeader('User-Agent', $this->getUserAgent($client, $request));
 
         return $request;
@@ -69,7 +72,9 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
 
     protected function getUserAgent(ClientInterface $client, ServerRequestInterface $request): string
     {
-/// @todo extract the current user-agent from the client (eg. use get_class), wrap it into our own user-agent. Also, add version nr.
-        return "YAWAF Proxy HttpClient";
+        /// @todo Add our own version nr.
+        return "YAWAF Proxy HttpClient" . (
+            $this->clientUserAgent !== '' ? ' (' . $this->clientUserAgent . ')' : ''
+        );
     }
 }

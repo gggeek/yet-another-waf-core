@@ -11,7 +11,12 @@ class AB_MatchingTest extends ProxyTestCase
     #[DataProvider('invalidRulesDataProvider')]
     public function testInvalidRules($configAsString, string $clientType='any')
     {
-        $response = $this->request(['headers' => ['X-YAWAF-Config' => $configAsString]], 'GET', '', $clientType);
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config' => $configAsString]],
+            'GET',
+            '',
+            ['client_type' => $clientType]
+        );
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
         $this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
@@ -50,9 +55,14 @@ class AB_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('passingRulesDataProvider')]
-    public function testPassingRules(string $configFileName, string $clientType='any')
+    public function testPassingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null)
     {
-        $response = $this->request(['headers' => ['X-YAWAF-Config-File' => 'matchers/passing/' . $configFileName]], 'GET', '', $clientType);
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config-File' => 'matchers/passing/' . $configFileName]],
+            'GET',
+            '',
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType]
+        );
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
         //$this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
@@ -63,9 +73,11 @@ class AB_MatchingTest extends ProxyTestCase
         $rootDir = __DIR__ . '/configs/matchers/passing/';
         $out = [];
         foreach (self::getSupportedClientTypes() as $clientType) {
-            foreach (scandir($rootDir) as $fileName) {
-                if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
-                    $out[] = [$fileName, $clientType];
+            foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
+                foreach (scandir($rootDir) as $fileName) {
+                    if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
+                        $out[] = [$fileName, $clientType, $upstreamClientType];
+                    }
                 }
             }
         }
@@ -73,9 +85,14 @@ class AB_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('failingRulesDataProvider')]
-    public function testFailingRules(string $configFileName, string $clientType='any')
+    public function testFailingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null)
     {
-        $response = $this->request(['headers' => ['X-YAWAF-Config-File' => 'matchers/failing/' . $configFileName]], 'GET', '', $clientType);
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config-File' => 'matchers/failing/' . $configFileName]],
+            'GET',
+            '',
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType]
+        );
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
         $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
@@ -86,9 +103,11 @@ class AB_MatchingTest extends ProxyTestCase
         $rootDir = __DIR__ . '/configs/matchers/failing/';
         $out = [];
         foreach (self::getSupportedClientTypes() as $clientType) {
-            foreach (scandir($rootDir) as $fileName) {
-                if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
-                    $out[] = [$fileName, $clientType];
+            foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
+                foreach (scandir($rootDir) as $fileName) {
+                    if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
+                        $out[] = [$fileName, $clientType, $upstreamClientType];
+                    }
                 }
             }
         }
