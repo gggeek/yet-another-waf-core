@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace YAWAF\Core\Proxy;
 
 use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -68,7 +67,7 @@ class FixedUpstreamProxy extends Proxy
                 break;
 
             case '/':
-            case 'unix':
+            case 'unix:/':
                 $this->upstream = parse_url($upstream);
                 // in case we were given a plain fs path
                 $this->upstream['scheme'] = 'unix';
@@ -77,15 +76,15 @@ class FixedUpstreamProxy extends Proxy
                     throw new \Exception('Upstream not supported: can not have port for unix sockets');
                 }
                 if (!$httpClient) {
-                    $httpClient = (new UpstreamClientFactory())->createClient([UpstreamClientInterface::OPT_BINDTO => $upstream]);
+                    $httpClient = (new UpstreamClientFactory())->createClient([UpstreamClientInterface::OPT_BINDTO => $this->upstream['path']]);
                 } else {
-                    $httpClient = $httpClient->withOptions([UpstreamClientInterface::OPT_BINDTO => $upstream]);
+                    $httpClient = $httpClient->withOptions([UpstreamClientInterface::OPT_BINDTO => $this->upstream['path']]);
                 }
                 $this->info("Proxying unix socket upstream '$upstream'");
                 break;
 
             default:
-                throw new \Exception("Unsupported upstream scheme: '{$this->upstream['scheme']}'");
+                throw new \Exception("Unsupported upstream scheme: '{$matches[1]}'");
         }
 
         if ($this->upstream['scheme'] === 'unix' || $this->upstream['scheme'] === 'tcp') {
@@ -149,19 +148,16 @@ class FixedUpstreamProxy extends Proxy
 
             case 'unix':
                 // In case the http request we get uses a hostname, avoid dns resolution so that the request goes to localhost
-/// @todo... fix: what if this method does not exist?
-                if (method_exists($client, 'withOptions')) {
-                    $host = $request->getHeaderLine('Host');
+                $host = $request->getHeaderLine('Host');
 /// @todo... match also IPV6 addresses (with optional port too!), see https://www.ietf.org/rfc/rfc2732.txt
-                    if (!preg_match('/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(?::[0-9]{1,5})?$/', $host)) {
-                        $host = explode(':', $host, 2);
-                        $host = $host[0];
-                        /// @todo avoid doing this if $host is 'localhost'
+                if (!preg_match('/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(?::[0-9]{1,5})?$/', $host)) {
+                    $host = explode(':', $host, 2);
+                    $host = $host[0];
+                    /// @todo avoid doing this if $host is 'localhost'
 /// @todo... what if $host is an IP but _not_ localhost?
-                        $client = $client->withOptions([
-                            'resolve' => [$host => '127.0.0.1'],
-                        ]);
-                    }
+                    $client = $client->withOptions([
+                        UpstreamClientInterface::OPT_RESOLVE => [$host => '127.0.0.1'],
+                    ]);
                 }
 
                 break;

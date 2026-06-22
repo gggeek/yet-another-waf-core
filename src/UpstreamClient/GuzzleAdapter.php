@@ -64,6 +64,6 @@ class GuzzleAdapter implements UpstreamClientInterface
 
     public function getUserAgent(): string
     {
-        return 'GuzzleHttp\Client';
+        return 'GuzzleHttp/Client';
     }
 }

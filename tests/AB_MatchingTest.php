@@ -9,13 +9,14 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class AB_MatchingTest extends ProxyTestCase
 {
     #[DataProvider('invalidRulesDataProvider')]
-    public function testInvalidRules($configAsString, string $clientType='any')
+    public function testInvalidRules(string $configAsString, string|null $clientType = null, string|null $upstreamClientType = null,
+         string $proxyScheme = 'http', string $serverScheme = 'http')
     {
         $response = $this->request(
             ['headers' => ['X-YAWAF-Config' => $configAsString]],
             'GET',
             '',
-            ['client_type' => $clientType]
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
@@ -29,9 +30,9 @@ class AB_MatchingTest extends ProxyTestCase
             'null',
             'true',
             'false',
-            0,
-            1,
-            1.5,
+            '0',
+            '1',
+            '1.5',
             'not a json array string',
             // rule 1 is not an array
             '{"rule 1" => true}',
@@ -45,23 +46,23 @@ class AB_MatchingTest extends ProxyTestCase
             '{"rule 1" => {"req_match": {"zzz": true}}}}',
         ];
         $out = [];
-        foreach (self::getSupportedClientTypes() as $clientType) {
-            foreach ($strings as $string)
-            {
-                $out[] = [$string, $clientType];
+        foreach (self::getCommonDataProviderOptions() as $opts) {
+            foreach ($strings as $string) {
+                $out[] = array_merge([$string], $opts);
             }
         }
         return $out;
     }
 
     #[DataProvider('passingRulesDataProvider')]
-    public function testPassingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null)
+    public function testPassingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
+        string $proxyScheme = 'http', string $serverScheme = 'http')
     {
         $response = $this->request(
             ['headers' => ['X-YAWAF-Config-File' => 'matchers/passing/' . $configFileName]],
             'GET',
             '',
-            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType]
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
@@ -72,12 +73,10 @@ class AB_MatchingTest extends ProxyTestCase
     {
         $rootDir = __DIR__ . '/configs/matchers/passing/';
         $out = [];
-        foreach (self::getSupportedClientTypes() as $clientType) {
-            foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
-                foreach (scandir($rootDir) as $fileName) {
-                    if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
-                        $out[] = [$fileName, $clientType, $upstreamClientType];
-                    }
+        foreach (self::getCommonDataProviderOptions() as $opts) {
+            foreach (scandir($rootDir) as $fileName) {
+                if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
+                    $out[] = array_merge([$fileName], $opts);
                 }
             }
         }
@@ -85,13 +84,14 @@ class AB_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('failingRulesDataProvider')]
-    public function testFailingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null)
+    public function testFailingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
+         string $proxyScheme = 'http', string $serverScheme = 'http')
     {
         $response = $this->request(
             ['headers' => ['X-YAWAF-Config-File' => 'matchers/failing/' . $configFileName]],
             'GET',
             '',
-            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType]
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
@@ -102,11 +102,28 @@ class AB_MatchingTest extends ProxyTestCase
     {
         $rootDir = __DIR__ . '/configs/matchers/failing/';
         $out = [];
-        foreach (self::getSupportedClientTypes() as $clientType) {
-            foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
-                foreach (scandir($rootDir) as $fileName) {
-                    if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
-                        $out[] = [$fileName, $clientType, $upstreamClientType];
+        foreach (self::getCommonDataProviderOptions() as $opts) {
+            foreach (scandir($rootDir) as $fileName) {
+                if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
+                    $out[] = array_merge([$fileName], $opts);
+                }
+            }
+        }
+        return $out;
+    }
+
+    /// @todo can we find a better name?
+    protected static function getCommonDataProviderOptions(): array
+    {
+        $out = [];
+        foreach (self::getSupportedServerSchemes() as $serverScheme) {
+            foreach (self::getSupportedProxySchemes() as $proxyScheme) {
+                foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
+                    if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'sfhc_native' )) {
+                        continue;
+                    }
+                    foreach (self::getSupportedClientTypes() as $clientType) {
+                        $out[] = [$clientType, $upstreamClientType, $proxyScheme, $serverScheme];
                     }
                 }
             }

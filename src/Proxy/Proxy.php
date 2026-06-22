@@ -24,7 +24,6 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
-    protected array $upstream;
     protected UpstreamClientInterface $client;
     protected string $clientUserAgent;
 

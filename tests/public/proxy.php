@@ -87,13 +87,6 @@ class ProxyPage
                 $logger = new FileLogger($logFileName, LogLevel::DEBUG);
             }
 
-            // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
-            if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_SCHEME', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']) !== '') {
-                $upstream = TestProxy::getUpstream($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']);
-            } else {
-                $upstream = TestProxy::getUpstream();
-            }
-
             $firewallFactory = new FirewallFactory($logger);
             $config = array_key_exists('HTTP_X_YAWAF_CONFIG', $_SERVER) ? trim($_SERVER['HTTP_X_YAWAF_CONFIG']) : '';
             $configFile = array_key_exists('HTTP_X_YAWAF_CONFIG_FILE', $_SERVER) ? trim($_SERVER['HTTP_X_YAWAF_CONFIG_FILE']) : '';
@@ -118,6 +111,13 @@ class ProxyPage
                     file_put_contents($traceFileName, '');
                 }
                 $firewall = new Dispatcher([new Tracer($traceFileName), $firewall]);
+            }
+
+            // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
+            if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_SCHEME', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']) !== '') {
+                $upstream = TestProxy::getUpstream($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']);
+            } else {
+                $upstream = TestProxy::getUpstream();
             }
 
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {

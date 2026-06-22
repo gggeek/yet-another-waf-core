@@ -31,6 +31,9 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
                         $this->httpClient = new CurlHttpClient($mappedOptions);
                         break;
                     case 'native':
+                        if (isset($mappedOptions['bindto'])) {
+                            throw new \Exception("Client option: 'bindto' requires usage of the Curl HttpClient");
+                        }
                         $this->httpClient = new NativeHttpClient($mappedOptions);
                         break;
                 }
@@ -52,15 +55,19 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         return $this->psr18Client->sendRequest($request);
     }
 
-    /// @todo...
     public function withOptions(array $options): UpstreamClientInterface
     {
         $mappedOptions = $this->mapOptions($options);
         if (isset($mappedOptions[UpstreamClientInterface::OPT_TRANSPORT])) {
             throw new \Exception(UpstreamClientInterface::OPT_TRANSPORT . " is not supported by Symfony HttpClient Adapter withOptions");
         }
-        $this->httpClient = $this->httpClient->withOptions($mappedOptions);
-        $this->psr18Client = new Psr18Client($this->httpClient);
+        if (isset($mappedOptions['bindto']) && $this->httpClient instanceof NativeHttpClient) {
+            throw new \Exception("Client option: 'bindto' requires usage of the Curl HttpClient");
+        }
+        $clone = clone($this);
+        $clone->httpClient = $this->httpClient->withOptions($mappedOptions);
+        $clone->psr18Client = new Psr18Client($clone->httpClient);
+        return $clone;
     }
 
     /// @todo is it worth moving to Symfony option resolver?
@@ -70,10 +77,14 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         foreach ($options as $name => $value) {
             switch ($name) {
                 case UpstreamClientInterface::OPT_BINDTO:
-                    if (!defined('CURLOPT_UNIX_SOCKET_PATH')) {
-                        throw new \Exception("Client option: '$name' requires availability of the Curl php extension");
-                    }
                     $mappedOptions['bindto'] = $value;
+                    break;
+                case UpstreamClientInterface::OPT_RESOLVE:
+/// @todo check the implementation of the client to see if 'resolve' is supported for the native client
+                    //if (!defined('CURLOPT_UNIX_SOCKET_PATH')) {
+                    //    throw new \Exception("Client option: '$name' requires availability of the Curl php extension");
+                    //}
+                    $mappedOptions['resolve'] = $value;
                     break;
                 case UpstreamClientInterface::OPT_TRANSPORT:
                     if (!in_array($value, ['curl', 'native'])) {
@@ -90,6 +101,6 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
 
     public function getUserAgent(): string
     {
-        return 'Sf' . strrchr(get_class($this->httpClient), '\\');
+        return 'Symfony/' . substr(strrchr(get_class($this->httpClient), '\\'), 1);
     }
 }

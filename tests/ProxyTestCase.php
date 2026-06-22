@@ -73,6 +73,51 @@ abstract class ProxyTestCase extends TestCase
     }
 
     /**
+     * Creates an http client with the given options, making its requests go through the proxy
+     * @throws \Exception
+     * @todo allow DataProvider functions that iterate the tests over http features, such as req/resp compression, charsets,
+     *       etc... (here or ?)
+     */
+    protected function getProxyClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
+    {
+        $clientOptions = $clientOptions + [
+                'proxy' => static::getProxyBaseUri(),
+            ];
+        if (@$testOptions['upstream_client_type'] !== null) {
+            $clientOptions['headers'] = ['X-YAWAF-Upstream-Client-Type' => $testOptions['upstream_client_type']] + ($clientOptions['headers'] ?? []);
+        }
+        if (@$testOptions['server_scheme'] !== null) {
+            $clientOptions['headers'] = ['X-YAWAF-Upstream-Scheme' => $testOptions['server_scheme']] + ($clientOptions['headers'] ?? []);
+        }
+
+        return $this->getTestClient($clientOptions, $testOptions);
+    }
+
+    /**
+     * Creates an http client with the given options, adding to its requests http headers used by the test proxy page
+     * to drive its operations.
+     * @throws \Exception
+     */
+    protected function getTestClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
+    {
+        $cookie = '';
+        if (isset($clientOptions['headers']['Cookie'])) {
+            $cookie = $clientOptions['headers']['Cookie'] . ';';
+        }
+        $cookie .= 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId;
+        if (self::shouldCollectCodeCoverageInformation()) {
+            $cookie .= ';  PHPUNIT_SELENIUM_TEST_ID=' . $this->testId;
+        }
+        $clientOptions['headers'] = [
+                'Cookie' => $cookie,
+                'X-YAWAF-Log-File' => $this->testId . '.log',
+                'X-YAWAF-Trace-File' => $this->testId . '.trace',
+            ] + ($clientOptions['headers'] ?? []);
+
+        return $this->getClient($clientOptions, $testOptions);
+    }
+
+    /**
      * Creates an http client with the given options.
      * @throws \Exception
      */
@@ -90,44 +135,6 @@ abstract class ProxyTestCase extends TestCase
             default:
                 throw new \Exception("Unsupported preferred client type: '{$testOptions['preferred_client_type']}'");
         }
-    }
-
-    /**
-     * Creates an http client with the given options, adding to its requests http headers used by the test proxy page
-     * to drive its operations.
-     * @throws \Exception
-     */
-    protected function getTestClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
-    {
-        $cookie = 'PHPUNIT_RANDOM_TEST_ID=' . self::$randId;
-        if (self::shouldCollectCodeCoverageInformation()) {
-            $cookie .= ';  PHPUNIT_SELENIUM_TEST_ID=' . $this->testId;
-        }
-        $clientOptions['headers'] = [
-            'Cookie' => $cookie,
-            'X-YAWAF-Log-File' => $this->testId . '.log',
-            'X-YAWAF-Trace-File' => $this->testId . '.trace',
-        ] + ($clientOptions['headers'] ?? []);
-
-        return $this->getClient($clientOptions, $testOptions);
-    }
-
-    /**
-     * Creates an http client with the given options, making its requests go through the proxy
-     * @throws \Exception
-     * @todo allow DataProvider functions that iterate the tests over http features, such as req/resp compression, charsets,
-     *       etc... (here or ?)
-     */
-    protected function getProxyClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
-    {
-        $clientOptions = $clientOptions + [
-            'proxy' => static::getProxyBaseUri(),
-        ];
-        if (@$testOptions['upstream_client_type'] !== null) {
-            $clientOptions['headers'] = ['X-YAWAF-Upstream-Client-Type' => $testOptions['upstream_client_type']] + ($clientOptions['headers'] ?? []);
-        }
-
-        return $this->getTestClient($clientOptions, $testOptions);
     }
 
     protected static function getServerBaseUri($scheme = 'http'): string
@@ -177,6 +184,9 @@ abstract class ProxyTestCase extends TestCase
         return $_ENV['PROXY_PATH'];
     }
 
+    /**
+     * @throws \Exception
+     */
     protected static function getRemoteCoverageBaseUri(): string
     {
         /// @todo allow this to be set via an env var, fall back on server if that is not defined
@@ -185,43 +195,8 @@ abstract class ProxyTestCase extends TestCase
 
     protected static function getRemoteCoveragePath(): string
     {
-        // @todo allow this to be set via an env var
+        // @todo should we allow this to be set via an env var?
         return '/phpunit_coverage.php';
-    }
-
-    /**
-     * Generate URL from its components (i.e., opposite of built-in php function, parse_url())
-     */
-    protected static function buildUrl(array $components): string
-    {
-        $url = ! empty($components['scheme']) ? $components['scheme'] . '://' : '';
-
-        if ( ! empty($components['username']) && ! empty($components['password'])) {
-            $url .= $components['username'] . ':' . $components['password'] . '@';
-        }
-
-        $url .= $components['host'] ??  '';
-
-        if ( ! empty($components['port']) &&
-            (($components['scheme'] === 'http' && $components['port'] !== 80) ||
-                ($components['scheme'] === 'https' && $components['port'] !== 443))
-        ) {
-            $url .= ':' . $components['port'];
-        }
-
-        if ( ! empty($components['path'])) {
-            $url .= $components['path'];
-        }
-
-        if ( ! empty($components['query'])) {
-            $url .= '?' . http_build_query($components['query']);
-        }
-
-        if ( ! empty($components['fragment'])) {
-            $url .= '#' . $components['fragment'];
-        }
-
-        return $url;
     }
 
     public static function clientTypesDataProvider(): array
@@ -244,7 +219,10 @@ abstract class ProxyTestCase extends TestCase
 
     protected static function getSupportedServerSchemes(): array
     {
-        $schemes = ['http'];
+        $schemes = [];
+        if (isset($_ENV['HTTPSERVER_HOST']) && trim($_ENV['HTTPSERVER_HOST']) !== '') {
+            $schemes[] = 'http';
+        }
         if (isset($_ENV['HTTPSERVER_SOCKET']) && trim($_ENV['HTTPSERVER_SOCKET']) !== '') {
             $schemes[] = 'unix';
         }
@@ -253,7 +231,10 @@ abstract class ProxyTestCase extends TestCase
 
     protected static function getSupportedProxySchemes(): array
     {
-        $schemes = ['http'];
+        $schemes = [];
+        if (isset($_ENV['PROXY_HOST']) && trim($_ENV['PROXY_HOST']) !== '') {
+            $schemes[] = 'http';
+        }
         if (isset($_ENV['PROXY_SOCKET']) && trim($_ENV['PROXY_SOCKET']) !== '') {
             $schemes[] = 'unix';
         }
@@ -331,5 +312,40 @@ abstract class ProxyTestCase extends TestCase
                 CodeCoverage::instance()->codeCoverage()->append(RawCodeCoverageData::fromXdebugWithoutPathCoverage($data), $testId);
             }
         }
+    }
+
+    /**
+     * Generate URL from its components (i.e., opposite of built-in php function, parse_url())
+     */
+    protected static function buildUrl(array $components): string
+    {
+        $url = ! empty($components['scheme']) ? $components['scheme'] . '://' : '';
+
+        if ( ! empty($components['username']) && ! empty($components['password'])) {
+            $url .= $components['username'] . ':' . $components['password'] . '@';
+        }
+
+        $url .= $components['host'] ??  '';
+
+        if ( ! empty($components['port']) &&
+            (($components['scheme'] === 'http' && $components['port'] !== 80) ||
+                ($components['scheme'] === 'https' && $components['port'] !== 443))
+        ) {
+            $url .= ':' . $components['port'];
+        }
+
+        if ( ! empty($components['path'])) {
+            $url .= $components['path'];
+        }
+
+        if ( ! empty($components['query'])) {
+            $url .= '?' . http_build_query($components['query']);
+        }
+
+        if ( ! empty($components['fragment'])) {
+            $url .= '#' . $components['fragment'];
+        }
+
+        return $url;
     }
 }
