@@ -14,8 +14,8 @@ use YAWAF\Core\Exception\RequestDenied;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 
 /**
- * Allows adding middlewares to execute logic before forwarding the request upstream / after having received the response,
- * such as e.g. a firewall component.
+ * Allows adding middlewares to execute logic before forwarding the request / after having received the response,
+ * such as e.g. a firewall middleware component.
  * Note: what makes this a proxy really is the fact that a proper Proxy is passed in as $upstreamConnector...
  * Should we change the typehint for $upstreamConnector to eg. a specific subclass of RequestHandlerInterface?
  */

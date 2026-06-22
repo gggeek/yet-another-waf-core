@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// *** An http filtering proxy to be used by unit tests.
+// *** A waf proxy to be used by unit tests. Forwards all requests to a fixed upstream.
 // ***
 // *** _Do not use for anything else!_ ***
 // ***
@@ -15,7 +15,7 @@ use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
 use YAWAF\Core\Middleware\Tracer;
-use YAWAF\Core\Proxy\Proxy;
+use YAWAF\Core\Proxy\FixedUpstreamProxy;
 use YAWAF\Core\ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
 
@@ -126,7 +126,7 @@ class ProxyPage
             $httpClient = null;
 
             $serverRequest = $this->fromGlobals();
-            $upstreamConnector = new Proxy($upstream, $httpClient, $logger);
+            $upstreamConnector = new FixedUpstreamProxy($upstream, $httpClient, $logger);
             $proxy = new TestProxy($firewall, $upstreamConnector, $logger);
             $response = $proxy->handle($serverRequest);
             $emitter->emit($response);
