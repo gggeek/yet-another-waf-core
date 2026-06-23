@@ -13,6 +13,8 @@ use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
 class TestProxy extends FilteringProxy
 {
+    /// @todo instead of hardcoding these, we should get their value from the same env vars which are used to drive the
+    ///       client-side of the tests
     const DEFAULT_UPSTREAMS = [
         'http' => 'http://127.0.0.1/server.php',
         'tcp' => 'tcp://127.0.0.1:80',
@@ -54,8 +56,6 @@ class TestProxy extends FilteringProxy
         if (!isset(self::DEFAULT_UPSTREAMS[$scheme])) {
             throw new \Exception("Unsupported scheme for upstream server: $scheme");
         }
-        /// @todo instead of hardcoding these, we should get their value from the same env vars which are used to
-        ///       drive the client-side of the tests
         return self::DEFAULT_UPSTREAMS[$scheme];
     }
 

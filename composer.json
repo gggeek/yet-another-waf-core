@@ -2,7 +2,7 @@
     "name": "gggeek/yet-another-waf-core",
     "description": "A php library for building web api firewalls",
     "license": "GPL-2.0",
-    "keywords": [ "waf", "http", "api", "firewall", "proxy", "security" ],
+    "keywords": [ "waf", "http", "api", "firewall", "proxy", "security", "middleware", "psr-7", "psr-15", "psr-18" ],
     "require": {
         "php": "^8.2",
         "ext-ctype": "*",

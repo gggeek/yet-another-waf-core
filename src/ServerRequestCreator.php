@@ -14,12 +14,12 @@ use Psr\Http\Message\UriInterface;
 use YAWAF\Core\Stdlib;
 
 /**
- * A reimplementation of Nyholm\Psr7Server\ServerRequestCreator, attempting to suit better the forward-proxy usecase and
+ * A reimplementation of Nyholm\Psr7Server\ServerRequestCreator, attempting to suit better the forward-proxy use-case and
  * fixing a few known bugs (see https://github.com/Nyholm/psr7-server/issues).
  *
  * @todo add support for trusted proxies in front of us: allow whitelisting their IPs and the headers such as x-forwarded-...
  *
- * @see https://github.com/Nyholm/psr7-server/issues/62
+ * @see https://github.com/Nyholm/psr7-server/issues/62, https://github.com/Nyholm/psr7-server/pull/49
  */
 class ServerRequestCreator
 {
@@ -50,6 +50,7 @@ class ServerRequestCreator
     {
         $server = $_SERVER;
         if (false === isset($server['REQUEST_METHOD'])) {
+/// @todo should we log this, at least at debug level?
             $server['REQUEST_METHOD'] = 'GET';
         }
 
@@ -101,8 +102,10 @@ class ServerRequestCreator
             // `createServerRequest` is absolute.
             // We prefer the 'host' header received from the server to the one rebuilt from the uri.
             // NB: this works best when assuming that there is a single HTTP_HOST in $_SERVER_. That is part of the http
-            // spec, so we trust the webserver to enforce it for us (note that some webservers might concatenate tmultiple
+            // spec, so we trust the webserver to enforce it for us (note that some webservers might concatenate multiple
             // host headers in a single, csv-formatted value)
+/// @todo... review this decision after a careful read of rfc9112
+/// @todo... also, make sure we can figure out if the request from the client does have an absolute uri, and its scheme, host, port
             if ($name === 'host' && $serverRequest->hasHeader('host')) {
                 $serverRequest = $serverRequest->withoutHeader('host');
             }

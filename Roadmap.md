@@ -19,14 +19,15 @@
   - allow 'restart' as action for (Request) rules
     - allow setting a maxRestarts limit
     - q: should we remove from the current rule chain a rule, after it did trigger a restart? (possibly use 2 `restart` types?)
-  - allow failures of the MethodMatcher to generate a 501 response instead of the default 403?
+  - xml req./resp. body with xpath/css matchers
   - can we make filters add "tags" to requests/responses, to ease later processing?
+  - allow failures of the MethodMatcher to generate a 501 response instead of the default 403?
   - API reworking:
     - check: could we use the firewall filters to implement something like https://github.com/terrylinooo/shieldon instead
       of a waf to remote apps, or would it need some api changes?
 
 - Proxy
-  - test: support for `unix:/` (server-side: ok) and `tcp://` sockets
+  - test: support for `tcp://` upstreams
   - add by default the http headers telling upstream about real-ip and x-forwarded-protocol, patch hop-by-hop headers
     see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
   - tls & https support
@@ -52,7 +53,15 @@
   - improve message formatting: add context
 
 - Testing
-  - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions (finish apache vhost setup 1st)
+  - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions
+    - finish apache vhost setup 1st
+    - test also against: caddy, lighttpd, openlitespeed, roadrunner, swoole, php-http-server
+      - use a cloud-based platform that provides those ready-built, rather than installing each one by ourselves?
+        Either that, or move to a multi-container setup for testing...
+      - we might give a strong preference to how caddy/frankenphp do set up $_SERVER, as that will be the default way to
+        deploy a WAF based on this code (in the downstream YAWAF project)
+  - add tests which try to exploit issues in http parsers, see f.e. https://hostoftroubles.com/
+    (will need an http client based on fsockopen rather than psr stuff)
   - add tests which make use of middleware from other projects, eg. rate-limiting and caching
 
 - Misc
