@@ -15,6 +15,7 @@ RUN if [ ! -f /.dockerenv ]; then touch /.dockerenv; fi && \
   ./create_user.sh && \
   ./setup_apache.sh && \
   ./setup_nginx.sh && \
+  ./setup_frankenphp.sh && \
   ./setup_php.sh "${PHP_VERSION}" && \
   ./setup_composer.sh && \
   apt-get -y autoremove && apt-get -y autoclean && apt-get -y clean && \

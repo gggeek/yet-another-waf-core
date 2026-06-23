@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 USERNAME="${1:-docker}"
 INSTALL_ON_START="${INSTALL_ON_START:-false}"
@@ -126,6 +126,7 @@ echo "[$(date)] Starting FPM..."
 service php-fpm start
 
 echo "[$(date)] Starting the Web server..."
+# @todo... allow usage of a csv list to determine which server to start (presuming they work off different ports)
 if [ "$START_WEBSERVER" = apache ] || [ "$START_WEBSERVER" = apache2 ]; then
     service apache2 start
 else
