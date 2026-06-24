@@ -38,7 +38,9 @@ if [ "$UPDATE_INSTALLED" = true ]; then
     apt-get upgrade -y
 fi
 
-# @todo is curl required?
+# Curl is not required atm to run tests, but it is a good tool to run manual tests on the command-line.
+# It can query a unix socket too, via option `--unix-socket`
+# Alternatives would be netcat, socat
 apt-get install -y \
     curl git sudo unzip
 

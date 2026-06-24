@@ -1,0 +1,63 @@
+<?php
+declare(strict_types=1);
+
+namespace YAWAF\Core\Tests;
+
+use PHPUnit\Framework\Attributes\DataProvider;
+
+class AB_ProxySmokeTest extends ProxyTestCase
+{
+    /**
+     * Tests direct access to the proxy, without the test id cookie: an HTTP 400 response is expected
+     */
+    #[DataProvider('proxyTestsDataProvider')]
+    public function testProxyAsUpstreamNoTestCookie(string|null $clientType = null, string $proxyScheme = 'http')
+    {
+        $client = $this->getClient(['base_uri' => static::getProxyBaseUri()], ['client_type' => $clientType, 'server_scheme' => $proxyScheme]);
+        $response = $client->request('GET', static::getProxyPath());
+        // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
+        $this->assertEquals(400, $response->getStatusCode(), $response->getContent(false));
+        $this->assertEquals('This url can only be accessed by the test suite', $response->getContent(false));
+    }
+
+    /**
+     * Tests direct access to the proxy, with the test id cookie: an HTTP 403 response is expected
+     */
+    #[DataProvider('proxyTestsDataProvider')]
+    public function testProxyAsUpstreamWithTestCookie(string|null $clientType = null, string $proxyScheme = 'http')
+    {
+        // NB: we do _not_ want to use $this->getTestClient here
+        $client = parent::getTestClient(['base_uri' => static::getProxyBaseUri()], ['client_type' => $clientType, 'server_scheme' => $proxyScheme]);
+        $response = $client->request('GET', static::getProxyPath());
+        // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
+        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $response->getContent(false));
+        $this->assertEquals(TestProxy::ACCESS_DENIED_RESPONSE, $response->toArray(false), $response->getContent(false));
+    }
+
+    /**
+     * Tests access to the upstream server via the proxy, with the test id cookie but no access rules defined: an HTTP 403 response is expected
+     */
+    #[DataProvider('proxyTestsDataProvider')]
+    public function testProxyAsProxyWithoutRules(string|null $clientType = null, string $proxyScheme = 'http')
+    {
+        $response = $this->request([], 'GET', '', ['client_type' => $clientType, 'proxy_scheme' => $proxyScheme]);
+        // Without any config, the firewall should return a DENY response
+        // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
+        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $response->getContent(false));
+        $this->assertEquals(TestProxy::ACCESS_DENIED_RESPONSE, $response->toArray(false), $response->getContent(false));
+    }
+
+    public static function proxyTestsDataProvider(): array
+    {
+        $out = [];
+        foreach (self::getSupportedProxySchemes() as $proxyScheme) {
+            foreach (self::getSupportedClientTypes() as $clientType) {
+                if ($proxyScheme === 'unix' && $clientType === 'native') {
+                    continue;
+                }
+                $out[] = [$clientType, $proxyScheme];
+            }
+        }
+        return $out;
+    }
+}

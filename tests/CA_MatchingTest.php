@@ -6,7 +6,7 @@ namespace YAWAF\Core\Tests;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /// @todo declare dependency on SmokeTest
-class AB_MatchingTest extends ProxyTestCase
+class CA_MatchingTest extends ProxyTestCase
 {
     #[DataProvider('invalidRulesDataProvider')]
     public function testInvalidRules(string $configAsString, string|null $clientType = null, string|null $upstreamClientType = null,
