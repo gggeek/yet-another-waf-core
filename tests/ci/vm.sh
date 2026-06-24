@@ -137,6 +137,8 @@ start() {
 
             PORTMAPPING=''
             # @todo improve error message and abort in case any port is not an integer or negative
+            # @todo since we now have 3 webservers inside the container, there are in fact 12 ports which could be exposed.
+            #        Depending on the value of $START_WEBSERVER we should map the external ports to different internal ones...
             if [ "$HOST_HTTPPORT" != no ] && [ "$HOST_HTTPPORT" != '' ]; then
                 PORTMAPPING="-p $((HOST_HTTPPORT-0)):80 "
             fi
