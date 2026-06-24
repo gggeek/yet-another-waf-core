@@ -11,7 +11,6 @@ use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Message\UriFactoryInterface;
 use Psr\Http\Message\UriInterface;
-use YAWAF\Core\Stdlib;
 
 /**
  * A reimplementation of Nyholm\Psr7Server\ServerRequestCreator, attempting to suit better the forward-proxy use-case and
@@ -265,7 +264,8 @@ class ServerRequestCreator
                 $uri = $uri->withScheme('on' === $server['HTTPS'] ? 'https' : 'http');
             }
 
-            if (isset($server['SERVER_PORT'])) {
+            // yawaf change: $server['SERVER_PORT'] can be set and empty when the server is listening on a unix socket
+            if (isset($server['SERVER_PORT']) && $server['SERVER_PORT'] !== '') {
                 $uri = $uri->withPort($server['SERVER_PORT']);
             }
         //}

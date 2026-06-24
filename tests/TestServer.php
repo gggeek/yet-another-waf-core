@@ -40,7 +40,7 @@ class TestServer
                 'serverRequest' => [
                     'method' => $serverRequest->getMethod(),
                     'requestTarget' => $serverRequest->getrequestTarget(),
-                    'URI' => $serverRequest->getURI(),
+                    'URI' => (string)$serverRequest->getURI(),
                     'attributes' => $serverRequest->getAttributes(),
                     'cookieParams' => $serverRequest->getCookieParams(),
                     'queryParams' => $serverRequest->getQueryParams(),

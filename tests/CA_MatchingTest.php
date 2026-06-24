@@ -58,6 +58,12 @@ class CA_MatchingTest extends ProxyTestCase
     public function testPassingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
         string $proxyScheme = 'http', string $serverScheme = 'http')
     {
+        // skip test cases which are bound to fail with given configs
+        /// @todo this should be more robust... We should allow the json configs to specify excluded test configs...
+        if ($configFileName === '001_client_address_fixed.json' && $proxyScheme === 'unix') {
+            $this->markTestSkipped('Can not test a client_address match when running the proxy on a unix socket');
+        }
+
         $response = $this->request(
             ['headers' => ['X-YAWAF-Config-File' => 'matchers/passing/' . $configFileName]],
             'GET',
