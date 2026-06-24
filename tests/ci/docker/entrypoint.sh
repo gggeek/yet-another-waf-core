@@ -112,7 +112,7 @@ fi
 if [ -f /etc/frankenphp/Caddyfile ]; then
     echo "[$(date)] Fixing FrankenPHP configuration..."
 
-    sed -e "s|^ *root .*|    root ${TESTS_ROOT_DIR}|g" --in-place /etc/frankenphp/Caddyfile
+    sed -e "s|^ *root .*|    root ${TESTS_ROOT_DIR}/tests/public|g" --in-place /etc/frankenphp/Caddyfile
 fi
 
 echo "[$(date)] Fixing FPM configuration..."
@@ -159,7 +159,7 @@ if [ "$START_WEBSERVER" = nginx ] || [ "$START_WEBSERVER" = all ]; then
         service nginx start
     else
         if [ "$START_WEBSERVER" = nginx ]; then
-            echo "Can not start apache: it was not installed in this container" >&2
+            echo "Can not start nginx: it was not installed in this container" >&2
             exit 1
         fi
     fi
@@ -169,7 +169,7 @@ if [ "$START_WEBSERVER" = frankenphp ] || [ "$START_WEBSERVER" = all ]; then
         sudo -u frankenphp frankenphp --config /etc/frankenphp/Caddyfile run >/var/log/frankenphp/access.log 2>/var/log/frankenphp/error.log &
     else
         if [ "$START_WEBSERVER" = frankenphp ]; then
-            echo "Can not start apache: it was not installed in this container" >&2
+            echo "Can not start frankenphp: it was not installed in this container" >&2
             exit 1
         fi
     fi
