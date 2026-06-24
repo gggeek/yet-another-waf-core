@@ -28,6 +28,8 @@ mkdir -p "/home/${USERNAME}/.ssh"
 cp /etc/skel/.[!.]* "/home/${USERNAME}"
 
 chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}"
+# in case we later mount the website root under "/home/${USERNAME}", we have to change perms from 750 to 755
+chmod 755 "/home/${USERNAME}"
 
 if [ -f /etc/sudoers ]; then
     adduser "${USERNAME}" sudo
