@@ -49,8 +49,9 @@ class TestServer
                 ]
             ]
         );
-        if (function_exists('getallheaders')) {
-            $response['getallheaders'] = getallheaders();
+        // `getallheaders` is often stubbed, so we check for it with its apache-related name
+        if (function_exists('apache_response_headers')) {
+            $response['getallheaders'] = apache_response_headers();
         }
 
         header('Content-type: application/json');

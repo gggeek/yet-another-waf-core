@@ -20,6 +20,7 @@
         "ext-mbstring": "*",
         "laminas/laminas-httphandlerrunner": "^2.13.0",
         "phpunit/phpunit": "^11.5.55|^12.5.29|^13.2.1",
+        "symfony/dotenv": "^v7.4.11|^8.0.11",
         "symfony/http-client": "^7.4.9",
         "guzzlehttp/guzzle": "^7.12.1",
         "yoast/phpunit-polyfills": "^4.0"

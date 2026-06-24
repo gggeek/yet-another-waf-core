@@ -1,4 +1,4 @@
-# @todo... Add vhosts w. rewrite for the proxy; set a custom log format
+# @todo... Add vhosts w. rewrite for the proxy, ports 8081 and 8443; set a custom log format
 
 # Uses env vars:
 # HTTPSERVER (atm unused...)
@@ -8,7 +8,7 @@
   LogLevel http2:info
 </IfModule>
 
-<VirtualHost *:80>
+<VirtualHost *:81>
 
   <IfModule http2_module>
     # Enable http2
@@ -39,7 +39,7 @@
 
 <IfModule mod_ssl.c>
 
-<VirtualHost _default_:443>
+<VirtualHost _default_:444>
 
   <IfModule http2_module>
     # Enable http2

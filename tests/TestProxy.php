@@ -53,10 +53,25 @@ class TestProxy extends FilteringProxy
      */
     public static function getUpstream(string $scheme = 'http'): string
     {
-        if (!isset(self::DEFAULT_UPSTREAMS[$scheme])) {
-            throw new \Exception("Unsupported scheme for upstream server: $scheme");
+        switch ($scheme) {
+            case 'http':
+                if (trim(@$_ENV['HTTPSERVER_HOST']) === '') {
+                    throw new \Exception("Unsupported scheme for upstream server: $scheme");
+                }
+                return 'http://' . $_ENV['HTTPSERVER_HOST'] .
+                    (trim(@$_ENV['HTTPSERVER_PORT']) === '' ? '' : ':' . $_ENV['HTTPSERVER_PORT']) .
+                    $_ENV['HTTPSERVER_PATH'];
+            /// @todo...
+            //case 'https':
+            //case 'tcp':
+            case 'unix':
+                if (trim(@$_ENV['HTTPSERVER_SOCKET']) === '') {
+                    throw new \Exception("Unsupported scheme for upstream server: $scheme");
+                }
+                return 'unix:' . $_ENV['HTTPSERVER_SOCKET'];
+            default:
+                throw new \Exception("Unsupported scheme for upstream server: $scheme");
         }
-        return self::DEFAULT_UPSTREAMS[$scheme];
     }
 
     /**

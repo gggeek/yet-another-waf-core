@@ -50,6 +50,7 @@ abstract class ProxyTestCase extends ServerTestCase
     protected function getTestClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
     {
         $clientOptions['headers'] = [
+            'X-YAWAF-Server-Type' => $_ENV['SERVER_TYPE'],
             'X-YAWAF-Log-File' => $this->testId . '.log',
             'X-YAWAF-Trace-File' => $this->testId . '.trace',
         ] + ($clientOptions['headers'] ?? []);

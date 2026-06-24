@@ -11,6 +11,7 @@ require __DIR__ . '/../../vendor/autoload.php';
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Log\LogLevel;
+use Symfony\Component\Dotenv\Dotenv;
 use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
@@ -30,6 +31,15 @@ class ProxyPage
 
     public function preflight(): void
     {
+        // Allow the caller to pick a set of configs which differ based on the upstream webserver in use
+        // NB: make sure to allow usage of a proxy running on webserver X and upstream running on webserver Y
+        $dotenv = new Dotenv();
+        $_ENV['SERVER_TYPE'] = 'nginx';
+        if (isset($_SERVER['HTTP_X_YAWAF_SERVER_TYPE']) && in_array($_SERVER['HTTP_X_YAWAF_SERVER_TYPE'], ['apache', 'caddy'])) {
+            $_ENV['SERVER_TYPE'] = $_SERVER['HTTP_X_YAWAF_SERVER_TYPE'];
+        }
+        $dotenv->loadEnv(__DIR__.'/../.env', 'SERVER_TYPE');
+
         // In case this file is made available on an open-access server, avoid it being useable by anyone who can not
         // also write a specific file to disk.
         // NB: keep filename, cookie name in sync with the code within the TestCase classes sending http requests to this file
