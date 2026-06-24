@@ -1,0 +1,43 @@
+# https://frankenphp.dev/docs/config
+# https://caddyserver.com/docs/caddyfile
+
+{
+    skip_install_trust
+    auto_https off
+
+    # `persist_config on` is needed to persist changes made via the API - which we do not allow for the moment
+    persist_config off
+
+    frankenphp {
+        php_ini display_errors On
+        php_ini display_startup_errors On
+        php_ini enable_dl Off
+        php_ini expose_php On
+        php_ini file_uploads On
+        php_ini include_path .
+        php_ini log_errors On
+        php_ini short_open_tag Off
+    }
+}
+
+:82 {
+    root /var/www/tests/public
+
+    encode zstd br gzip
+
+    rewrite * /server.php
+
+    php_server
+}
+
+:8082 {
+    root /var/www/tests/public
+
+    encode zstd br gzip
+
+    rewrite * /proxy.php
+
+    php_server
+}
+
+# @todo... set up https vhosts on ports 445, 8445

@@ -22,7 +22,7 @@ if [ -z "${TESTS_ROOT_DIR}" ] || [ -z "${UBUNTU_VERSION}" ] || [ -z "${PHP_VERSI
     exit 1
 fi
 
-BOOTSTRAP_OK_FILE="${TESTS_ROOT_DIR}/tests/ci/var/bootstrap_ok_${UBUNTU_VERSION}_${PHP_VERSION}"
+BOOTSTRAP_OK_FILE="${TESTS_ROOT_DIR}/tests/ci/var/bootstrap_ok_${UBUNTU_VERSION}_${PHP_VERSION}_${WEBSERVER_TYPE}"
 
 if [ -f "${BOOTSTRAP_OK_FILE}" ]; then
     rm "${BOOTSTRAP_OK_FILE}"
@@ -32,10 +32,20 @@ clean_up() {
     # Perform program exit housekeeping
 
     echo "[$(date)] Stopping the Web server"
-    if [ "$START_WEBSERVER" = apache ] || [ "$START_WEBSERVER" = apache2 ]; then
-        service apache2 stop
-    else
-        service nginx stop
+    if [ "$START_WEBSERVER" = apache ] || [ "$START_WEBSERVER" = apache2 ] || [ "$START_WEBSERVER" = all ]; then
+        if [ -d /etc/apache2 ]; then
+            service apache2 stop
+        fi
+    fi
+    if [ "$START_WEBSERVER" = nginx ] || [ "$START_WEBSERVER" = all ]; then
+        if [ -d /etc/nginx ]; then
+            service nginx stop
+        fi
+    fi
+    if [ "$START_WEBSERVER" = frankenphp ] || [ "$START_WEBSERVER" = all ]; then
+        if [ -d /etc/frankenphp ]; then
+            pkill frankenphp
+        fi
     fi
     echo "[$(date)] Stopping FPM"
     service php-fpm stop
@@ -99,6 +109,12 @@ if [ -f /etc/nginx/sites-available/default ]; then
     sed -e "s?^ *user .*?user ${USERNAME};?g" --in-place /etc/nginx/nginx.conf
 fi
 
+if [ -f /etc/frankenphp/Caddyfile ]; then
+    echo "[$(date)] Fixing FrankenPHP configuration..."
+
+    sed -e "s|^ *root .*|    root ${TESTS_ROOT_DIR}|g" --in-place /etc/frankenphp/Caddyfile
+fi
+
 echo "[$(date)] Fixing FPM configuration..."
 
 if [ -f "/usr/local/php/${PHPVER}/etc/php-fpm.conf" ]; then
@@ -125,12 +141,38 @@ trap clean_up TERM
 echo "[$(date)] Starting FPM..."
 service php-fpm start
 
-echo "[$(date)] Starting the Web server..."
-# @todo... allow usage of a csv list to determine which server to start (presuming they work off different ports)
-if [ "$START_WEBSERVER" = apache ] || [ "$START_WEBSERVER" = apache2 ]; then
-    service apache2 start
-else
-    service nginx start
+echo "[$(date)] Starting the Web server(s(..."
+if [ "$START_WEBSERVER" = apache ] || [ "$START_WEBSERVER" = apache2 ] || [ "$START_WEBSERVER" = all ]; then
+    if [ -d /etc/apache2 ]; then
+        service apache2 start
+    else
+        if [ "$START_WEBSERVER" = apache ] || [ "$START_WEBSERVER" = apache2 ]; then
+            echo "Can not start apache: it was not installed in this container" >&2
+            exit 1
+        fi
+    fi
+fi
+if [ "$START_WEBSERVER" = nginx ] || [ "$START_WEBSERVER" = all ]; then
+    if [ -d /etc/nginx ]; then
+        # @todo this should be moved to /etc/default/nginx so that it always runs on every service start and stop
+        rm /run/nginx.*.sock 2>/dev/null || true
+        service nginx start
+    else
+        if [ "$START_WEBSERVER" = nginx ]; then
+            echo "Can not start apache: it was not installed in this container" >&2
+            exit 1
+        fi
+    fi
+fi
+if [ "$START_WEBSERVER" = frankenphp ] || [ "$START_WEBSERVER" = all ]; then
+    if [ -d /etc/frankenphp ]; then
+        sudo -u frankenphp frankenphp --config /etc/frankenphp/Caddyfile run >/var/log/frankenphp/access.log 2>/var/log/frankenphp/error.log &
+    else
+        if [ "$START_WEBSERVER" = frankenphp ]; then
+            echo "Can not start apache: it was not installed in this container" >&2
+            exit 1
+        fi
+    fi
 fi
 
 echo "[$(date)] Bootstrap finished"

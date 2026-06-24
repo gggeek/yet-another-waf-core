@@ -35,7 +35,7 @@ class ProxyPage
         // NB: make sure to allow usage of a proxy running on webserver X and upstream running on webserver Y
         $dotenv = new Dotenv();
         $_ENV['SERVER_TYPE'] = 'nginx';
-        if (isset($_SERVER['HTTP_X_YAWAF_SERVER_TYPE']) && in_array($_SERVER['HTTP_X_YAWAF_SERVER_TYPE'], ['apache', 'caddy'])) {
+        if (isset($_SERVER['HTTP_X_YAWAF_SERVER_TYPE']) && in_array($_SERVER['HTTP_X_YAWAF_SERVER_TYPE'], ['apache', 'frankenphp'])) {
             $_ENV['SERVER_TYPE'] = $_SERVER['HTTP_X_YAWAF_SERVER_TYPE'];
         }
         $dotenv->loadEnv(__DIR__.'/../.env', 'SERVER_TYPE');

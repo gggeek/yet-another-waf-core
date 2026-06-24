@@ -46,10 +46,14 @@ jobs:
                 run: |
                     chmod 755 ./tests/ci/setup/*.sh
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/install_packages.sh
-                    if [ '${{ matrix.webserver }}' = 'apache2' ]; then
+                    if [ '${{ matrix.webserver }}' = 'apache' ]; then
                         sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_apache.sh
-                    else
-                        sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_nginx.sh ${{ matrix.php }}
+                    fi
+                    if [ '${{ matrix.webserver }}' = 'nginx' ]; then
+                        sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_nginx.sh "${{ matrix.php }}"
+                    fi
+                    if [ '${{ matrix.webserver }}' = 'frankenphp' ]; then
+                        sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_frankenphp.sh "${{ matrix.php }}"
                     fi
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_php.sh ${{ matrix.php }}
                     sudo --preserve-env=GITHUB_ACTIONS ./tests/ci/setup/setup_composer.sh
@@ -73,16 +77,12 @@ jobs:
             -   name: run tests and upload coverage info if needed
                 run: |
                     if [ -z "${{ matrix.code-coverage }}" ]; then
-                        ./vendor/bin/phpunit tests
+                        SERVER_TYPE='${{ matrix.webserver }}' ./vendor/bin/phpunit tests
                     else
                         ./tests/ci/setup/setup_code_coverage.sh enable
-                        ./vendor/bin/phpunit --coverage-clover=coverage.clover tests
+                        SERVER_TYPE='${{ matrix.webserver }}' ./vendor/bin/phpunit --coverage-clover=coverage.clover tests
                         if [ ! -f coverage.clover ]; then
-                        #    wget https://uploader.codecov.io/latest/linux/codecov && \
-                        #    chmod +x codecov && \
-                        #    ./codecov -f coverage.clover
-                        #else
-                            echo "WARNING: code coverage not generated. Is xdebug disabled?"
+                            echo "WARNING: code coverage not generated. Is xdebug disabled?" >&2
                         fi
                     fi
 

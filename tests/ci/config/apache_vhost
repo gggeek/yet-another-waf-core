@@ -1,4 +1,4 @@
-# @todo... Add vhosts w. rewrite for the proxy, ports 8081 and 8443; set a custom log format
+# @todo set a custom log format
 
 # Uses env vars:
 # HTTPSERVER (atm unused...)
@@ -8,7 +8,41 @@
   LogLevel http2:info
 </IfModule>
 
+Listen 81
+Listen 8081
+Listen 444
+Listen 8444
+
 <VirtualHost *:81>
+
+  <IfModule http2_module>
+    # Enable http2
+    Protocols h2c http/1.1
+  </IfModule>
+
+  DocumentRoot ${TESTS_ROOT_DIR}/tests/public
+
+  #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
+  #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
+
+  # Env vars used by the test code, which we get from the environment
+  #SetEnv HTTPSERVER ${HTTPSERVER}
+
+  <Directory "${TESTS_ROOT_DIR}/tests/public">
+    Options FollowSymLinks MultiViews
+    AllowOverride All
+
+    Require all granted
+
+    # needed for basic auth (PHP_AUTH_USER and PHP_AUTH_PW)
+    RewriteEngine on
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization}]
+  </Directory>
+
+</VirtualHost>
+
+<VirtualHost *:8081>
 
   <IfModule http2_module>
     # Enable http2
@@ -40,6 +74,54 @@
 <IfModule mod_ssl.c>
 
 <VirtualHost _default_:444>
+
+  <IfModule http2_module>
+    # Enable http2
+    Protocols h2 http/1.1
+  </IfModule>
+
+  DocumentRoot ${TESTS_ROOT_DIR}/tests/public
+
+  #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
+  #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
+
+  # Env vars used by the test code, which we get from the environment
+  #SetEnv HTTPSERVER ${HTTPSERVER}
+
+  <Directory "${TESTS_ROOT_DIR}/tests/public">
+    Options FollowSymLinks MultiViews
+    AllowOverride All
+
+    Require all granted
+
+    # needed for basic auth (PHP_AUTH_USER and PHP_AUTH_PW)
+    RewriteEngine on
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization}]
+  </Directory>
+
+  SSLEngine on
+
+  # Allow a max nr. of protocols and renegotiations
+  #SSLProtocol all
+  #SSLInsecureRenegotiation on
+
+  # This cert is bundled by default in Ubuntu
+  SSLCertificateFile /etc/ssl/certs/ssl-cert-snakeoil.pem
+  SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
+
+  <FilesMatch "\.(cgi|shtml|phtml|php)$">
+    SSLOptions +StdEnvVars
+  </FilesMatch>
+
+  BrowserMatch "MSIE [2-6]" \
+  nokeepalive ssl-unclean-shutdown \
+  downgrade-1.0 force-response-1.0
+  BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
+
+</VirtualHost>
+
+<VirtualHost _default_:8444>
 
   <IfModule http2_module>
     # Enable http2

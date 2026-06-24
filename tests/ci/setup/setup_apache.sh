@@ -45,6 +45,9 @@ else
 fi
 #echo "export HTTPSERVER=localhost" >> /etc/apache2/envvars
 
+# Prevent Apache from listening on ports 80 and 443 - we declare the ports to listen on in the vhost config
+echo '' > /etc/apache2/ports.conf
+
 #service apache2 restart
 
 echo "Done Installing and configuring Apache2"
