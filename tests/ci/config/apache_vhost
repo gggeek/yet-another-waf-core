@@ -25,9 +25,6 @@ Listen 8444
   #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
   #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
 
-  # Env vars used by the test code, which we get from the environment
-  #SetEnv HTTPSERVER ${HTTPSERVER}
-
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
     AllowOverride All
@@ -54,9 +51,6 @@ Listen 8444
   #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
   #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
 
-  # Env vars used by the test code, which we get from the environment
-  #SetEnv HTTPSERVER ${HTTPSERVER}
-
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
     AllowOverride All
@@ -67,6 +61,8 @@ Listen 8444
     RewriteEngine on
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization}]
+
+    RewriteRule .* /proxy.php [END]
   </Directory>
 
 </VirtualHost>
@@ -84,9 +80,6 @@ Listen 8444
 
   #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
   #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
-
-  # Env vars used by the test code, which we get from the environment
-  #SetEnv HTTPSERVER ${HTTPSERVER}
 
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
@@ -133,9 +126,6 @@ Listen 8444
   #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
   #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
 
-  # Env vars used by the test code, which we get from the environment
-  #SetEnv HTTPSERVER ${HTTPSERVER}
-
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
     AllowOverride All
@@ -146,6 +136,8 @@ Listen 8444
     RewriteEngine on
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization}]
+
+    RewriteRule .* /proxy.php [END]
   </Directory>
 
   SSLEngine on

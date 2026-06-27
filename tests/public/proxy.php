@@ -10,6 +10,7 @@ require __DIR__ . '/../../vendor/autoload.php';
 
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Symfony\Component\Dotenv\Dotenv;
 use YAWAF\Core\Firewall\FirewallFactory;
@@ -21,25 +22,16 @@ use YAWAF\Core\Psr7\ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
 
 $proxy = new ProxyPage();
-$proxy->preflight();
-$proxy->proxyRequest();
+$logger = $proxy->preflight();
+$proxy->proxyRequest($logger);
 $proxy->postflight();
 
 class ProxyPage
 {
     protected string|null $phpunitSeleniumTestId;
 
-    public function preflight(): void
+    public function preflight(): LoggerInterface|null
     {
-        // Allow the caller to pick a set of configs which differ based on the upstream webserver in use
-        // NB: make sure to allow usage of a proxy running on webserver X and upstream running on webserver Y
-        $dotenv = new Dotenv();
-        $_ENV['SERVER_TYPE'] = 'nginx';
-        if (isset($_SERVER['HTTP_X_YAWAF_SERVER_TYPE']) && in_array($_SERVER['HTTP_X_YAWAF_SERVER_TYPE'], ['apache', 'frankenphp'])) {
-            $_ENV['SERVER_TYPE'] = $_SERVER['HTTP_X_YAWAF_SERVER_TYPE'];
-        }
-        $dotenv->loadEnv(__DIR__.'/../.env', 'SERVER_TYPE');
-
         // In case this file is made available on an open-access server, avoid it being useable by anyone who can not
         // also write a specific file to disk.
         // NB: keep filename, cookie name in sync with the code within the TestCase classes sending http requests to this file
@@ -71,6 +63,29 @@ class ProxyPage
         } else {
             $this->phpunitSeleniumTestId = null;
         }
+
+        // Allow the caller to pick a set of configs which differ based on the upstream webserver in use
+        // NB: make sure to allow usage of a proxy running on webserver X and upstream running on webserver Y
+        $dotenv = new Dotenv();
+        $_ENV['SERVER_TYPE'] = 'nginx';
+        if (isset($_SERVER['HTTP_X_YAWAF_SERVER_TYPE']) && in_array($_SERVER['HTTP_X_YAWAF_SERVER_TYPE'], ['apache', 'frankenphp'])) {
+            $_ENV['SERVER_TYPE'] = $_SERVER['HTTP_X_YAWAF_SERVER_TYPE'];
+        }
+        $dotenv->loadEnv(__DIR__.'/../.env', 'SERVER_TYPE');
+
+        // set up a logger whose output can be inspected by the caller
+        $logger = null;
+        if (array_key_exists('HTTP_X_YAWAF_LOG_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_LOG_FILE']) !== '') {
+            $logFileName = sys_get_temp_dir() . '/' . basename($_SERVER['HTTP_X_YAWAF_LOG_FILE']);
+            /// @todo should we allow the logs + traces to be stored in a custom dir, making it easy to map it to the host filesystem?
+            if (file_exists($logFileName)) {
+                file_put_contents($logFileName, '');
+            }
+            $logger = new FileLogger($logFileName, LogLevel::DEBUG);
+            $logger->debug("Loaded .env config for SERVER_TYPE: {$_ENV['SERVER_TYPE']}");
+        }
+
+        return $logger;
     }
 
     public function postflight(): void
@@ -81,22 +96,11 @@ class ProxyPage
         }
     }
 
-    public function proxyRequest(): void
+    public function proxyRequest($logger): void
     {
-        $logger = null;
         $emitter = new SapiEmitter();
 
         try {
-            // set up a logger whose output can be inspected by the caller
-            if (array_key_exists('HTTP_X_YAWAF_LOG_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_LOG_FILE']) !== '') {
-                $logFileName = sys_get_temp_dir() . '/' . basename($_SERVER['HTTP_X_YAWAF_LOG_FILE']);
-                /// @todo should we allow the logs + traces to be stored in a custom dir, making it easy to map it to the host filesystem?
-                if (file_exists($logFileName)) {
-                    file_put_contents($logFileName, '');
-                }
-                $logger = new FileLogger($logFileName, LogLevel::DEBUG);
-            }
-
             $firewallFactory = new FirewallFactory($logger);
             $config = array_key_exists('HTTP_X_YAWAF_CONFIG', $_SERVER) ? trim($_SERVER['HTTP_X_YAWAF_CONFIG']) : '';
             $configFile = array_key_exists('HTTP_X_YAWAF_CONFIG_FILE', $_SERVER) ? trim($_SERVER['HTTP_X_YAWAF_CONFIG_FILE']) : '';
@@ -129,6 +133,10 @@ class ProxyPage
             } else {
                 $upstream = TestProxy::getUpstream();
             }
+
+            // in case these are set, they might interfere with the configuration of the Client that gets built
+            // NB: HTTP_PROXY uppercase should not be used by any clients, as it can be spoofed by an http header from clients...
+            unset($_SERVER['http_proxy'], $_SERVER['HTTP_PROXY'], $_SERVER['https_proxy'], $_SERVER['HTTPS_PROXY'], $_SERVER['no_proxy'], $_SERVER['NO_PROXY']);
 
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
                 $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);

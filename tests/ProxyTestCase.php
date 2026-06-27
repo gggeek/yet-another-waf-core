@@ -25,9 +25,9 @@ abstract class ProxyTestCase extends ServerTestCase
      */
     protected function getProxyClient(array $clientOptions = [], array $testOptions = []): HttpClientInterface
     {
-        $clientOptions = $clientOptions + [
+        $clientOptions = [
             'proxy' => static::getProxyBaseUri(),
-        ];
+        ] + $clientOptions;
         if (@$testOptions['proxy_scheme'] === 'unix') {
             $clientOptions['bindto'] = $_ENV['PROXY_SOCKET'];
         }

@@ -45,6 +45,7 @@ class AB_ProxySmokeTest extends ProxyTestCase
 
     /**
      * Tests access to the upstream server via the proxy, with the test id cookie but no access rules defined: an HTTP 403 response is expected
+     * @todo this test could also have an $upstreamClientType arg
      */
     #[DataProvider('proxyTestsDataProvider')]
     public function testProxyAsProxyWithoutRules(string|null $clientType = null, string $proxyScheme = 'http')
