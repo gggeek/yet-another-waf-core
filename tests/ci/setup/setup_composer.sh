@@ -43,6 +43,8 @@ if [ "$RESULT" = 0 ]; then
     if [ -f /usr/local/bin/composer.phar ]; then
         mv /usr/local/bin/composer.phar /usr/local/bin/composer && chmod 755 /usr/local/bin/composer
     fi
+
+    usr/local/bin/composer diagnose --no-interaction
 fi
 
 echo "Done installing Composer"

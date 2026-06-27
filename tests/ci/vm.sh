@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # @todo rename: this is not based on a vm. Also, the 'ci' folder should really be called 'env' or 'testenv'...
-# @todo support getting the various settings as cli options as well as / instead of via env vars? (use getopts)
+# @todo support getting the various settings as cli options as well as / instead of via env vars? (using getopts)
 
 set -e
 
@@ -76,11 +76,14 @@ Environment variables:
   used by both build and start:
     CONTAINER_IMAGE_PREFIX default value: 'yawaf_'. Change if you build/run many containers in parallel
     CONTAINER_NAME_PREFIX  default value: 'yawaf'. Change if you build/run many containers in parallel
+  used by the 'runtests' and 'runcoverage' actions:
+    TEST_WEBSERVER         default value: nginx. Can be set to apache, frankenphp
 "
 }
 
 check_requirements() {
     type "${DOCKER_CMD}" >/dev/null 2>&1
+    # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
         printf "\n\e[31mPlease install docker & add it to \$PATH\e[0m\n\n" >&2
         exit 1
@@ -154,8 +157,8 @@ start() {
 
             if [ ! -d "${ROOT_DIR}/tests/ci/var/composer_cache" ]; then mkdir -p "${ROOT_DIR}/tests/ci/var/composer_cache"; fi
 
-            if ${DOCKER_CMD} run -d \
-                $PORTMAPPING \
+            # shellcheck disable=SC2086
+            if ${DOCKER_CMD} run -d $PORTMAPPING \
                 --name "${CONTAINER_NAME}" \
                 --env "CONTAINER_USER_UID=$(id -u)" --env "CONTAINER_USER_GID=$(id -g)" \
                 --env "TESTS_ROOT_DIR=${CONTAINER_WORKSPACE_DIR}" \
@@ -215,13 +218,25 @@ runtests() {
         TESTSUITE="$*"
     fi
     test -t 1 && USE_TTY="-t"
+    if [ "$WEBSERVER_TYPE" != all ]; then
+        if [ -z "$TEST_WEBSERVER" ]; then
+            TEST_WEBSERVER="$WEBSERVER_TYPE"
+        else
+            if [ "$WEBSERVER_TYPE" != "$TEST_WEBSERVER" ]; then
+                echo "WARNING: the test container in use was built with webserver '$WEBSERVER_TYPE', but the webserver requested for running the test is '$TEST_WEBSERVER'"
+            fi
+        fi
+    fi
+    if [ -n "$TEST_WEBSERVER" ]; then
+        SERVER_TYPE_ENV_VAR_INJECTION="SERVER_TYPE=$TEST_WEBSERVER"
+    fi
     lock
     trap unlock INT
     RETCODE=0
     {
         ${DOCKER_CMD} exec $USE_TTY "${CONTAINER_NAME}" /root/setup/setup_app.sh "${CONTAINER_WORKSPACE_DIR}"
         ${DOCKER_CMD} exec -i $USE_TTY \
-            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit $TESTSUITE"
+            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "$SERVER_TYPE_ENV_VAR_INJECTION ./vendor/bin/phpunit $TESTSUITE"
     } || {
         RETCODE="$?"
     }
@@ -296,8 +311,9 @@ case "${ACTION}" in
     exec)
         shift
         test -t 1 && USE_TTY="-t"
-        ${DOCKER_CMD} exec -i $USE_TTY \
-            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c '"$0" "$@"' -- "$@"
+        # shellcheck disable=SC2016
+        ${DOCKER_CMD} exec -i $USE_TTY "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c '"$0" "$@"' -- "$@"
+
             # @todo which one is better? test with a command with spaces in options values, and with a composite command such as cd here && do that
             #"${CONTAINER_NAME}" sudo -iu "${CONTAINER_USER}" -- "$@"
         ;;

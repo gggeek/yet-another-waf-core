@@ -20,7 +20,7 @@
     - allow setting a maxRestarts limit
     - q: should we remove from the current rule chain a rule, after it did trigger a restart? (possibly use 2 `restart` types?)
   - xml req./resp. body with xpath/css matchers
-  - can we make filters add "tags" to requests/responses, to ease later processing?
+  - can we make filters add "tags" to requests/responses, to ease later processing? See psr 'attributes'
   - allow failures of the MethodMatcher to generate a 501 response instead of the default 403?
   - API reworking:
     - check: could we use the firewall filters to implement something like https://github.com/terrylinooo/shieldon instead
@@ -54,12 +54,14 @@
 
 - Testing
   - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions
-    - finish apache vhost setup 1st
-    - test also against: caddy, lighttpd, openlitespeed, roadrunner, swoole, php-http-server
+    - finish apache and frankenphp vhost setup 1st
+      - add one test using frankenphp worker mode?
+    - test also against: php-http-server, lighttpd, openlitespeed, roadrunner, swoole
       - use a cloud-based platform that provides those ready-built, rather than installing each one by ourselves?
         Either that, or move to a multi-container setup for testing...
       - we might give a strong preference to how caddy/frankenphp do set up $_SERVER, as that will be the default way to
         deploy a WAF based on this code (in the downstream YAWAF project)
+      - swoole has built-in support for psr-15 (mapping an \OpenSwoole\HTTP\Request to a psr one, see https://github.com/openswoole/openswoole/blob/master/core/src/Helper.php)
   - add tests which try to exploit issues in http parsers, see f.e. https://hostoftroubles.com/
     (will need an http client based on fsockopen rather than psr stuff)
   - add tests which make use of middleware from other projects, eg. rate-limiting and caching

@@ -30,10 +30,16 @@ if [ ! -d /etc/frankenphp/Caddyfile.d/ ]; then
 fi
 if [ ! -d /var/log/frankenphp ]; then
     mkdir /var/log/frankenphp
-    chown frankenphp:frankenphp /var/log/frankenphp
 fi
+# Allow non-root to listen frankenphp log files, same as it is possible for nginx
+chmod 755 /var/log/frankenphp
+chown root:adm /var/log/frankenphp
+if [ ! -d /run/frankenphp ]; then
+    mkdir /run/frankenphp
+fi
+chown frankenphp:frankenphp /run/frankenphp
 
-# Note: this does not leave frankenphp started, as it installs a systemd unit to manage that (and no systemd in containers)
+# Note: this does not leave frankenphp auto-starting, as it installs a systemd unit to manage that (and no systemd in containers)
 
 # configure virtual hosts
 

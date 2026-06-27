@@ -18,7 +18,8 @@ if [ -f "${TESTS_ROOT_DIR}/composer.json" ]; then
     else
         # @todo calculate an md5 of composer.lock, and compare it to an md5 (previously stored in ./var at the time that
         #       composer was run), adding in as key the os+php versions. If not matching, delete composer.lock
-        #       and reinstall
+        #       and reinstall.
+        #       Also: what about running composer update and/or dump-autoload?
 
         echo "Not running Composer: it was done previously"
     fi

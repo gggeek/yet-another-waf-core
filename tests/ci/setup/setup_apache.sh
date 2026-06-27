@@ -26,6 +26,9 @@ if [ -n "$(ls /etc/apache2/mods-enabled/php* 2>/dev/null)" ]; then
     rm /etc/apache2/mods-enabled/php*
 fi
 
+# Allow non-root to listen apache log files, same as it is possible for nginx
+chmod 755 /var/log/apache2
+
 # configure virtual hosts
 
 # this overwrites the default vhost

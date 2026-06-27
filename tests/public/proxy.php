@@ -17,7 +17,7 @@ use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
 use YAWAF\Core\Middleware\Tracer;
 use YAWAF\Core\Proxy\FixedUpstreamProxy;
-use YAWAF\Core\ServerRequestCreator;
+use YAWAF\Core\Psr7\ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
 
 $proxy = new ProxyPage();
@@ -136,9 +136,10 @@ class ProxyPage
                 $httpClient = null;
             }
 
-            $serverRequest = $this->fromGlobals();
             $upstreamConnector = new FixedUpstreamProxy($upstream, $httpClient, $logger);
             $proxy = new TestProxy($firewall, $upstreamConnector, $logger);
+
+            $serverRequest = $this->fromGlobals();
             $response = $proxy->handle($serverRequest);
             $emitter->emit($response);
 
@@ -150,12 +151,11 @@ class ProxyPage
     }
 
     /**
+     * Clean up ("patch") the data we allow the Proxy to handle - remove test-managing headers and cookies.
      * NB: calling this results in manipulation of $_SERVER and co.
      */
     protected function fromGlobals()
     {
-        // Clean up ("patch") the data we allow the Proxy to handle - remove test-managing headers and cookies
-
         foreach ($_SERVER as $name => $value) {
             if (str_starts_with($name, 'HTTP_X_YAWAF_')) {
                 unset($_SERVER[$name]);

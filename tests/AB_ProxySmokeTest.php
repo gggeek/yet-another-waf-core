@@ -13,7 +13,11 @@ class AB_ProxySmokeTest extends ProxyTestCase
     #[DataProvider('proxyTestsDataProvider')]
     public function testProxyAsUpstreamNoTestCookie(string|null $clientType = null, string $proxyScheme = 'http')
     {
-        $client = $this->getClient(['base_uri' => static::getProxyBaseUri()], ['client_type' => $clientType, 'server_scheme' => $proxyScheme]);
+        $clientOptions = ['base_uri' => static::getProxyBaseUri()];
+        if ($proxyScheme === 'unix') {
+            $clientOptions['bindto'] = $_ENV['PROXY_SOCKET'];
+        }
+        $client = $this->getClient($clientOptions, ['client_type' => $clientType]);
         $response = $client->request('GET', static::getProxyPath());
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertEquals(400, $response->getStatusCode(), $response->getContent(false));
@@ -26,8 +30,13 @@ class AB_ProxySmokeTest extends ProxyTestCase
     #[DataProvider('proxyTestsDataProvider')]
     public function testProxyAsUpstreamWithTestCookie(string|null $clientType = null, string $proxyScheme = 'http')
     {
+
+        $clientOptions = ['base_uri' => static::getProxyBaseUri()];
+        if ($proxyScheme === 'unix') {
+            $clientOptions['bindto'] = $_ENV['PROXY_SOCKET'];
+        }
         // NB: we do _not_ want to use $this->getTestClient here
-        $client = parent::getTestClient(['base_uri' => static::getProxyBaseUri()], ['client_type' => $clientType, 'server_scheme' => $proxyScheme]);
+        $client = ServerTestCase::getTestClient($clientOptions, ['client_type' => $clientType]);
         $response = $client->request('GET', static::getProxyPath());
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $response->getContent(false));

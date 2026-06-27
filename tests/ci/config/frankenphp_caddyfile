@@ -18,9 +18,15 @@
         php_ini log_errors On
         php_ini short_open_tag Off
     }
+
+    log {
+        output stdout
+        level info
+        format console
+    }
 }
 
-:82 {
+:1082 {
     root /var/www/tests/public
 
     encode zstd br gzip
@@ -31,6 +37,31 @@
 }
 
 :8082 {
+    root /var/www/tests/public
+
+    encode zstd br gzip
+
+    rewrite * /proxy.php
+
+    php_server
+}
+
+# allow running unprivileged: instead of 82, go for 1082
+:1082 {
+    bind unix//run/frankenphp/caddy.server.sock|0222
+
+    root /var/www/tests/public
+
+    encode zstd br gzip
+
+    rewrite * /server.php
+
+    php_server
+}
+
+:8082 {
+    bind unix//run/frankenphp/caddy.proxy.sock|0222
+
     root /var/www/tests/public
 
     encode zstd br gzip

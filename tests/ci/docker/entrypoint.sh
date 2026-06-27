@@ -62,10 +62,9 @@ clean_up() {
 
 echo "[$(date)] Fixing filesystem permissions..."
 
-ORIGPASSWD="$(grep "^${USERNAME}:" /etc/passwd)"
-ORIG_UID="$(echo "$ORIGPASSWD" | cut -f3 -d:)"
-ORIG_GID="$(echo "$ORIGPASSWD" | cut -f4 -d:)"
-CONTAINER_USER_HOME="$(echo "$ORIGPASSWD" | cut -f6 -d:)"
+ORIG_UID="$(id -u "${USERNAME}")"
+ORIG_GID="$(id -g "${USERNAME}")"
+CONTAINER_USER_HOME="$(grep "^${USERNAME}:" /etc/passwd | cut -f6 -d:)"
 CONTAINER_USER_UID="${CONTAINER_USER_UID:=$ORIG_UID}"
 CONTAINER_USER_GID="${CONTAINER_USER_GID:=$ORIG_GID}"
 
@@ -111,6 +110,11 @@ fi
 
 if [ -f /etc/frankenphp/Caddyfile ]; then
     echo "[$(date)] Fixing FrankenPHP configuration..."
+
+    # let frankenphp run using its own user and group, but make them share ids with the docker guy (yes, that's possible)
+    groupmod -o -g "$CONTAINER_USER_GID" frankenphp
+    usermod -o -u "$CONTAINER_USER_UID" -g "$CONTAINER_USER_GID" frankenphp
+    chown frankenphp:frankenphp /run/frankenphp
 
     sed -e "s|^ *root .*|    root ${TESTS_ROOT_DIR}/tests/public|g" --in-place /etc/frankenphp/Caddyfile
 fi
@@ -166,7 +170,11 @@ if [ "$START_WEBSERVER" = nginx ] || [ "$START_WEBSERVER" = all ]; then
 fi
 if [ "$START_WEBSERVER" = frankenphp ] || [ "$START_WEBSERVER" = all ]; then
     if [ -d /etc/frankenphp ]; then
-        sudo -u frankenphp frankenphp --config /etc/frankenphp/Caddyfile run >/var/log/frankenphp/access.log 2>/var/log/frankenphp/error.log &
+        # @todo... since we are root, and the shell sets up redirections before running `sudo -u`, log files get created ok
+        #          in a root-owned dir. But there seems to be no logging of http requests going into them...
+        sudo -u frankenphp frankenphp --config /etc/frankenphp/Caddyfile --pidfile /run/frankenphp/frankenphp.pid run >/var/log/frankenphp/access.log 2>/var/log/frankenphp/error.log &
+        chmod 640 /var/log/frankenphp/access.log /var/log/frankenphp/error.log
+        chown root:adm /var/log/frankenphp/access.log /var/log/frankenphp/error.log
     else
         if [ "$START_WEBSERVER" = frankenphp ]; then
             echo "Can not start frankenphp: it was not installed in this container" >&2

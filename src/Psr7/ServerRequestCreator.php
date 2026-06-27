@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core;
+namespace YAWAF\Core\Psr7;
 
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -11,6 +11,7 @@ use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Message\UriFactoryInterface;
 use Psr\Http\Message\UriInterface;
+use YAWAF\Core\Stdlib;
 
 /**
  * A reimplementation of Nyholm\Psr7Server\ServerRequestCreator, attempting to suit better the forward-proxy use-case and
@@ -49,7 +50,7 @@ class ServerRequestCreator
     {
         $server = $_SERVER;
         if (false === isset($server['REQUEST_METHOD'])) {
-/// @todo should we log this, at least at debug level?
+/// @todo should we log this, at least at debug level? Maybe better: add a a request 'info' attribute
             $server['REQUEST_METHOD'] = 'GET';
         }
 
@@ -83,10 +84,11 @@ class ServerRequestCreator
     {
         $method = $server['REQUEST_METHOD'];
         $uri = $this->getUriFromEnvWithHTTP($server);
+/// @todo... in case this is missing, add an info attribute line to the request
         $protocol = isset($server['SERVER_PROTOCOL']) ? \str_replace('HTTP/', '', $server['SERVER_PROTOCOL']) : '1.1';
 
 /// @todo... analyze and reconcile differences between $_GET and $server['QUERY_STRING'], as well as between
-///          $_COOKIE and $headers['cookie']
+///          $_COOKIE and $headers['cookie'], save them as info attribute line tos the request?
 
         $serverRequest = $this->serverRequestFactory->createServerRequest($method, $uri, $server);
 
@@ -100,10 +102,11 @@ class ServerRequestCreator
             // yawaf change: handle the case where request already has an `host` header because the $uri passed in to
             // `createServerRequest` is absolute.
             // We prefer the 'host' header received from the server to the one rebuilt from the uri.
+/// @todo... review this decision after a careful read of rfc9112
             // NB: this works best when assuming that there is a single HTTP_HOST in $_SERVER_. That is part of the http
             // spec, so we trust the webserver to enforce it for us (note that some webservers might concatenate multiple
             // host headers in a single, csv-formatted value)
-/// @todo... review this decision after a careful read of rfc9112
+
 /// @todo... also, make sure we can figure out if the request from the client does have an absolute uri, and its scheme, host, port
             if ($name === 'host' && $serverRequest->hasHeader('host')) {
                 $serverRequest = $serverRequest->withoutHeader('host');
@@ -270,12 +273,15 @@ class ServerRequestCreator
             }
         //}
 
+/// @todo... can we tell apart and tag an absolute uri from a relative one at this point?
+
         if (isset($server['HTTP_HOST'])) {
             if (1 === \preg_match('/^(.+)\:(\d+)$/', $server['HTTP_HOST'], $matches)) {
                 $uri = $uri->withHost($matches[1])->withPort($matches[2]);
             } else {
                 // yawaf change: in case the Host header misses a port, use the default port for the current scheme
                 // instead of the one from $server['SERVER_PORT']
+/// @todo... instead of setting the port, do this check 1st and only look at $server['SERVER_PORT'] if there was no host header
                 if ($scheme = $uri->getScheme() !== '') {
                     if ($scheme === 'http') {
                         $uri = $uri->withPort(80);
@@ -286,6 +292,7 @@ class ServerRequestCreator
                 $uri = $uri->withHost($server['HTTP_HOST']);
             }
         } elseif (isset($server['SERVER_NAME'])) {
+/// @todo add a request attribute stating this (how? we only return an uri here...)
             $uri = $uri->withHost($server['SERVER_NAME']);
         }
 
