@@ -1,9 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Psr7;
+namespace YAWAF\Core\Psr7\ServerRequest;
 
-use Psr\Http\Message\ServerRequestFactoryInterface;
+use Nyholm\Psr7\ServerRequest;
+//use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
@@ -21,9 +22,9 @@ use YAWAF\Core\Stdlib;
  *
  * @see https://github.com/Nyholm/psr7-server/issues/62, https://github.com/Nyholm/psr7-server/pull/49
  */
-class ServerRequestCreator
+class Creator
 {
-    protected ServerRequestFactoryInterface $serverRequestFactory;
+    //protected ServerRequestFactoryInterface|null $serverRequestFactory;
 
     protected UriFactoryInterface $uriFactory;
 
@@ -32,12 +33,12 @@ class ServerRequestCreator
     protected StreamFactoryInterface $streamFactory;
 
     public function __construct(
-        ServerRequestFactoryInterface $serverRequestFactory,
+        //ServerRequestFactoryInterface $serverRequestFactory,
         UriFactoryInterface $uriFactory,
         UploadedFileFactoryInterface $uploadedFileFactory,
         StreamFactoryInterface $streamFactory
     ) {
-        $this->serverRequestFactory = $serverRequestFactory;
+        //$this->serverRequestFactory = $serverRequestFactory;
         $this->uriFactory = $uriFactory;
         $this->uploadedFileFactory = $uploadedFileFactory;
         $this->streamFactory = $streamFactory;
@@ -49,8 +50,7 @@ class ServerRequestCreator
     public function fromGlobals(): ServerRequestInterface
     {
         $server = $_SERVER;
-        if (false === isset($server['REQUEST_METHOD'])) {
-/// @todo should we log this, at least at debug level? Maybe better: add a a request 'info' attribute
+        if (($haveRequestMethod = isset($server['REQUEST_METHOD'])) === false) {
             $server['REQUEST_METHOD'] = 'GET';
         }
 
@@ -72,9 +72,15 @@ class ServerRequestCreator
                     break;
                 }
             }
+            /// @todo consistency check: if $_POST is not empty, and 'content-type' header is not one of the expected 2, tag the response
         }
 
-        return $this->fromArrays($server, $headers, $_COOKIE, $_GET, $post, $_FILES, \fopen('php://input', 'r') ?: null);
+        $request = $this->fromArrays($server, $headers, $_COOKIE, $_GET, $post, $_FILES, \fopen('php://input', 'r') ?: null);
+        // yawaf change: add attribute
+        if (!$haveRequestMethod) {
+            $request->getAttribute(Attributes::class)->set(Attributes::REQUEST_METHOD_SYNTHETIC, true);
+        }
+        return $request;
     }
 
     /**
@@ -82,15 +88,30 @@ class ServerRequestCreator
      */
     public function fromArrays(array $server, array $headers = [], array $cookie = [], array $get = [], ?array $post = null, array $files = [], $body = null): ServerRequestInterface
     {
+        $requestAttributes = new Attributes();
+
         $method = $server['REQUEST_METHOD'];
-        $uri = $this->getUriFromEnvWithHTTP($server);
-/// @todo... in case this is missing, add an info attribute line to the request
-        $protocol = isset($server['SERVER_PROTOCOL']) ? \str_replace('HTTP/', '', $server['SERVER_PROTOCOL']) : '1.1';
 
-/// @todo... analyze and reconcile differences between $_GET and $server['QUERY_STRING'], as well as between
-///          $_COOKIE and $headers['cookie'], save them as info attribute line tos the request?
+        // yawaf change: expanded getUriFromEnvWithHTTP inline in createUriFromArray, so we can add an attribute in case uri scheme is missing
+        //$uri = $this->getUriFromEnvWithHTTP($server);
+        $uri = $this->createUriFromArray($server, $requestAttributes);
 
-        $serverRequest = $this->serverRequestFactory->createServerRequest($method, $uri, $server);
+        if (false === isset($server['SERVER_PROTOCOL'])) {
+            $protocol = '1.1';
+            $requestAttributes->set(Attributes::SERVER_PROTOCOL_SYNTHETIC, true);
+        } else {
+            $protocol =\str_replace('HTTP/', '', $server['SERVER_PROTOCOL']);
+        }
+
+        /// @todo analyze and reconcile differences between $_GET and $server['QUERY_STRING'], as well as between
+        ///       $_COOKIE and $headers['cookie'], save them as attributes in the request?
+
+        // yawaf change: Psr17Factory::createServerRequest misses the ability of ServerRequest::__construct to work off
+        // headers. That in turn requires more work immediately afterwards to patch in the headers, except for the
+        // Host one. So we go straight for ServerRequest::__construct instead
+        $serverRequest = new ServerRequest($method, $uri, $headers, null, $protocol, $server);
+
+        /*$serverRequest = $this->serverRequestFactory->createServerRequest($method, $uri, $server);
 
         foreach ($headers as $name => $value) {
             // Because PHP automatically casts array keys set with numeric strings to integers, we have to make sure
@@ -112,14 +133,24 @@ class ServerRequestCreator
                 $serverRequest = $serverRequest->withoutHeader('host');
             }
             $serverRequest = $serverRequest->withAddedHeader($name, $value);
-        }
+        }*/
 
         $serverRequest = $serverRequest
-            ->withProtocolVersion($protocol)
+            //->withProtocolVersion($protocol)
             ->withCookieParams($cookie)
             ->withQueryParams($get)
             ->withParsedBody($post)
             ->withUploadedFiles($this->normalizeFiles($files));
+
+        if (isset($server['REMOTE_ADDR'])) {
+            $requestAttributes->set(Attributes::REMOTE_ADDR, $server['REMOTE_ADDR']);
+        }
+        if (isset($server['REMOTE_PORT'])) {
+            $requestAttributes->set(Attributes::REMOTE_PORT, $server['REMOTE_PORT']);
+        }
+
+        // yawaf change: add an attribute bag to the request
+        $serverRequest = $serverRequest->withAttribute(Attributes::class, $requestAttributes);
 
         if (null === $body) {
             return $serverRequest;
@@ -130,7 +161,7 @@ class ServerRequestCreator
         } elseif (\is_string($body)) {
             $body = $this->streamFactory->createStream($body);
         } elseif (!$body instanceof StreamInterface) {
-            throw new \InvalidArgumentException('The $body parameter to ServerRequestCreator::fromArrays must be string, resource or StreamInterface');
+            throw new \InvalidArgumentException('The $body parameter to ServerRequest\Creator::fromArrays must be string, resource or StreamInterface');
         }
 
         return $serverRequest->withBody($body);
@@ -146,7 +177,7 @@ class ServerRequestCreator
         return $environment['REQUEST_METHOD'];
     }*/
 
-    private function getUriFromEnvWithHTTP(array $environment): UriInterface
+    /*private function getUriFromEnvWithHTTP(array $environment): UriInterface
     {
         $uri = $this->createUriFromArray($environment);
         if (empty($uri->getScheme())) {
@@ -154,7 +185,7 @@ class ServerRequestCreator
         }
 
         return $uri;
-    }
+    }*/
 
     /**
      * Return an UploadedFile instance array.
@@ -246,13 +277,13 @@ class ServerRequestCreator
     }
 
     /**
-     * Create a new uri from server variable.
+     * Create a new uri from server variables.
      * NB: eschews access to $_GET.
      * NB: trusts the Host header over SERVER_PORT, SERVER_NAME
      *
      * @param array $server typically $_SERVER or similar structure
      */
-    private function createUriFromArray(array $server): UriInterface
+    private function createUriFromArray(array $server, Attributes $requestAttributes): UriInterface
     {
         $uri = $this->uriFactory->createUri('');
 
@@ -265,35 +296,41 @@ class ServerRequestCreator
                 $uri = $uri->withScheme($server['REQUEST_SCHEME']);
             } elseif (isset($server['HTTPS'])) {
                 $uri = $uri->withScheme('on' === $server['HTTPS'] ? 'https' : 'http');
-            }
-
-            // yawaf change: $server['SERVER_PORT'] can be set and empty when the server is listening on a unix socket
-            if (isset($server['SERVER_PORT']) && $server['SERVER_PORT'] !== '') {
-                $uri = $uri->withPort($server['SERVER_PORT']);
+            } else {
+                // yawaf change: inlined here from getUriFromEnvWithHTTP
+                $uri = $uri->withScheme('http');
+                $requestAttributes->set(Attributes::URI_SCHEME_SYNTHETIC, true);
             }
         //}
 
-/// @todo... can we tell apart and tag an absolute uri from a relative one at this point?
+/// @todo... can we tell apart and tag an absolute uri from a relative one at this point? Test using manually created requests...
 
-        if (isset($server['HTTP_HOST'])) {
+        if (false !== ($haveHostHeader = isset($server['HTTP_HOST']))) {
             if (1 === \preg_match('/^(.+)\:(\d+)$/', $server['HTTP_HOST'], $matches)) {
                 $uri = $uri->withHost($matches[1])->withPort($matches[2]);
             } else {
-                // yawaf change: in case the Host header misses a port, use the default port for the current scheme
-                // instead of the one from $server['SERVER_PORT']
-/// @todo... instead of setting the port, do this check 1st and only look at $server['SERVER_PORT'] if there was no host header
-                if ($scheme = $uri->getScheme() !== '') {
-                    if ($scheme === 'http') {
-                        $uri = $uri->withPort(80);
-                    } elseif($scheme === 'https') {
-                        $uri = $uri->withPort(443);
-                    }
-                }
+                // yawaf change: in case the Host header misses a port, we consider that it uses the default port for
+                // the current scheme instead of the one from $server['SERVER_PORT']
                 $uri = $uri->withHost($server['HTTP_HOST']);
             }
-        } elseif (isset($server['SERVER_NAME'])) {
-/// @todo add a request attribute stating this (how? we only return an uri here...)
-            $uri = $uri->withHost($server['SERVER_NAME']);
+        } else {
+            $requestAttributes->set(Attributes::MISSING_HOST_HEADER, true);
+        }
+
+        // yawaf change: $server['SERVER_PORT'] can be set and empty when the server is listening on a unix socket
+        if (isset($server['SERVER_PORT']) && $server['SERVER_PORT'] !== '') {
+            if (!$haveHostHeader) {
+                $uri = $uri->withPort($server['SERVER_PORT']);
+                $requestAttributes->set(Attributes::URI_PORT_SYNTHETIC, true);
+            }
+            $requestAttributes->set(Attributes::SERVER_PORT, $server['SERVER_PORT']);
+        }
+        if (isset($server['SERVER_NAME'])) {
+            if (!$haveHostHeader) {
+                $uri = $uri->withHost($server['SERVER_NAME']);
+                $requestAttributes->set(Attributes::URI_HOST_SYNTHETIC, true);
+            }
+            $requestAttributes->set(Attributes::SERVER_NAME, $server['SERVER_NAME']);
         }
 
         if (isset($server['REQUEST_URI'])) {
@@ -301,6 +338,8 @@ class ServerRequestCreator
             $uri = $uri->withPath(\current(\explode('?', $server['REQUEST_URI'], 2)));
 
             // NB: we do _not_ have to handle the fragment part here, as that is in fact handled purely in-browser
+        } else {
+            $requestAttributes->set(Attributes::MISSING_REQUEST_URI, true);
         }
 
         if (isset($server['QUERY_STRING'])) {

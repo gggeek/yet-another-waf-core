@@ -54,7 +54,7 @@
 
 - Testing
   - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions
-    - finish apache and frankenphp vhost setup 1st
+    - finish apache setup to pass tests locally 1st
       - add one test using frankenphp worker mode?
     - test also against: php-http-server, lighttpd, openlitespeed, roadrunner, swoole
       - use a cloud-based platform that provides those ready-built, rather than installing each one by ourselves?

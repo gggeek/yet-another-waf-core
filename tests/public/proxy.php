@@ -18,7 +18,7 @@ use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
 use YAWAF\Core\Middleware\Tracer;
 use YAWAF\Core\Proxy\FixedUpstreamProxy;
-use YAWAF\Core\Psr7\ServerRequestCreator;
+use YAWAF\Core\Psr7\ServerRequest\Creator as ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
 
 $proxy = new ProxyPage();
@@ -178,7 +178,7 @@ class ProxyPage
 
         $psr17Factory = new Psr17Factory();
         $creator = new ServerRequestCreator(
-            $psr17Factory, // ServerRequestFactory
+            //$psr17Factory, // ServerRequestFactory
             $psr17Factory, // UriFactory
             $psr17Factory, // UploadedFileFactory
             $psr17Factory  // StreamFactory

@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace YAWAF\Core\Tests;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
-use YAWAF\Core\Psr7\ServerRequestCreator;
+use YAWAF\Core\Psr7\ServerRequest\Creator as ServerRequestCreator;
 use YAWAF\Core\Stdlib;
 
 class TestServer
@@ -19,7 +19,7 @@ class TestServer
     {
         $psr17Factory = new Psr17Factory();
         $creator = new ServerRequestCreator(
-            $psr17Factory, // ServerRequestFactory
+            //$psr17Factory, // ServerRequestFactory
             $psr17Factory, // UriFactory
             $psr17Factory, // UploadedFileFactory
             $psr17Factory  // StreamFactory
@@ -34,7 +34,7 @@ class TestServer
                 '_POST' => $_POST,
                 '_COOKIE' => $_COOKIE,
                 /// @todo add php://input if $_POST is empty and/or the request is not GET / based on content-type req. header
-                /// @todo add other bits of $_SERVER and $_ENV that we know are used by ServerRequestCreator::fromGlobals
+                /// @todo add other bits of $_SERVER and $_ENV that we know are used by ServerRequest\Creator::fromGlobals
                 /// @todo what about $_FILES?
                 'getHeadersFromServer' => Stdlib::getHeadersFromServer($_SERVER),
                 'serverRequest' => [
