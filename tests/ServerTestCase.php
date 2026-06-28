@@ -34,7 +34,9 @@ abstract class ServerTestCase extends TestCase
             if (!is_file($filePath)) {
                 continue;
             }
-            if (preg_match('/^test.+_with_data_set__[0-9]+\.(log|trace)$/', $fileName)) {
+            /// @todo we could only remove files which match existing method names
+            /// @todo we should also remove files which match existing method names without the _with_data_set__ from DataProviders
+            if (preg_match('/^(test.+)_with_data_set__[0-9]+\.(:?log|trace)$/', $fileName)) {
                 unlink($filePath);
             }
         }
@@ -45,6 +47,9 @@ abstract class ServerTestCase extends TestCase
 
     public static function tearDownAfterClass(): void
     {
+        /// @todo we could remove all /tmp .log and .trace files here, but we leave them available for manual inspection,
+        ///       and remove them in setUpBeforeClass instead...
+
         if (is_file(sys_get_temp_dir() . '/phpunit_rand_id.txt')) {
             unlink(sys_get_temp_dir() . '/phpunit_rand_id.txt');
         }

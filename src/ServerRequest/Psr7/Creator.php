@@ -320,8 +320,6 @@ class Creator
             }
         //}
 
-/// @todo... can we tell apart and tag an absolute uri from a relative one at this point? Test using manually created requests...
-
         if (false !== ($haveHostHeader = isset($server['HTTP_HOST']))) {
             if (1 === \preg_match('/^(.+)\:(\d+)$/', $server['HTTP_HOST'], $matches)) {
                 // yawaf change: fix issue #52 by casting to int
@@ -353,8 +351,12 @@ class Creator
         }
 
         if (isset($server['REQUEST_URI'])) {
-            // yawaf change: optimize (for weird cases)
-            $uri = $uri->withPath(\current(\explode('?', $server['REQUEST_URI'], 2)));
+            // yawaf change: fix issue #66. On Apache, when requests are received with an absolute uri as target,
+            // $_SERVER['REQUEST_URI'] will indeed be the absolute uri. Sadly other webservers do not share this behaviour...
+/// @todo... tag the request with the absolute uri, if $server['REQUEST_URI'] is in fact such.
+///          Also, check carefully the HTTP spec to see what is says about precedence of the Host header vs the absolute url
+            $parts = parse_url($server['REQUEST_URI']);
+            $uri = $uri->withPath($parts['path']);
 
             // NB: we do _not_ have to handle the fragment part here, as that is in fact handled purely in-browser
         } else {

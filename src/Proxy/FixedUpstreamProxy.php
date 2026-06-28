@@ -3,9 +3,11 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Proxy;
 
+use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\UriFactoryInterface;
 use Psr\Log\LoggerInterface;
 use YAWAF\Core\UpstreamClient\UpstreamClientFactory;
 use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
@@ -13,14 +15,20 @@ use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 class FixedUpstreamProxy extends Proxy
 {
     protected array $upstream;
+    protected UriFactoryInterface $uriFactory;
 
     /**
      * @throws \Exception
      */
-    public function __construct(string $upstream, UpstreamClientInterface|null $httpClient = null, LoggerInterface|null $logger = null)
+    public function __construct(string $upstream, UpstreamClientInterface|null $httpClient = null,
+        UriFactoryInterface|null $uriFactory = null, LoggerInterface|null $logger = null)
     {
         // set first the logger
         $this->logger = $logger;
+        if ($uriFactory === null) {
+            $uriFactory = new Psr17Factory();
+        }
+        $this->uriFactory = $uriFactory;
         $this->client = $this->setUpstream($upstream, $httpClient);
         $this->clientUserAgent = $this->client->getUserAgent();
     }
@@ -115,7 +123,8 @@ class FixedUpstreamProxy extends Proxy
             case 'http':
             case 'https':
                 // fix the scheme, host, port and path
-                $uri = $request->getUri();
+                $uri = $this->uriFactory->createUri($request->getRequestTarget());
+
 /// @todo... when acting as an open proxy, ie. one which is not bound to a single upstream, we should follow the rules
 ///          set out in https://httpwg.org/specs/rfc9112.html#rfc.section.3.2.2: use the host/port from the absolute
 ///          form of the uri to replace the value from Host header

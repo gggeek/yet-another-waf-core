@@ -144,7 +144,7 @@ class ProxyPage
                 $httpClient = null;
             }
 
-            $upstreamConnector = new FixedUpstreamProxy($upstream, $httpClient, $logger);
+            $upstreamConnector = new FixedUpstreamProxy($upstream, $httpClient, null, $logger);
             $proxy = new TestProxy($firewall, $upstreamConnector, $logger);
 
             $serverRequest = $this->fromGlobals();
