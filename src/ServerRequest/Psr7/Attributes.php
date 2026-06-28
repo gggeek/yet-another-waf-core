@@ -16,6 +16,7 @@ class Attributes
     const SERVER_PORT = 'sp'; // string|int
     const MISSING_HOST_HEADER = 'mhh'; // bool.
     const MISSING_REQUEST_URI = 'mru'; // bool. Set to true when $_SERVER['REQUEST_URI'] is missing
+    const ABSOLUTE_REQUEST_URI = 'aru'; // string. Set to the value of $_SERVER['REQUEST_URI'] when it is an absolute uri
 
     protected array $attributes = [];
 

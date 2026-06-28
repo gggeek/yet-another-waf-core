@@ -357,6 +357,9 @@ class Creator
 ///          Also, check carefully the HTTP spec to see what is says about precedence of the Host header vs the absolute url
             $parts = parse_url($server['REQUEST_URI']);
             $uri = $uri->withPath($parts['path']);
+            if (isset($parts['host'])) {
+                $requestAttributes->set(Attributes::ABSOLUTE_REQUEST_URI, $server['REQUEST_URI']);
+            }
 
             // NB: we do _not_ have to handle the fragment part here, as that is in fact handled purely in-browser
         } else {
