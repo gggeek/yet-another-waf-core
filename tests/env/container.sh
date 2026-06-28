@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# @todo rename: this is not based on a vm. Also, the 'ci' folder should really be called 'env' or 'testenv'...
 # @todo support getting the various settings as cli options as well as / instead of via env vars? (using getopts)
 
 set -e
@@ -37,7 +36,7 @@ ROOT_DIR="$(dirname -- "$(dirname -- "$(dirname -- "$(readlink -f "$0")")")")"
 cd "$(dirname -- "$(readlink -f "$0")")"
 
 help() {
-    printf "Usage: vm.sh [OPTIONS] ACTION [OPTARGS]
+    printf "Usage: container.sh [OPTIONS] ACTION [OPTARGS]
 
 Manages the Test Environment (a Docker Container)
 
@@ -131,7 +130,7 @@ start() {
             #       container `run` time, such as f.e. CONTAINER_USER.
             #       But also, what if the container (and image) were built by a different version of the ci codebase?
             #       That should not be a case happening frequently. But if we really wanted to protect against it, we
-            #       would have to create a checksum of the contents of tests/ci and it store somehow as container metadata...
+            #       would have to create a checksum of the contents of tests/env and it store somehow as container metadata...
             if ${DOCKER_CMD} start "${CONTAINER_NAME}"; then
                 wait_for_bootstrap
             fi
@@ -155,7 +154,7 @@ start() {
                 PORTMAPPING="${PORTMAPPING}-p $((HOST_PROXYPORT_HTTPS-0)):8443 "
             fi
 
-            if [ ! -d "${ROOT_DIR}/tests/ci/var/composer_cache" ]; then mkdir -p "${ROOT_DIR}/tests/ci/var/composer_cache"; fi
+            if [ ! -d "${ROOT_DIR}/tests/env/var/composer_cache" ]; then mkdir -p "${ROOT_DIR}/tests/env/var/composer_cache"; fi
 
             # shellcheck disable=SC2086
             if ${DOCKER_CMD} run -d $PORTMAPPING \
@@ -165,7 +164,7 @@ start() {
                 --env "INSTALL_ON_START=${COMPOSER_INSTALL_ON_START}" \
                 --env "START_WEBSERVER=${START_WEBSERVER}" \
                 -v "${ROOT_DIR}:${CONTAINER_WORKSPACE_DIR}" \
-                -v "${ROOT_DIR}/tests/ci/var/composer_cache:/home/${CONTAINER_USER}/.cache/composer" \
+                -v "${ROOT_DIR}/tests/env/var/composer_cache:/home/${CONTAINER_USER}/.cache/composer" \
                  "${IMAGE_NAME}"; then
                 wait_for_bootstrap
             fi
@@ -176,7 +175,7 @@ start() {
 wait_for_bootstrap() {
     I=0
     while [ $I -le 60 ]; do
-        if [ -f "${ROOT_DIR}/tests/ci/var/bootstrap_ok_${UBUNTU_VERSION}_${PHP_VERSION}_${WEBSERVER_TYPE}" ]; then
+        if [ -f "${ROOT_DIR}/tests/env/var/bootstrap_ok_${UBUNTU_VERSION}_${PHP_VERSION}_${WEBSERVER_TYPE}" ]; then
             echo ''
             break;
         fi
@@ -260,7 +259,7 @@ runcoverage() {
         if [ ! -d ./var/coverage ]; then mkdir -p ./var/coverage; fi
         ${DOCKER_CMD} exec -t "${CONTAINER_NAME}" /root/setup/setup_code_coverage.sh enable
         ${DOCKER_CMD} exec -i $USE_TTY \
-            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit --coverage-html tests/ci/var/coverage tests"
+            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "./vendor/bin/phpunit --coverage-html tests/env/var/coverage tests"
         ${DOCKER_CMD} exec -t "${CONTAINER_NAME}" /root/setup/setup_code_coverage.sh disable
     } || {
        RETCODE="$?"
@@ -293,7 +292,7 @@ case "${ACTION}" in
         ;;
 
     cleanup)
-        # @todo allow to cleanup tests/ci/var completely - use either a cli option or a separate action?
+        # @todo allow to cleanup tests/env/var completely - use either a cli option or a separate action?
         # @todo allow to only remove the container but not the image - use either a cli option or a separate action?
         if ${DOCKER_CMD} inspect "${CONTAINER_NAME}" >/dev/null 2>/dev/null; then
             stop -q

@@ -22,7 +22,7 @@ if [ -z "${TESTS_ROOT_DIR}" ] || [ -z "${UBUNTU_VERSION}" ] || [ -z "${PHP_VERSI
     exit 1
 fi
 
-BOOTSTRAP_OK_FILE="${TESTS_ROOT_DIR}/tests/ci/var/bootstrap_ok_${UBUNTU_VERSION}_${PHP_VERSION}_${WEBSERVER_TYPE}"
+BOOTSTRAP_OK_FILE="${TESTS_ROOT_DIR}/tests/env/var/bootstrap_ok_${UBUNTU_VERSION}_${PHP_VERSION}_${WEBSERVER_TYPE}"
 
 if [ -f "${BOOTSTRAP_OK_FILE}" ]; then
     rm "${BOOTSTRAP_OK_FILE}"
@@ -186,10 +186,10 @@ fi
 
 echo "[$(date)] Bootstrap finished"
 
-# Create the file which can be used by the vm.sh script to check for end of bootstrap
-if [ ! -d "${TESTS_ROOT_DIR}/tests/ci/var" ]; then
-    mkdir -p "${TESTS_ROOT_DIR}/tests/ci/var"
-    chown -R "${USERNAME}" "${TESTS_ROOT_DIR}/tests/ci/var"
+# Create the file which can be used by the container.sh script to check for end of bootstrap
+if [ ! -d "${TESTS_ROOT_DIR}/tests/env/var" ]; then
+    mkdir -p "${TESTS_ROOT_DIR}/tests/env/var"
+    chown -R "${USERNAME}" "${TESTS_ROOT_DIR}/tests/env/var"
 fi
 # @todo save to bootstrap_ok an actual error code if any of the commands above failed
 touch "${BOOTSTRAP_OK_FILE}" && chown "${USERNAME}" "${BOOTSTRAP_OK_FILE}"

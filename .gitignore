@@ -1,5 +1,5 @@
 /.idea
-/tests/ci/var
+/tests/env/var
 /vendor
 /var
 /composer.lock

@@ -22,8 +22,8 @@ Listen 8444
 
   DocumentRoot ${TESTS_ROOT_DIR}/tests/public
 
-  #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
-  #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
+  #ErrorLog "${TESTS_ROOT_DIR}/tests/env/var/apache_error.log"
+  #CustomLog "${TESTS_ROOT_DIR}/tests/env/var/apache_access.log" combined
 
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
@@ -48,8 +48,8 @@ Listen 8444
 
   DocumentRoot ${TESTS_ROOT_DIR}/tests/public
 
-  #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
-  #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
+  #ErrorLog "${TESTS_ROOT_DIR}/tests/env/var/apache_error.log"
+  #CustomLog "${TESTS_ROOT_DIR}/tests/env/var/apache_access.log" combined
 
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
@@ -78,8 +78,8 @@ Listen 8444
 
   DocumentRoot ${TESTS_ROOT_DIR}/tests/public
 
-  #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
-  #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
+  #ErrorLog "${TESTS_ROOT_DIR}/tests/env/var/apache_error.log"
+  #CustomLog "${TESTS_ROOT_DIR}/tests/env/var/apache_access.log" combined
 
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
@@ -123,8 +123,8 @@ Listen 8444
 
   DocumentRoot ${TESTS_ROOT_DIR}/tests/public
 
-  #ErrorLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_error.log"
-  #CustomLog "${TESTS_ROOT_DIR}/tests/ci/var/apache_access.log" combined
+  #ErrorLog "${TESTS_ROOT_DIR}/tests/env/var/apache_error.log"
+  #CustomLog "${TESTS_ROOT_DIR}/tests/env/var/apache_access.log" combined
 
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
