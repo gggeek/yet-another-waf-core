@@ -178,7 +178,6 @@ class ProxyPage
 
         $psr17Factory = new Psr17Factory();
         $creator = new ServerRequestCreator(
-            //$psr17Factory, // ServerRequestFactory
             $psr17Factory, // UriFactory
             $psr17Factory, // UploadedFileFactory
             $psr17Factory  // StreamFactory

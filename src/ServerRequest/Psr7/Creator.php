@@ -95,6 +95,7 @@ class Creator
 
     /**
      * {@inheritdoc}
+     * @todo see the logic in Symfony\Component\HttpFoundation\Request::createFromGlobals for comparison
      */
     public function fromArrays(array $server, array $headers = [], array $cookie = [], array $get = [], ?array $post = null, array $files = [], $body = null): ServerRequestInterface
     {
