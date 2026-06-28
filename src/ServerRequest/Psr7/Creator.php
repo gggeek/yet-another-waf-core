@@ -19,9 +19,12 @@ use YAWAF\Core\Stdlib;
  * A reimplementation of Nyholm\Psr7Server\ServerRequestCreator, attempting to suit better the forward-proxy use-case and
  * fixing a few known bugs (see https://github.com/Nyholm/psr7-server/issues).
  *
+ * Note that this is de facto a ServerRequest Factory. Alas, the Psr17 ServerRequestFactoryInterface is not quite
+ * appropriate nor sufficient for when building a ServerRequest out of the data php receives from the web server...
+ *
  * @todo add support for trusted proxies in front of us: allow whitelisting their IPs and the headers such as x-forwarded-...
  *
- * @see https://github.com/Nyholm/psr7-server/issues/62, https://github.com/Nyholm/psr7-server/pull/49
+ * @see https://github.com/Nyholm/psr7-server/issues/65, https://github.com/Nyholm/psr7-server/issues/62, https://github.com/Nyholm/psr7-server/pull/49
  */
 class Creator
 {
@@ -240,6 +243,8 @@ class Creator
             return $this->normalizeNestedFileSpec($value);
         }
 
+/// @todo... look into issue #59: we should probably call is_uploaded_file($value['tmp_name']) around here
+
         if (UPLOAD_ERR_OK !== $value['error']) {
             $stream = $this->streamFactory->createStream();
         } else {
@@ -301,6 +306,8 @@ class Creator
         //if (isset($server['HTTP_X_FORWARDED_PROTO'])) {
         //    $uri = $uri->withScheme($server['HTTP_X_FORWARDED_PROTO']);
         //} else {
+
+/// @todo... there is at least one user mentioning having HTTPS=on and REQUEST_SCHEME=http... See issue #54
             if (isset($server['REQUEST_SCHEME'])) {
                 $uri = $uri->withScheme($server['REQUEST_SCHEME']);
             } elseif (isset($server['HTTPS'])) {
@@ -316,7 +323,8 @@ class Creator
 
         if (false !== ($haveHostHeader = isset($server['HTTP_HOST']))) {
             if (1 === \preg_match('/^(.+)\:(\d+)$/', $server['HTTP_HOST'], $matches)) {
-                $uri = $uri->withHost($matches[1])->withPort($matches[2]);
+                // yawaf change: fix issue #52 by casting to int
+                $uri = $uri->withHost($matches[1])->withPort((int)$matches[2]);
             } else {
                 // yawaf change: in case the Host header misses a port, we consider that it uses the default port for
                 // the current scheme instead of the one from $server['SERVER_PORT']
@@ -329,7 +337,8 @@ class Creator
         // yawaf change: $server['SERVER_PORT'] can be set and empty when the server is listening on a unix socket
         if (isset($server['SERVER_PORT']) && $server['SERVER_PORT'] !== '') {
             if (!$haveHostHeader) {
-                $uri = $uri->withPort($server['SERVER_PORT']);
+                // yawaf change: fix issue #52 by casting to int
+                $uri = $uri->withPort((int)$server['SERVER_PORT']);
                 $requestAttributes->set(Attributes::URI_PORT_SYNTHETIC, true);
             }
             $requestAttributes->set(Attributes::SERVER_PORT, $server['SERVER_PORT']);
