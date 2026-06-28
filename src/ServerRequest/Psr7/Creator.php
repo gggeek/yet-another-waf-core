@@ -1,10 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Psr7\ServerRequest;
+namespace YAWAF\Core\ServerRequest\Psr7;
 
-use Nyholm\Psr7\ServerRequest;
-//use Psr\Http\Message\ServerRequestFactoryInterface;
+use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
@@ -12,6 +11,8 @@ use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Message\UriFactoryInterface;
 use Psr\Http\Message\UriInterface;
+use YAWAF\Core\ServerRequest\Psr17\ExtendedFactoryInterface;
+use YAWAF\Core\ServerRequest\Psr17\Factory as ServerRequestFactory;
 use YAWAF\Core\Stdlib;
 
 /**
@@ -24,7 +25,7 @@ use YAWAF\Core\Stdlib;
  */
 class Creator
 {
-    //protected ServerRequestFactoryInterface|null $serverRequestFactory;
+    protected ServerRequestFactoryInterface|null $serverRequestFactory;
 
     protected UriFactoryInterface $uriFactory;
 
@@ -32,16 +33,22 @@ class Creator
 
     protected StreamFactoryInterface $streamFactory;
 
+    /**
+     * NB: yawaf change: signature changed compared to the original!
+     */
     public function __construct(
-        //ServerRequestFactoryInterface $serverRequestFactory,
         UriFactoryInterface $uriFactory,
         UploadedFileFactoryInterface $uploadedFileFactory,
-        StreamFactoryInterface $streamFactory
+        StreamFactoryInterface $streamFactory,
+        ServerRequestFactoryInterface|null $serverRequestFactory = null,
     ) {
-        //$this->serverRequestFactory = $serverRequestFactory;
         $this->uriFactory = $uriFactory;
         $this->uploadedFileFactory = $uploadedFileFactory;
         $this->streamFactory = $streamFactory;
+        if ($serverRequestFactory === null) {
+            $serverRequestFactory = new ServerRequestFactory();
+        }
+        $this->serverRequestFactory = $serverRequestFactory;
     }
 
     /**
@@ -78,7 +85,7 @@ class Creator
         $request = $this->fromArrays($server, $headers, $_COOKIE, $_GET, $post, $_FILES, \fopen('php://input', 'r') ?: null);
         // yawaf change: add attribute
         if (!$haveRequestMethod) {
-            $request->getAttribute(Attributes::class)->set(Attributes::REQUEST_METHOD_SYNTHETIC, true);
+            $request->getAttribute(Attributes::class)?->set(Attributes::REQUEST_METHOD_SYNTHETIC, true);
         }
         return $request;
     }
@@ -109,34 +116,36 @@ class Creator
         // yawaf change: Psr17Factory::createServerRequest misses the ability of ServerRequest::__construct to work off
         // headers. That in turn requires more work immediately afterwards to patch in the headers, except for the
         // Host one. So we go straight for ServerRequest::__construct instead
-        $serverRequest = new ServerRequest($method, $uri, $headers, null, $protocol, $server);
+        if ($this->serverRequestFactory instanceof ExtendedFactoryInterface) {
+            $serverRequest = $this->serverRequestFactory->createServerRequestEx($method, $uri, $server, $headers, $protocol);
+        } else {
 
-        /*$serverRequest = $this->serverRequestFactory->createServerRequest($method, $uri, $server);
+            $serverRequest = $this->serverRequestFactory->createServerRequest($method, $uri, $server);
 
-        foreach ($headers as $name => $value) {
-            // Because PHP automatically casts array keys set with numeric strings to integers, we have to make sure
-            // that numeric headers will not be sent along as integers, as withAddedHeader can only accept strings.
-            if (\is_int($name)) {
-                $name = (string) $name;
+            foreach ($headers as $name => $value) {
+                // Because PHP automatically casts array keys set with numeric strings to integers, we have to make sure
+                // that numeric headers will not be sent along as integers, as withAddedHeader can only accept strings.
+                if (\is_int($name)) {
+                    $name = (string) $name;
+                }
+
+                // yawaf change: handle the case where the request already has an `host` header
+                // We prefer the 'host' header received from the server to the one rebuilt from the uri - even though
+                // in reality they are both built off the same thing!
+                // NB: this works best when assuming that there is a single HTTP_HOST in $_SERVER_. That is part of the http
+                // spec, so we trust the webserver to enforce it for us (note that some webservers might concatenate multiple
+                // host headers in a single, csv-formatted value)
+                if ($name === 'host' && $serverRequest->hasHeader('host')) {
+                    $serverRequest = $serverRequest->withoutHeader('host');
+                }
+                $serverRequest = $serverRequest->withAddedHeader($name, $value);
             }
 
-            // yawaf change: handle the case where request already has an `host` header because the $uri passed in to
-            // `createServerRequest` is absolute.
-            // We prefer the 'host' header received from the server to the one rebuilt from the uri.
-/// @todo... review this decision after a careful read of rfc9112
-            // NB: this works best when assuming that there is a single HTTP_HOST in $_SERVER_. That is part of the http
-            // spec, so we trust the webserver to enforce it for us (note that some webservers might concatenate multiple
-            // host headers in a single, csv-formatted value)
+            $serverRequest = $serverRequest->withProtocolVersion($protocol);
 
-/// @todo... also, make sure we can figure out if the request from the client does have an absolute uri, and its scheme, host, port
-            if ($name === 'host' && $serverRequest->hasHeader('host')) {
-                $serverRequest = $serverRequest->withoutHeader('host');
-            }
-            $serverRequest = $serverRequest->withAddedHeader($name, $value);
-        }*/
+        }
 
         $serverRequest = $serverRequest
-            //->withProtocolVersion($protocol)
             ->withCookieParams($cookie)
             ->withQueryParams($get)
             ->withParsedBody($post)

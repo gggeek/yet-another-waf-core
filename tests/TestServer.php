@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace YAWAF\Core\Tests;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
-use YAWAF\Core\Psr7\ServerRequest\Creator as ServerRequestCreator;
+use YAWAF\Core\ServerRequest\Psr7\Creator as ServerRequestCreator;
 use YAWAF\Core\Stdlib;
 
 class TestServer

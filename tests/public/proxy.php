@@ -18,7 +18,7 @@ use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
 use YAWAF\Core\Middleware\Tracer;
 use YAWAF\Core\Proxy\FixedUpstreamProxy;
-use YAWAF\Core\Psr7\ServerRequest\Creator as ServerRequestCreator;
+use YAWAF\Core\ServerRequest\Psr7\Creator as ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
 
 $proxy = new ProxyPage();

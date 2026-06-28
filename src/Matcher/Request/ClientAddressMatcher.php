@@ -5,7 +5,7 @@ namespace YAWAF\Core\Matcher\Request;
 
 use Psr\Http\Message\ServerRequestInterface;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
-use YAWAF\Core\Psr7\ServerRequest\Attributes;
+use YAWAF\Core\ServerRequest\Psr7\Attributes;
 
 class ClientAddressMatcher extends BaseMatcher
 {
@@ -22,8 +22,8 @@ class ClientAddressMatcher extends BaseMatcher
 
     public function matchesRequest(ServerRequestInterface $request): bool
     {
-        /// @todo... log a warning if we are not passed this env var
-        $clientAddress = $request->getAttribute(Attributes::class)->get(Attributes::REMOTE_ADDR) ?? '';
+        /// @todo... log a warning if we are not passed the attributes bag or this specific attribute
+        $clientAddress = $request->getAttribute(Attributes::class)?->get(Attributes::REMOTE_ADDR) ?? '';
 
         return $this->matchesRegexp($clientAddress);
     }

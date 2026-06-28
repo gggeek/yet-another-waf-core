@@ -5,7 +5,7 @@ namespace YAWAF\Core\Matcher\Request;
 
 use Psr\Http\Message\ServerRequestInterface;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
-use YAWAF\Core\Psr7\ServerRequest\Attributes;
+use YAWAF\Core\ServerRequest\Psr7\Attributes;
 
 class ClientPortMatcher extends BaseMatcher
 {
@@ -26,8 +26,8 @@ class ClientPortMatcher extends BaseMatcher
 
     public function matchesRequest(ServerRequestInterface $request): bool
     {
-        /// @todo... log a warning if we are not passed this env var
-        $clientPort = getAttribute(Attributes::class)->get(Attributes::REMOTE_PORT) ?? '';
+        /// @todo... log a warning if we are not passed the attributes bag or this specific attribute
+        $clientPort = $request->getAttribute(Attributes::class)?->get(Attributes::REMOTE_PORT) ?? '';
 
         return $this->matchesRegexp($clientPort);
     }
