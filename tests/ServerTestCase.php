@@ -37,7 +37,7 @@ abstract class ServerTestCase extends TestCase
             /// @todo we could only remove files which match existing method names
             /// @todo we should also remove files which match existing method names without the _with_data_set__ from DataProviders
             if (preg_match('/^(test.+)_with_data_set__[0-9]+\.(:?log|trace)$/', $fileName)) {
-                unlink($filePath);
+                @unlink($filePath);
             }
         }
 

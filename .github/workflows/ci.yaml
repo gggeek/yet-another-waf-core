@@ -110,6 +110,6 @@ jobs:
                     if [ -d /var/log/apache2 ]; then sudo cat /var/log/apache2/other_vhosts_access.log; fi
                     if [ -d /var/log/nginx ]; then sudo cat /var/log/nginx/error.log; fi
                     if [ -d /var/log/nginx ]; then sudo cat /var/log/nginx/access.log; fi
-                    if [ -d /var/log/frankenphp ]; then sudo cat /var/log/frankenphp/error.log; fi
-                    if [ -d /var/log/frankenphp ]; then sudo cat /var/log/frankenphp/access.log; fi
+                    if [ -f /var/log/frankenphp/error.log ]; then sudo cat /var/log/frankenphp/error.log; fi
+                    if [ -f /var/log/frankenphp/access.log ]; then sudo cat /var/log/frankenphp/access.log; fi
                     sudo cat /var/log/php*.log

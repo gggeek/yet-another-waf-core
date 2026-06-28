@@ -77,10 +77,10 @@ Given the non-trivial set of configuration required to carry out end-to-end test
 the provided docker-based stack to run the test suite
 
 ```shell
-./tests/ci/vm.sh build
-./tests/ci/vm.sh start
-./tests/ci/vm.sh runtests
-./tests/ci/vm.sh stop
+./tests/env/container.sh build
+./tests/env/container.sh start
+./tests/env/container.sh runtests
+./tests/env/container.sh stop
 ```
 
 ## FAQ
