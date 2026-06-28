@@ -17,4 +17,4 @@ $dotenv->loadEnv(__DIR__.'/../.env');
 
 $server = new TestServer();
 
-$server->respond();
+$server->respond(@$_GET['src-library'] ?? 'yawaf');
