@@ -27,8 +27,20 @@ abstract class ServerTestCase extends TestCase
 
         // Set up a database connection or other fixture which needs to be available...
 
+        $tmpDir = sys_get_temp_dir();
+
+        foreach (scandir($tmpDir) as $fileName) {
+            $filePath = "$tmpDir/$fileName";
+            if (!is_file($filePath)) {
+                continue;
+            }
+            if (preg_match('/^test.+_with_data_set__[0-9]+\.(log|trace)$/', $fileName)) {
+                unlink($filePath);
+            }
+        }
+
         self::$randId = uniqid();
-        file_put_contents(sys_get_temp_dir() . '/phpunit_rand_id.txt', self::$randId);
+        file_put_contents($tmpDir . '/phpunit_rand_id.txt', self::$randId);
     }
 
     public static function tearDownAfterClass(): void
