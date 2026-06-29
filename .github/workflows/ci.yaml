@@ -116,9 +116,11 @@ jobs:
                     if [ -f /var/log/nginx/error.log ]; then echo "Nginx error log:" && sudo cat /var/log/nginx/error.log; fi
                     if [ -f /var/log/nginx/access.log ]; then echo "Nginx access log:" &&  sudo cat /var/log/nginx/access.log; fi
 
-                    if [ -d /var/log/frankenphp/ ]; then sudo ls -la /var/log/frankenphp/; fi
-                    if [ -d /run/frankenphp/ ]; then sudo ls -la /run/frankenphp/; fi
-
                     if [ -f /var/log/frankenphp/frankenphp.log ]; then echo "FrankenPHP log:" && sudo cat /var/log/frankenphp/frankenphp.log; fi
 
+                    if [ -d /var/log/frankenphp/ ]; then sudo ls -la /var/log/frankenphp/; fi
+                    if [ -d /run/frankenphp/ ]; then sudo ls -la /run/frankenphp/; fi
+                    if [ -f /etc/frankenphp/Caddyfile ]; then echo "FrankenPHP config:" && sudo cat /etc/frankenphp/Caddyfile; fi
+
+                    echo "PHP logs:"
                     sudo cat /var/log/php*.log
