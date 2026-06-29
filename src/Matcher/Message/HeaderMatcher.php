@@ -17,6 +17,7 @@ class HeaderMatcher extends BaseMatcher
      * @param string $headerName
      * @param string|string[] $filter
      * @throws \Exception
+     * @todo allow a wildcard in the header name
      */
     public function __construct(string $headerName, string|array $filter)
     {

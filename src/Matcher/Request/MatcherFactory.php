@@ -66,6 +66,10 @@ class MatcherFactory implements MatcherFactoryInterface
             case 'http_method':
                 $matcher = new MethodMatcher($values);
                 break;
+            /// @todo...
+            //case 'port':
+            //    $matcher = ...;
+            //    break;
             case 'query_string':
                 if (!is_array($values) || count($values) !== 1) {
                     throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");

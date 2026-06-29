@@ -60,7 +60,7 @@ class CA_MatchingTest extends ProxyTestCase
     {
         // skip test cases which are bound to fail with given configs
         /// @todo this should be more robust/flexible... We should allow the json configs to specify excluded test configs...
-        if ($configFileName === '001_client_address_fixed.json' && $proxyScheme === 'unix') {
+        if ($proxyScheme === 'unix' && in_array($configFileName, ['001_client_address_fixed.json', '003_client_address_many.json'])) {
             // avoid the line noise from
             //$this->markTestSkipped('Can not test a client_address match when running the proxy on a unix socket');
             $this->assertEquals(0, 0);

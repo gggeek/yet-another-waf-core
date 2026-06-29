@@ -24,7 +24,6 @@ class ClientAddressMatcher extends BaseMatcher
     {
         /// @todo... log a warning if we are not passed the attributes bag or this specific attribute
         $clientAddress = $request->getAttribute(Attributes::class)?->get(Attributes::REMOTE_ADDR) ?? '';
-
         return $this->matchesRegexp($clientAddress);
     }
 

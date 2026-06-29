@@ -32,10 +32,10 @@ trait RegExpListMatcherTrait
                 }
                 $this->allowedValues[] = $this->normalizeMatchingRegexp($value);
             }
+            $this->regexp = $this->regexpDelimiter . '(' . implode('|', $this->allowedValues) . ')' . $this->regexpDelimiter;
         } else {
-            $this->allowedValues = [$this->normalizeMatchingRegexp($values)];
+            $this->regexp = $this->regexpDelimiter . $this->normalizeMatchingRegexp($values) . $this->regexpDelimiter;
         }
-        $this->regexp = $this->regexpDelimiter . '(' . implode('|', $this->allowedValues) . ')' . $this->regexpDelimiter;
     }
 
     protected function matchesRegexp(string $value): bool
