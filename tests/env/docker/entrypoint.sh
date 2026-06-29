@@ -44,7 +44,7 @@ clean_up() {
     fi
     if [ "$START_WEBSERVER" = frankenphp ] || [ "$START_WEBSERVER" = all ]; then
         if [ -d /etc/frankenphp ]; then
-            pkill frankenphp
+            service frankenphp stop
         fi
     fi
     echo "[$(date)] Stopping FPM"
@@ -115,6 +115,8 @@ if [ -f /etc/frankenphp/Caddyfile ]; then
     groupmod -o -g "$CONTAINER_USER_GID" frankenphp
     usermod -o -u "$CONTAINER_USER_UID" -g "$CONTAINER_USER_GID" frankenphp
     chown frankenphp:frankenphp /run/frankenphp
+    chown frankenphp:frankenphp /var/lib/frankenphp
+    chown frankenphp /var/log/frankenphp
 
     sed -e "s|^ *root .*|    root ${TESTS_ROOT_DIR}/tests/public|g" --in-place /etc/frankenphp/Caddyfile
 fi
@@ -170,12 +172,7 @@ if [ "$START_WEBSERVER" = nginx ] || [ "$START_WEBSERVER" = all ]; then
 fi
 if [ "$START_WEBSERVER" = frankenphp ] || [ "$START_WEBSERVER" = all ]; then
     if [ -d /etc/frankenphp ]; then
-        # @todo move frankenphp start/stop/restart commands to an /etc/init.d file, to make it easier to manage it after container start
-        # @todo... since we are root, and the shell sets up redirections before running `sudo -u`, log files get created ok
-        #          in a root-owned dir. But there seems to be no logging of http requests going into them...
-        sudo -u frankenphp frankenphp --config /etc/frankenphp/Caddyfile --pidfile /run/frankenphp/frankenphp.pid run >/var/log/frankenphp/access.log 2>/var/log/frankenphp/error.log &
-        chmod 640 /var/log/frankenphp/access.log /var/log/frankenphp/error.log
-        chown root:adm /var/log/frankenphp/access.log /var/log/frankenphp/error.log
+        service frankenphp start
     else
         if [ "$START_WEBSERVER" = frankenphp ]; then
             echo "Can not start frankenphp: it was not installed in this container" >&2

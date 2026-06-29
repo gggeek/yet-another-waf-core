@@ -28,24 +28,33 @@ fi
 if [ ! -d /etc/frankenphp/Caddyfile.d/ ]; then
     mkdir /etc/frankenphp/Caddyfile.d/
 fi
+if [ ! -d /var/lib/frankenphp ]; then
+    mkdir /var/lib/frankenphp
+fi
+chown frankenphp:frankenphp /var/lib/frankenphp
 if [ ! -d /var/log/frankenphp ]; then
     mkdir /var/log/frankenphp
 fi
-# Allow non-root to listen frankenphp log files, same as it is possible for nginx
+# Allow non-owner/root to list frankenphp log files, same as it is possible for nginx
 chmod 755 /var/log/frankenphp
-chown root:adm /var/log/frankenphp
+chown docker:adm /var/log/frankenphp
 if [ ! -d /run/frankenphp ]; then
     mkdir /run/frankenphp
 fi
 chown frankenphp:frankenphp /run/frankenphp
 
-# Note: this does not leave frankenphp auto-starting, as it installs a systemd unit to manage that (and no systemd in containers)
-
 # configure virtual hosts
 
 cp -f "$SCRIPT_DIR/../config/frankenphp_caddyfile" /etc/frankenphp/Caddyfile
 
+# Note: this does not leave frankenphp auto-starting, as it installs a systemd unit to manage that (and no systemd in containers)
+
 if [ -n "${GITHUB_ACTIONS}" ]; then
     TESTS_ROOT_DIR="$(pwd)"
     sed -e "s|^ *root .*|    root ${TESTS_ROOT_DIR}/tests/public|g" --in-place /etc/frankenphp/Caddyfile
+else
+    apt-get install -y frankenphp libcap2-bin
+    setcap 'cap_net_bind_service=+ep' /usr/bin/frankenphp
+
+    cp /root/config/init.d/frankenphp /etc/init.d/frankenphp && chmod 755 /etc/init.d/frankenphp
 fi

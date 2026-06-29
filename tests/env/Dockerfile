@@ -8,7 +8,7 @@ ARG UBUNTU_VERSION=resolute
 ARG WEBSERVER_TYPE=all
 
 COPY --chmod=755 setup/*.sh /root/setup/
-COPY config/* /root/config/
+COPY config /root/config/
 
 RUN /root/setup/build.sh
 
