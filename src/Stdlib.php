@@ -46,16 +46,16 @@ class Stdlib
                 }
             }
 
-/// @todo... check: is the `if ($value)` test correct? What about '0'?
+            // yawaf change: `if ($value)` changed to `$value !== ''` (fix issue #67)
 
-            if ($value && 0 === \strpos($key, 'HTTP_')) {
+            if ($value !== '' && 0 === \strpos($key, 'HTTP_')) {
                 $name = \strtr(\strtolower(\substr($key, 5)), '_', '-');
                 $headers[$name] = $value;
 
                 continue;
             }
 
-            if ($value && 0 === \strpos($key, 'CONTENT_')) {
+            if ($value !== '' && 0 === \strpos($key, 'CONTENT_')) {
                 $name = 'content-'.\strtolower(\substr($key, 8));
                 $headers[$name] = $value;
 
