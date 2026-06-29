@@ -37,7 +37,7 @@ if [ ! -d /var/log/frankenphp ]; then
 fi
 # Allow non-owner/root to list frankenphp log files, same as it is possible for nginx
 chmod 755 /var/log/frankenphp
-chown docker:adm /var/log/frankenphp
+chown frankenphp:adm /var/log/frankenphp
 if [ ! -d /run/frankenphp ]; then
     mkdir /run/frankenphp
 fi
