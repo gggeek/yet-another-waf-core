@@ -20,7 +20,7 @@ class CA_MatchingTest extends ProxyTestCase
         );
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-        $this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
+        $this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message', 'file', 'line']);
     }
 
     public static function invalidRulesDataProvider(): array
@@ -54,13 +54,13 @@ class CA_MatchingTest extends ProxyTestCase
         return $out;
     }
 
-    #[DataProvider('passingRulesDataProvider')]
-    public function testPassingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
+    #[DataProvider('passingGetRulesDataProvider')]
+    public function testPassingGetRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
         string $proxyScheme = 'http', string $serverScheme = 'http')
     {
         // skip test cases which are bound to fail with given configs
         /// @todo this should be more robust/flexible... We should allow the json configs to specify excluded test configs...
-        if ($proxyScheme === 'unix' && in_array($configFileName, ['001_client_address_fixed.json', '003_client_address_many.json'])) {
+        if ($proxyScheme === 'unix' && in_array(basename($configFileName), ['001_client_address_fixed.json', '003_client_address_many.json'])) {
             // avoid the line noise from
             //$this->markTestSkipped('Can not test a client_address match when running the proxy on a unix socket');
             $this->assertEquals(0, 0);
@@ -68,9 +68,9 @@ class CA_MatchingTest extends ProxyTestCase
         }
 
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config-File' => 'matchers/passing/' . $configFileName]],
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName]],
             'GET',
-            '',
+            static::getServerPath() . '?y=yes&n=no&true=true&true=false=1=1&0=0&0.1=0.1&array[]=one&array[]=two',
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         $failureMessage = $this->getTestDetails($response);
@@ -78,28 +78,19 @@ class CA_MatchingTest extends ProxyTestCase
         //$this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
     }
 
-    public static function passingRulesDataProvider(): array
+    public static function passingGetRulesDataProvider(): array
     {
-        $rootDir = __DIR__ . '/configs/matchers/passing/';
-        $out = [];
-        foreach (self::getCommonDataProviderOptions() as $opts) {
-            foreach (scandir($rootDir) as $fileName) {
-                if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
-                    $out[] = array_merge([$fileName], $opts);
-                }
-            }
-        }
-        return $out;
+        return self::getRuleBasedTestDataProviderOptions('get', 'passing');
     }
 
-    #[DataProvider('failingRulesDataProvider')]
-    public function testFailingRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
+    #[DataProvider('failingGetRulesDataProvider')]
+    public function testFailingGetRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
          string $proxyScheme = 'http', string $serverScheme = 'http')
     {
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config-File' => 'matchers/failing/' . $configFileName]],
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName]],
             'GET',
-            '',
+            static::getServerPath() . '?y=yes&n=no&true=true&true=false=1=1&0=0&0.1=0.1&array[]=one&array[]=two',
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         $failureMessage = $this->getTestDetails($response);
@@ -107,14 +98,19 @@ class CA_MatchingTest extends ProxyTestCase
         $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
     }
 
-    public static function failingRulesDataProvider(): array
+    public static function failingGetRulesDataProvider(): array
     {
-        $rootDir = __DIR__ . '/configs/matchers/failing/';
+        return self::getRuleBasedTestDataProviderOptions('get', 'failing');
+    }
+
+    protected static function getRuleBasedTestDataProviderOptions(string $method, string $status): array
+    {
+        $rootDir = __DIR__ . "/configs/matchers/$method/$status/";
         $out = [];
         foreach (self::getCommonDataProviderOptions() as $opts) {
             foreach (scandir($rootDir) as $fileName) {
                 if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
-                    $out[] = array_merge([$fileName], $opts);
+                    $out[] = array_merge(["matchers/$method/$status/$fileName"], $opts);
                 }
             }
         }

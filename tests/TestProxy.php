@@ -44,7 +44,7 @@ class TestProxy extends FilteringProxy
         return new Response(
             self::ERROR_STATUS_CODE,
             ['content-type' => 'application/json'],
-            json_encode(self::ERROR_RESPONSE + ($e !== null ? ['message' => $e->getMessage()] : []))
+            json_encode(self::ERROR_RESPONSE + ($e !== null ? ['message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()] : []))
         );
     }
 

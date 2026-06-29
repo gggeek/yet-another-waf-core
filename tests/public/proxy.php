@@ -82,9 +82,16 @@ class ProxyPage
                 file_put_contents($logFileName, '');
             }
             $logger = new FileLogger($logFileName, LogLevel::DEBUG);
-            $logger->debug("Loaded .env config for SERVER_TYPE: {$_ENV['SERVER_TYPE']}");
         }
 
+        if ($logger) {
+            $logger->debug("Loaded .env config for SERVER_TYPE: {$_ENV['SERVER_TYPE']}");
+            if (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] !== '') {
+                $logger->debug("Proxy listening on port: {$_SERVER['SERVER_PORT']}");
+            } else {
+                $logger->debug("Proxy listening on a unix socket");
+            }
+        }
         return $logger;
     }
 
@@ -109,7 +116,7 @@ class ProxyPage
                     throw new \Exception("Can not use at the same time headers X-YAWAF-CONFIG and X-YAWAF-CONFIG-FILE");
                 }
                 if (!$this->fileIsInTestsDir('configs/' . $configFile)) {
-                    throw new \Exception("Can not use config file defined in GET var YAWAF_CONFIG_FILE: outside tests root");
+                    throw new \Exception("Can not use config file defined in header YAWAF_CONFIG_FILE: outside tests root");
                 }
                 $firewall = $firewallFactory->fromConfigFile(__DIR__ . '/../configs/' . $configFile);
             } else {
@@ -152,7 +159,7 @@ class ProxyPage
             $emitter->emit($response);
 
         } catch (\Throwable $e) {
-            $logger?->critical($e->getMessage());
+            $logger?->critical($e->getMessage() . ', in File: ' . $e->getFile() . ' Line: ' . $e->getLine());
             $emitter->emit(TestProxy::getErrorResponse($e));
             exit();
         }
@@ -189,7 +196,10 @@ class ProxyPage
 
     protected function fileIsInTestsDir($fileName): bool
     {
-        return str_starts_with(realpath(__DIR__ . '/../' . $fileName), realpath(__DIR__ . '/..'));
+        if (false === ($filePath = realpath(__DIR__ . '/../' . $fileName))) {
+            return false;
+        }
+        return str_starts_with($filePath, realpath(__DIR__ . '/..'));
     }
 
     protected function removeCookieFromEnv($cookieName)
