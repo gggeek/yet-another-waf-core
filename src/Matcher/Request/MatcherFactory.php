@@ -24,7 +24,7 @@ class MatcherFactory implements MatcherFactoryInterface
     public function supports(string $type): bool
     {
         $type = strtolower(preg_replace('/:[0-9]+$/', '', trim($type)));
-        return in_array($type, ['body', 'client_address', 'client_port', 'content_type', 'http_header', 'http_method', 'query_string', 'url_path', 'user_agent']);
+        return in_array($type, ['body', 'client_address', 'client_port', 'content_type', 'host', 'http_header', 'http_method', 'query_string', 'url_path', 'user_agent']);
     }
 
     /**
@@ -48,6 +48,9 @@ class MatcherFactory implements MatcherFactoryInterface
                 break;
             case 'content_type':
                 $matcher = new ContentTypeMatcher($values);
+                break;
+            case 'host':
+                $matcher = new HostMatcher($values);
                 break;
             case 'http_header':
                 if (!is_array($values) || count($values) !== 1) {

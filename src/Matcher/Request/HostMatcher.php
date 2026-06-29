@@ -21,7 +21,8 @@ class HostMatcher extends BaseMatcher
 
     public function matchesRequest(ServerRequestInterface $request): bool
     {
-        return $this->matchesRegexp($request->getHeaderLine('Host'));
+        $host = explode(':', $request->getHeaderLine('Host'), 2)[0];
+        return $this->matchesRegexp($host);
     }
 
     protected function normalizeMatchingRegexp(string $value): string
