@@ -66,6 +66,7 @@ jobs:
                     elif [ '${{ matrix.webserver }}' = 'frankenphp' ]; then
                         # There is apparently an issue with the systemd FP config, so we use our own script...
                         sudo service '${{ matrix.webserver }}' stop || true
+                        # @todo figure out why `frankenphp start` works but exits with code 1...
                         sudo ./tests/env/config/init.d/frankenphp start || true
                     else
                         sudo service '${{ matrix.webserver }}' start
@@ -122,9 +123,9 @@ jobs:
 
                     if [ -f /var/log/frankenphp/frankenphp.log ]; then echo "FrankenPHP log:" && sudo cat /var/log/frankenphp/frankenphp.log; fi
 
-                    if [ -d /var/log/frankenphp/ ]; then sudo ls -la /var/log/frankenphp/; fi
-                    if [ -d /run/frankenphp/ ]; then sudo ls -la /run/frankenphp/; fi
-                    if [ -f /etc/frankenphp/Caddyfile ]; then echo "FrankenPHP config:" && sudo cat /etc/frankenphp/Caddyfile; fi
+                    #if [ -d /var/log/frankenphp/ ]; then sudo ls -la /var/log/frankenphp/; fi
+                    #if [ -d /run/frankenphp/ ]; then sudo ls -la /run/frankenphp/; fi
+                    #if [ -f /etc/frankenphp/Caddyfile ]; then echo "FrankenPHP config:" && sudo cat /etc/frankenphp/Caddyfile; fi
 
                     echo "PHP logs:"
                     sudo cat /var/log/php*.log
