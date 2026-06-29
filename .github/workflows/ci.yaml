@@ -110,11 +110,11 @@ jobs:
             -   name: failure troubleshooting
                 if: ${{ failure() }}
                 run: |
-                    if [ -d /var/log/apache2 ]; then echo "Apache error log:" && sudo cat /var/log/apache2/error.log; fi
-                    if [ -d /var/log/apache2 ]; then "Apache access log:" && sudo cat /var/log/apache2/other_vhosts_access.log; fi
+                    if [ -f /var/log/apache2/error.log ]; then echo "Apache error log:" && sudo cat /var/log/apache2/error.log; fi
+                    if [ -f /var/log/apache2/other_vhosts_access.log ]; then echo "Apache access log:" && sudo cat /var/log/apache2/other_vhosts_access.log; fi
 
-                    if [ -d /var/log/nginx ]; then echo "Nginx error log:" && sudo cat /var/log/nginx/error.log; fi
-                    if [ -d /var/log/nginx ]; then echo "Nginx access log:" &&  sudo cat /var/log/nginx/access.log; fi
+                    if [ -f /var/log/nginx/error.log ]; then echo "Nginx error log:" && sudo cat /var/log/nginx/error.log; fi
+                    if [ -f /var/log/nginx/access.log ]; then echo "Nginx access log:" &&  sudo cat /var/log/nginx/access.log; fi
 
                     if [ -d /var/log/frankenphp/ ]; then sudo ls -la /var/log/frankenphp/; fi
                     if [ -d /run/frankenphp/ ]; then sudo ls -la /run/frankenphp/; fi

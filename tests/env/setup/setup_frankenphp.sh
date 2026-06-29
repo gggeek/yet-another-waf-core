@@ -52,6 +52,7 @@ cp -f "$SCRIPT_DIR/../config/frankenphp_caddyfile" /etc/frankenphp/Caddyfile
 if [ -n "${GITHUB_ACTIONS}" ]; then
     TESTS_ROOT_DIR="$(pwd)"
     sed -e "s|^ *root .*|    root ${TESTS_ROOT_DIR}/tests/public|g" --in-place /etc/frankenphp/Caddyfile
+    sed -e "s|^ *output +stdout.*|        output file /var/log/frankenphp/frankenphp.log|g" --in-place /etc/frankenphp/Caddyfile
 else
     apt-get install -y frankenphp libcap2-bin
     setcap 'cap_net_bind_service=+ep' /usr/bin/frankenphp
