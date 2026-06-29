@@ -33,7 +33,7 @@ chmod 755 "/home/${USERNAME}"
 
 if [ -f /etc/sudoers ]; then
     adduser "${USERNAME}" sudo
-    sed -i "\$ a ${USERNAME}   ALL=\(ALL:ALL\) NOPASSWD: ALL" /etc/sudoers
+    sed -e "\$ a ${USERNAME}   ALL=\(ALL:ALL\) NOPASSWD: ALL" --in-place  /etc/sudoers
 fi
 
 echo "Done creating user account"
