@@ -63,11 +63,10 @@ jobs:
                     find . -type f -exec chmod +r {} \;
                     if [ '${{ matrix.webserver }}' = 'apache' ]; then
                         sudo service apache2 start
-                    fi
-                    if [ '${{ matrix.webserver }}' = 'frankenphp' ]; then
-                        # is there an issue with the systemd FP config???
+                    elif [ '${{ matrix.webserver }}' = 'frankenphp' ]; then
+                        # There is apparently an issue with the systemd FP config, so we use our own script...
                         sudo service '${{ matrix.webserver }}' stop || true
-                        sudo ./tests/env/config/init.d/frankenphp start
+                        sudo ./tests/env/config/init.d/frankenphp start || true
                     else
                         sudo service '${{ matrix.webserver }}' start
                     fi
