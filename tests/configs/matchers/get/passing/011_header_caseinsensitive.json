@@ -1,0 +1,5 @@
+[
+    {
+        "http_header/case_insensitive": {"x-test-1": "hElLo"}
+    }
+]
