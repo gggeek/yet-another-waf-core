@@ -8,21 +8,18 @@ use Psr\Log\LoggerInterface;
 use YAWAF\Core\Matcher\MatcherFactoryAwareTrait;
 use YAWAF\Core\Matcher\MatcherFactoryInterface;
 use YAWAF\Core\Matcher\MatcherInterface;
+use YAWAF\Core\Matcher\SuffixedMatcherFactory;
 
-class MatcherFactory implements MatcherFactoryInterface
+class MatcherFactory extends SuffixedMatcherFactory implements MatcherFactoryInterface
 {
     use LoggerAwareTrait;
     use MatcherFactoryAwareTrait;
 
+    protected array $supportedMatcherTypes = ['always', 'and', 'or', 'ever', 'not'];
+
     public function __construct(LoggerInterface|null $logger = null)
     {
         $this->logger = $logger;
-    }
-
-    public function supports(string $type): bool
-    {
-        $type = strtolower(preg_replace('/:[0-9]+$/', '', trim($type)));
-        return in_array($type, ['always', 'and', 'never', 'not', 'or']);
     }
 
     /**
@@ -33,11 +30,9 @@ class MatcherFactory implements MatcherFactoryInterface
      */
     public function fromConfiguration(string $type, mixed $values): MatcherInterface
     {
-        // allow a numeric suffix to be used, so that many matches of the same type can be in an array where the type is key
-        $target = strtolower(preg_replace('/:[0-9]+$/', '', trim($type)));
-        switch ($target) {
+        switch ($this->getMatcherType($type)) {
             case 'always':
-/// @todo log a warning if $values is falsey
+                /// @todo log a warning if $values is falsey
                 return new AlwaysMatcher();
             case 'and':
             case 'or':
@@ -50,7 +45,7 @@ class MatcherFactory implements MatcherFactoryInterface
                 }
                 return $target === 'and' ? new AndMatcher($matchers) : new OrMatcher($matchers);
             case 'never':
-/// @todo log a warning if $values is falsey
+                /// @todo log a warning if $values is falsey
                 return new NeverMatcher();
             case 'not':
                 if (!is_array($values) || count($values) !== 1) {

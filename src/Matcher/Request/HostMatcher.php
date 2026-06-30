@@ -11,12 +11,14 @@ class HostMatcher extends BaseMatcher
     use RegExpListMatcherTrait;
 
     /**
+     * "The scheme and host are case-insensitive and normally provided in lowercase"
+     * @see https://www.rfc-editor.org/info/rfc9110/#name-identifiers-in-http
      * @param string|string[] $filter
      * @throws \Exception
      */
-    public function __construct(string|array $filter, bool $caseInsensitive = false, bool $expandWildcards = true)
+    public function __construct(string|array $filter, bool $expandWildcards = true)
     {
-        $this->caseInsensitive = $caseInsensitive;
+        $this->caseInsensitive = true;
         $this->expandWildcards = $expandWildcards;
         $this->setMatchingValues($filter);
     }

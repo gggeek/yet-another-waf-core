@@ -46,7 +46,7 @@ class FixedUpstreamProxy extends Proxy
         if (!preg_match('#^(/|unix:/|tcp://|https?://)#', $upstream, $matches)) {
             throw new \Exception('Upstream not supported. Only unix sockets (paths starting with "/"), tcp sockets (urls starting with "tcp://") and http urls are');
         }
-        switch($matches[1]) {
+        switch ($matches[1]) {
             case 'http://':
             case 'https://':
                 $this->upstream = parse_url($upstream);
@@ -119,7 +119,7 @@ class FixedUpstreamProxy extends Proxy
 
 /// @todo... add x-forwarded headers and co.
 
-        switch($this->upstream['scheme']) {
+        switch ($this->upstream['scheme']) {
             case 'http':
             case 'https':
                 // fix the scheme, host, port and path

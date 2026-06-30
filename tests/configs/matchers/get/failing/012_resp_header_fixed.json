@@ -1,0 +1,8 @@
+{
+    "rule 1": {
+        "resp_match": {
+            "http_header": {"content-type": "application/json"}
+        },
+        "resp_action": "deny"
+    }
+}

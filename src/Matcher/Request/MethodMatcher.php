@@ -11,7 +11,8 @@ class MethodMatcher extends BaseMatcher
     use StringListMatcherTrait;
 
     /**
-     * @todo should we allow lowercase string to match against?
+     * NB: the http method is in fact a case-sensitive value.
+     * @see https://www.rfc-editor.org/info/rfc9110/#methods
      * @param string|string[] $filter
      * @throws \Exception
      */

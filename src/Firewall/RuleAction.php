@@ -4,6 +4,7 @@ namespace YAWAF\Core\Firewall;
 
 enum RuleAction: string
 {
+    /// @todo: rename 'allow' to 'filter'? That would make the logic for response-matching configs clearer...
     case Allow = 'allow';
     case Deny = 'deny';
     /// @todo

@@ -11,22 +11,17 @@ use YAWAF\Core\Matcher\MatcherInterface;
 use YAWAF\Core\Matcher\Message\BodyMatcher;
 use YAWAF\Core\Matcher\Message\ContentTypeMatcher;
 use YAWAF\Core\Matcher\Message\HeaderMatcher;
-use YAWAF\Core\Matcher\OptionAwareMatcherFactoryTrait;
+use YAWAF\Core\Matcher\OptionAwareMatcherFactory;
 
-class MatcherFactory implements MatcherFactoryInterface
+class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactoryInterface
 {
     use LoggerAwareTrait;
-    use OptionAwareMatcherFactoryTrait;
+
+    protected array $supportedMatcherTypes = ['body', 'content_type', 'http_header', 'status_code'];
 
     public function __construct(LoggerInterface|null $logger = null)
     {
         $this->logger = $logger;
-    }
-
-    public function supports(string $type): bool
-    {
-        $type = strtolower(preg_replace('/:[0-9]+$/', '', trim($type)));
-        return in_array($type, ['body', 'content_type', 'http_header', 'status_code']);
     }
 
     /**
@@ -37,15 +32,18 @@ class MatcherFactory implements MatcherFactoryInterface
      */
     public function fromConfiguration(string $type, mixed $values): MatcherInterface
     {
-        $target = $this->parseMatcherType($type);
-        switch($target['type']) {
+        switch ($this->getMatcherType($type)) {
+            /// @todo accept 'response_body' as an alias?
             case 'body':
-                $matcher = new BodyMatcher($values, $target['caseInsensitive'], $target['expandWildcards']);
+                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
+                $matcher = new BodyMatcher($values, $opts['case_insensitive'], $opts['no_wildcards']);
                 break;
+            /// @todo accept 'response_content_type' as an alias?
             case 'content_type':
-                /// @todo throw if $target['caseInsensitive'] is used
-                $matcher = new ContentTypeMatcher($values, $target['expandWildcards']);
+                $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);
+                $matcher = new ContentTypeMatcher($values, $opts['no_wildcards']);
                 break;
+            /// @todo accept 'response_http_header' as an alias?
             case 'http_header':
                 if (!is_array($values) || count($values) !== 1) {
                     throw new \Exception("Invalid response matching configuration: '$type' should be followed with an object with 1 element only");
@@ -55,11 +53,12 @@ class MatcherFactory implements MatcherFactoryInterface
                 if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
                     throw new \Exception("Invalid response matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
-                $matcher = new HeaderMatcher($hn, $hv, $target['caseInsensitive'], $target['expandWildcards']);
+                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
+                $matcher = new HeaderMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards']);
                 break;
             case 'status_code':
-                /// @todo throw if $target['caseInsensitive'] is used
-                $matcher = new StatusCodeMatcher($values, $target['expandWildcards']);
+                $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);
+                $matcher = new StatusCodeMatcher($values, $opts['no_wildcards']);
                 break;
             default:
                 throw new \Exception("Invalid response matching configuration: '$type' => " . var_export($values, true));

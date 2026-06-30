@@ -25,13 +25,13 @@ class FilterChain implements BidirectionalFilterInterface
         $this->filters[] = $filter;
     }
 
-    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface|false
+    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface
     {
         $this->requestChain = [];
         foreach ($this->filters as $filter) {
             $this->requestChain[] = $request;
             $request = $filter->filterRequest($request);
-            if ($request === false || $request instanceof ResponseInterface) {
+            if ($request instanceof ResponseInterface) {
                 $this->requestChain = [];
                 return $request;
             }

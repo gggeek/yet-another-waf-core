@@ -6,6 +6,7 @@ namespace YAWAF\Core\Firewall;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerAwareTrait;
+use YAWAF\Core\Exception\RequestDenied;
 use YAWAF\Core\Filter\Request\RequestFilterInterface;
 use YAWAF\Core\Filter\Response\ResponseFilterInterface;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
@@ -16,11 +17,6 @@ use YAWAF\Core\Stdlib;
 
 class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseFilterInterface
 {
-    const ACTION_ALLOW = 'allow';
-    const ACTION_DENY = 'deny';
-    /// @todo
-    //const ACTION_RERUN = 'rerun';
-
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
@@ -34,10 +30,10 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
     protected RuleAction $responseAction = RuleAction::Allow;
 
     /**
-     * @param RequestMatcherInterface[] $requestMatch
+     * @param RequestMatcherInterface $requestMatcher
      * @param RequestFilterInterface[] $requestFilters
      * @param RuleAction $requestAction
-     * @param ResponseMatcherInterface[] $responseMatch
+     * @param ResponseMatcherInterface|null $responseMatcher
      * @param ResponseFilterInterface[] $responseFilters
      * @param RuleAction $responseAction
      * @throws \Exception
@@ -95,12 +91,12 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
     public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface
     {
         if ($this->requestAction === RuleAction::Deny) {
-            return false;
+            throw new RequestDenied();
         }
 
         foreach ($this->requestFilters as $requestFilter) {
             $request = $requestFilter->filterRequest($request);
-            if ($request === false || $request instanceof ResponseInterface) {
+            if (/*$request === false ||*/ $request instanceof ResponseInterface) {
                 return $request;
             }
         }
@@ -109,20 +105,20 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
 
     protected function matchesResponse(ResponseInterface $response): bool
     {
-        return $this->responseMatcher->matchesResponse($response);
+        return (bool)$this->responseMatcher?->matchesResponse($response);
     }
 
     public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface
     {
         if ($this->matchesResponse($response)) {
             if ($this->responseAction === RuleAction::Deny) {
-                return false;
+                throw new RequestDenied();
             }
             foreach ($this->responseFilters as $responseFilter) {
                 $response = $responseFilter->filterResponse($response, $request);
-                if ($response === false) {
-                    return false;
-                }
+                //if ($response === false) {
+                //    return false;
+                //}
             }
         }
         return $response;

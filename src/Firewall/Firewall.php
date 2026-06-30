@@ -19,18 +19,6 @@ use YAWAF\Core\Stdlib;
  */
 class Firewall implements MiddlewareInterface, LoggerAwareInterface
 {
-    public const DefaultFallbackConfiguration = [
-        'req_match' => [
-            'url' => '/_ping', // /version gets disabled out of the box - in case the version number might be useful to attackers...
-            'http_method' => ['GET', 'HEAD'],
-        ],
-        'req_filters' => [],
-        'req_action' => 'allow',
-        'resp_match' => ['always' => true],
-        'resp_action' => 'allow',
-        'resp_filters' => [],
-    ];
-
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
@@ -82,11 +70,13 @@ class Firewall implements MiddlewareInterface, LoggerAwareInterface
         }
 
         $this->debug("No firewall rule matched request: " . $this->request2Log($request));
-        //return false;
         throw new RequestDenied();
     }
 
-    protected function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface|false
+    /**
+     * @throws RequestDenied
+     */
+    protected function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface
     {
         $response = $this->currentRule->filterResponse($response, $request);
         $this->currentRule = null;

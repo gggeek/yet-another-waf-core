@@ -42,19 +42,27 @@ class RuleFactory
         // Allow 'simplified' configuration
         if (!array_key_exists('req_match', $config) && !array_key_exists('req_action', $config) && !array_key_exists('req_filters', $config)
             && !array_key_exists('resp_match', $config) && !array_key_exists('resp_action', $config) && !array_key_exists('resp_filters', $config)) {
-            $config = ['req_match' => $config];
+            $config = ['req_match' => $config, 'req_action' => RuleAction::Allow->value];
         }
 
         if ($badKeys = array_diff(array_keys($config), ['req_match', 'req_action', 'req_filters', 'resp_match', 'resp_action', 'resp_filters'])) {
             throw new \Exception("Bad configuration: the value for firewall rule should not have keys: " . implode(',', $badKeys));
         }
 
+        // *** Here Be Dragons ***
+        // The code below here is way too complicated for its own good... It definitely needs complete test coverage!
+
         $config = $config + [
-            'req_match' => ['always' => true],
+            'req_match' => [],
             'req_filters' => [],
-            'resp_match' => ['always' => true],
+            'resp_match' => [],
             'resp_filters' => []
         ];
+
+        if (!is_array($config['req_match']) || !is_array($config['req_filters']) || !is_array($config['resp_match']) ||
+            !is_array($config['resp_filters'])) {
+            throw new \Exception("Bad configuration: req_match, req_filters, resp_match and resp_filters should be arrays");
+        }
 
         if (array_key_exists('req_action', $config)) {
             $requestAction = RuleAction::tryFrom($config['req_action']);
@@ -65,6 +73,18 @@ class RuleFactory
             $requestAction = RuleAction::Allow;
         }
 
+        if ($requestAction === RuleAction::Deny && (!$config['req_match'] || $config['req_filters'] ||
+                $config['resp_match'] || $config['resp_filters'] || array_key_exists('resp_action', $config))) {
+            throw new \Exception("Bad configuration: when req_action is deny there can be no req_filters, resp_filters, resp_match or a resp_action, and there has to be a req_match");
+        }
+        if ($requestAction === RuleAction::Allow && (!$config['req_match'])) {
+            if (!$config['resp_match'] && !$config['resp_filters']) {
+                throw new \Exception("Bad configuration: when req_action is allow there have to be some req_match condition");
+            } else {
+                $config['req_match'] = ['always' => true];
+            }
+        }
+
         if (array_key_exists('resp_action', $config)) {
             $responseAction = RuleAction::tryFrom($config['resp_action']);
             if ($requestAction === null) {
@@ -72,17 +92,38 @@ class RuleFactory
             }
         } else {
             $responseAction = RuleAction::Allow;
+            if (!$config['resp_match'] && !$config['resp_filters']) {
+                $config['resp_match'] = ['never' => true];
+            }
+        }
+
+        if ($responseAction === RuleAction::Deny && ($config['resp_filters'] || !$config['resp_match'])) {
+            throw new \Exception("Bad configuration: when resp_action is deny there can be no resp_filters and there has to be a resp_match");
+        }
+        if ($responseAction === RuleAction::Allow && (!$config['resp_match'])) {
+            throw new \Exception("Bad configuration: when resp_action is allow there have to be some resp_match condition");
         }
 
         $requestMatcherFactory = $this->getRequestMatcherFactory([]);
         $responseMatcherFactory = $this->getResponseMatcherFactory([]);
 
+        $requestMatcher = $this->parseMatcherConfiguration($config['req_match'], $requestMatcherFactory);
+        $requestFilters = $this->parseRequestFiltersConfiguration($config['req_filters']);
+        if ($responseAction === RuleAction::Allow && $config['resp_match'] === ['never' => true]) {
+            // This is a 'do not mess with the response' configuration, which we try to implement as fast as possible.
+            $responseMatcher = null;
+            $responseFilters = [];
+        } else {
+            $responseMatcher = $this->parseMatcherConfiguration($config['resp_match'], $responseMatcherFactory);
+            $responseFilters = $this->parseResponseFiltersConfiguration($config['resp_filters']);
+        }
+
         $rule = new Rule(
-            $this->parseMatcherConfiguration($config['req_match'], $requestMatcherFactory),
-            $this->parseRequestFiltersConfiguration($config['req_filters']),
+            $requestMatcher,
+            $requestFilters,
             $requestAction,
-            $this->parseMatcherConfiguration($config['resp_match'], $responseMatcherFactory),
-            $this->parseResponseFiltersConfiguration($config['resp_filters']),
+            $responseMatcher,
+            $responseFilters,
             $responseAction
         );
         if ($this->logger && $rule instanceof LoggerAwareInterface) {

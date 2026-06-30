@@ -18,9 +18,12 @@ class CA_MatchingTest extends ProxyTestCase
             '',
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
+        // force the response to be fully retrieved, without throwing in case of errors
+        $response->getContent(false);
+
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-        $this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message', 'file', 'line']);
+        $this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message', 'file', 'line'], $failureMessage);
     }
 
     public static function invalidRulesDataProvider(): array
@@ -44,6 +47,7 @@ class CA_MatchingTest extends ProxyTestCase
             '{"rule 1" => {"req_match": true}}',
             '{"rule 1" => {"req_match": 0}}',
             '{"rule 1" => {"req_match": {"zzz": true}}}}',
+/// @todo... add tests for empty "req_match", "resp_match", non-array req_filters and resp_filters and all other illegal combos
         ];
         $out = [];
         foreach (self::getCommonDataProviderOptions() as $opts) {
@@ -73,9 +77,12 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
+        // force the response to be fully retrieved, without throwing in case of errors
+        $response->getContent(false);
+
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
-        $this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result']);
+        $this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
     }
 
     public static function passingGetRulesDataProvider(): array
@@ -93,6 +100,10 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
+        // force the response to be fully retrieved, without throwing in case of errors
+        $response->getContent(false);
+
+        /// @todo... given the async nature of Sf http client, pass a stringable ob
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
         $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
@@ -107,9 +118,9 @@ class CA_MatchingTest extends ProxyTestCase
     {
         $rootDir = __DIR__ . "/configs/matchers/$method/$status/";
         $out = [];
-        foreach (self::getCommonDataProviderOptions() as $opts) {
-            foreach (scandir($rootDir) as $fileName) {
-                if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
+        foreach (scandir($rootDir) as $fileName) {
+            if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
+                foreach (self::getCommonDataProviderOptions() as $opts) {
                     $out[] = array_merge(["matchers/$method/$status/$fileName"], $opts);
                 }
             }

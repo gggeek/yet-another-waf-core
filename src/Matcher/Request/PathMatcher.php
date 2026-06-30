@@ -10,17 +10,17 @@ class PathMatcher extends BaseMatcher
 {
     use RegExpListMatcherTrait;
 
-    protected string $prefixRegexp;
+    protected string $prefix;
 
     /**
      * @param string|string[] $filter
      * @throws \Exception
      */
-    public function __construct(string|array $filter, $prefixRegexp='', bool $caseInsensitive = false, bool $expandWildcards = true)
+    public function __construct(string|array $filter, $prefix='', bool $caseInsensitive = false, bool $expandWildcards = true)
     {
         $this->caseInsensitive = $caseInsensitive;
         $this->expandWildcards = $expandWildcards;
-        $this->prefixRegexp = $prefixRegexp;
+        $this->prefix = $prefix;
         $this->setMatchingValues($filter);
     }
 
@@ -31,7 +31,7 @@ class PathMatcher extends BaseMatcher
 
     protected function normalizeMatchingRegexp(string $value): string
     {
-        return $this->wildcardStringToRegexp($this->prefixRegexp . $value);
+        return $this->wildcardStringToRegexp($this->prefix . $value);
         //return '^' . $this->prefixRegexp . str_replace(['\\*'], ['.*'], preg_quote($value, $this->regexpDelimiter)) . '$';
     }
 }

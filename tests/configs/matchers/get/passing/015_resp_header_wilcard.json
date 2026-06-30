@@ -1,0 +1,8 @@
+{
+    "rule 1": {
+        "resp_match": {
+            "http_header": {"servar": "*"}
+        },
+        "resp_action": "deny"
+    }
+}

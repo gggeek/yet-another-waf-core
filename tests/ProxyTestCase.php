@@ -126,7 +126,7 @@ abstract class ProxyTestCase extends ServerTestCase
     protected function getProxyRequestTrace(): string|null|false
     {
         $serverSideTraceFile = sys_get_temp_dir() . '/' . $this->testId . '.trace';
-        if (is_file($serverSideTraceFile)) {
+        if (file_exists($serverSideTraceFile)) {
             return file_get_contents($serverSideTraceFile);
         }
         return null;
@@ -135,7 +135,8 @@ abstract class ProxyTestCase extends ServerTestCase
     protected function getProxyTestLog(): string|null|false
     {
         $serverSideLogFile = sys_get_temp_dir() . '/' . $this->testId . '.log';
-        if (is_file($serverSideLogFile)) {
+
+        if (file_exists($serverSideLogFile)) {
             return file_get_contents($serverSideLogFile);
         }
         return null;

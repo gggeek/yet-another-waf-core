@@ -5,28 +5,27 @@ namespace YAWAF\Core\Matcher\Request;
 
 use Psr\Http\Message\ServerRequestInterface;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
-use YAWAF\Core\ServerRequest\Psr7\Attributes;
 
-class ClientAddressMatcher extends BaseMatcher
+class SchemeMatcher extends BaseMatcher
 {
     use RegExpListMatcherTrait;
 
     /**
+     * "The scheme and host are case-insensitive and normally provided in lowercase"
+     * @see https://www.rfc-editor.org/info/rfc9110/#name-identifiers-in-http
      * @param string|string[] $filter
      * @throws \Exception
      */
     public function __construct(string|array $filter, bool $expandWildcards = true)
     {
+        $this->caseInsensitive = true;
         $this->expandWildcards = $expandWildcards;
-/// @todo... validate that the passed in value(s) is an ipv4, ipv6 or has *
         $this->setMatchingValues($filter);
     }
 
     public function matchesRequest(ServerRequestInterface $request): bool
     {
-        /// @todo... log a warning if we are not passed the attributes bag or this specific attribute
-        $clientAddress = $request->getAttribute(Attributes::class)?->get(Attributes::REMOTE_ADDR) ?? '';
-        return $this->matchesRegexp($clientAddress);
+        return $this->matchesRegexp($request->getUri()->getScheme());
     }
 
     protected function normalizeMatchingRegexp(string $value): string
