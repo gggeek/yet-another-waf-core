@@ -1,0 +1,8 @@
+{
+    "rule 1": {
+        "resp_match": {
+            "body": "*\"localhast\"*"
+        },
+        "resp_action": "deny"
+    }
+}

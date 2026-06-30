@@ -25,4 +25,8 @@ class BodyMatcher extends BaseMatcher
         return $this->matchesRegexp($message->getBody());
     }
 
+    protected function normalizeMatchingRegexp(string $value): string
+    {
+        return $this->wildcardStringToRegexp($value);
+    }
 }
