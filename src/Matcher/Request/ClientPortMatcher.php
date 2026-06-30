@@ -15,12 +15,13 @@ class ClientPortMatcher extends BaseMatcher
      * @param string|int|string[]|int[] $filter
      * @throws \Exception
      */
-    public function __construct(string|int|array $filter)
+    public function __construct(string|int|array $filter, bool $expandWildcards = true)
     {
+        $this-> $expandWildcards = $expandWildcards;
         if (is_int($filter)) {
             $filter = (string)$filter;
         }
-/// @todo... cast ints to strings when an array is received
+/// @todo... cast ints to strings when an array is passed in
         $this->setMatchingValues($filter);
     }
 
@@ -34,6 +35,6 @@ class ClientPortMatcher extends BaseMatcher
 
     protected function normalizeMatchingRegexp(string $value): string
     {
-        return $this->wildcardToRegexp($value);
+        return $this->wildcardStringToRegexp($value);
     }
 }

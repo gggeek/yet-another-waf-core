@@ -13,13 +13,15 @@ class QueryStringMatcher extends BaseMatcher
     protected string $parameterNameRegexp;
 
     /**
-     * @param string $parameterName
+     * @todo should we allow disabling separately wildcards for name and for value?
      * @param string|string[] $filter
      * @throws \Exception
      */
-    public function __construct(string $parameterName, string|array $filter)
+    public function __construct(string $parameterName, string|array $filter, bool $caseInsensitive = false, bool $expandWildcards = true)
     {
-        $this->parameterNameRegexp = $this->regexpDelimiter . $this->wildcardToRegexp($parameterName) . $this->regexpDelimiter;
+        $this->caseInsensitive = $caseInsensitive;
+        $this->expandWildcards = $expandWildcards;
+        $this->parameterNameRegexp = $this->regexpDelimiter . $this->wildcardStringToRegexp($parameterName) . $this->regexpDelimiter;
         $this->setMatchingValues($filter);
     }
 
@@ -27,6 +29,7 @@ class QueryStringMatcher extends BaseMatcher
     {
         $qs = $request->getUri()->getQuery();
         parse_str($qs, $pieces);
+        /// @todo optimize matching when expandWildcards == false and caseInsensitive == false, avoid this loop by using a non-regexp to match with
         foreach ($pieces as $name => $value) {
             if (preg_match($this->parameterNameRegexp, $name)) {
                 return $this->matchesRegexp($value);
@@ -37,6 +40,6 @@ class QueryStringMatcher extends BaseMatcher
 
     protected function normalizeMatchingRegexp(string $value): string
     {
-        return $this->wildcardToRegexp($value);
+        return $this->wildcardStringToRegexp($value);
     }
 }

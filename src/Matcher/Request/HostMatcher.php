@@ -14,8 +14,10 @@ class HostMatcher extends BaseMatcher
      * @param string|string[] $filter
      * @throws \Exception
      */
-    public function __construct(string|array $filter)
+    public function __construct(string|array $filter, bool $caseInsensitive = false, bool $expandWildcards = true)
     {
+        $this->caseInsensitive = $caseInsensitive;
+        $this->expandWildcards = $expandWildcards;
         $this->setMatchingValues($filter);
     }
 
@@ -27,6 +29,6 @@ class HostMatcher extends BaseMatcher
 
     protected function normalizeMatchingRegexp(string $value): string
     {
-        return $this->wildcardToRegexp($value);
+        return $this->wildcardStringToRegexp($value);
     }
 }

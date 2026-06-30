@@ -11,10 +11,12 @@ use YAWAF\Core\Matcher\MatcherInterface;
 use YAWAF\Core\Matcher\Message\BodyMatcher;
 use YAWAF\Core\Matcher\Message\ContentTypeMatcher;
 use YAWAF\Core\Matcher\Message\HeaderMatcher;
+use YAWAF\Core\Matcher\OptionAwareMatcherFactoryTrait;
 
 class MatcherFactory implements MatcherFactoryInterface
 {
     use LoggerAwareTrait;
+    use OptionAwareMatcherFactoryTrait;
 
     public function __construct(LoggerInterface|null $logger = null)
     {
@@ -28,29 +30,29 @@ class MatcherFactory implements MatcherFactoryInterface
     }
 
     /**
-     * @param string $type
-     * @param mixed $values
-     * @return MatcherInterface
      * @throws \Exception
      */
     public function fromConfiguration(string $type, mixed $values): MatcherInterface
     {
-        $target = strtolower(preg_replace('/:[0-9]+$/', '', trim($type)));
-        switch($target) {
+        $target = $this->parseMatcherType($type);
+        switch($target['type']) {
             case 'body':
-                $matcher = new BodyMatcher($values);
+                $matcher = new BodyMatcher($values, $target['caseInsensitive'], $target['expandWildcards']);
                 break;
             case 'client_address':
-                $matcher = new ClientAddressMatcher($values);
+                /// @todo throw if $target['caseInsensitive'] is used
+                $matcher = new ClientAddressMatcher($values, $target['expandWildcards']);
                 break;
             case 'client_port':
-                $matcher = new ClientPortMatcher($values);
+                /// @todo throw if $target['caseInsensitive'] is used
+                $matcher = new ClientPortMatcher($values, $target['expandWildcards']);
                 break;
             case 'content_type':
-                $matcher = new ContentTypeMatcher($values);
+                /// @todo throw if $target['caseInsensitive'] is used
+                $matcher = new ContentTypeMatcher($values, $target['expandWildcards']);
                 break;
             case 'host':
-                $matcher = new HostMatcher($values);
+                $matcher = new HostMatcher($values, $target['caseInsensitive'], $target['expandWildcards']);
                 break;
             case 'http_header':
                 if (!is_array($values) || count($values) !== 1) {
@@ -61,9 +63,10 @@ class MatcherFactory implements MatcherFactoryInterface
                 if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
                     throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
-                $matcher = new HeaderMatcher($hn, $hv);
+                $matcher = new HeaderMatcher($hn, $hv, $target['caseInsensitive'], $target['expandWildcards']);
                 break;
             case 'http_method':
+                /// @todo throw if $target['expandWildcards'] or $target['caseInsensitive'] are used
                 $matcher = new MethodMatcher($values);
                 break;
             /// @todo...
@@ -79,13 +82,13 @@ class MatcherFactory implements MatcherFactoryInterface
                 if (!is_string($qsn) || !(is_string($qsv) || is_array($qsv))) {
                     throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
-                $matcher = new QueryStringMatcher($qsn, $qsv);
+                $matcher = new QueryStringMatcher($qsn, $qsv, $target['caseInsensitive'], $target['expandWildcards']);
                 break;
             case 'url_path':
-                $matcher = new PathMatcher($values);
+                $matcher = new PathMatcher($values, $target['caseInsensitive'], $target['expandWildcards']);
                 break;
             case 'user_agent':
-                $matcher = new UserAgentMatcher($values);
+                $matcher = new UserAgentMatcher($values, $target['caseInsensitive'], $target['expandWildcards']);
                 break;
             default:
                 throw new \Exception("Invalid request matching configuration: '$type' => " . var_export($values, true));

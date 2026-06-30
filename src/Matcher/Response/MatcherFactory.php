@@ -11,10 +11,12 @@ use YAWAF\Core\Matcher\MatcherInterface;
 use YAWAF\Core\Matcher\Message\BodyMatcher;
 use YAWAF\Core\Matcher\Message\ContentTypeMatcher;
 use YAWAF\Core\Matcher\Message\HeaderMatcher;
+use YAWAF\Core\Matcher\OptionAwareMatcherFactoryTrait;
 
 class MatcherFactory implements MatcherFactoryInterface
 {
     use LoggerAwareTrait;
+    use OptionAwareMatcherFactoryTrait;
 
     public function __construct(LoggerInterface|null $logger = null)
     {
@@ -35,13 +37,14 @@ class MatcherFactory implements MatcherFactoryInterface
      */
     public function fromConfiguration(string $type, mixed $values): MatcherInterface
     {
-        $target = strtolower(preg_replace('/:[0-9]+$/', '', trim($type)));
-        switch($target) {
+        $target = $this->parseMatcherType($type);
+        switch($target['type']) {
             case 'body':
-                $matcher = new BodyMatcher($values);
+                $matcher = new BodyMatcher($values, $target['caseInsensitive'], $target['expandWildcards']);
                 break;
             case 'content_type':
-                $matcher = new ContentTypeMatcher($values);
+                /// @todo throw if $target['caseInsensitive'] is used
+                $matcher = new ContentTypeMatcher($values, $target['expandWildcards']);
                 break;
             case 'http_header':
                 if (!is_array($values) || count($values) !== 1) {
@@ -52,10 +55,11 @@ class MatcherFactory implements MatcherFactoryInterface
                 if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
                     throw new \Exception("Invalid response matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
-                $matcher = new HeaderMatcher($hn, $hv);
+                $matcher = new HeaderMatcher($hn, $hv, $target['caseInsensitive'], $target['expandWildcards']);
                 break;
             case 'status_code':
-                $matcher = new StatusCodeMatcher($values);
+                /// @todo throw if $target['caseInsensitive'] is used
+                $matcher = new StatusCodeMatcher($values, $target['expandWildcards']);
                 break;
             default:
                 throw new \Exception("Invalid response matching configuration: '$type' => " . var_export($values, true));

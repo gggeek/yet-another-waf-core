@@ -15,8 +15,9 @@ class ClientAddressMatcher extends BaseMatcher
      * @param string|string[] $filter
      * @throws \Exception
      */
-    public function __construct(string|array $filter)
+    public function __construct(string|array $filter, bool $expandWildcards = true)
     {
+        $this->expandWildcards = $expandWildcards;
         $this->setMatchingValues($filter);
     }
 
@@ -29,6 +30,6 @@ class ClientAddressMatcher extends BaseMatcher
 
     protected function normalizeMatchingRegexp(string $value): string
     {
-        return $this->wildcardToRegexp($value);
+        return $this->wildcardStringToRegexp($value);
     }
 }

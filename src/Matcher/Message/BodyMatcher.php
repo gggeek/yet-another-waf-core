@@ -13,8 +13,10 @@ class BodyMatcher extends BaseMatcher
      * @param string|string[] $filter
      * @throws \Exception
      */
-    public function __construct(string|array $filter)
+    public function __construct(string|array $filter, bool $caseInsensitive = false, bool $expandWildcards = true)
     {
+        $this->caseInsensitive = $caseInsensitive;
+        $this->expandWildcards = $expandWildcards;
         $this->setMatchingValues($filter);
     }
 

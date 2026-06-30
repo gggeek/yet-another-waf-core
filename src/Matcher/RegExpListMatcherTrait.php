@@ -14,6 +14,9 @@ trait RegExpListMatcherTrait
     protected string $regexpDelimiter = ':';
     protected string $regexp;
 
+    protected bool $caseInsensitive = false;
+    protected bool $expandWildcards = true;
+
     /**
      * @param string|string[] $values these can be either regexps, glob-expressions or plain strings, depending on the
      *                                conversion done by `normalizeMatchingRegexp`
@@ -36,6 +39,9 @@ trait RegExpListMatcherTrait
         } else {
             $this->regexp = $this->regexpDelimiter . $this->normalizeMatchingRegexp($values) . $this->regexpDelimiter;
         }
+        if ($this->caseInsensitive) {
+            $this->regexp .= 'i';
+        }
     }
 
     protected function matchesRegexp(string $value): bool
@@ -44,7 +50,8 @@ trait RegExpListMatcherTrait
     }
 
     /**
-     * To be reimplemented in subclasses
+     * To be reimplemented in subclasses. Transforms the string as set in the settings by the user into the regexp used
+     * to match the given values.
      * @param string $value
      * @return string
      */
@@ -53,9 +60,16 @@ trait RegExpListMatcherTrait
         return preg_quote($value, $this->regexpDelimiter);
     }
 
-    protected function wildcardToRegexp(string $value): string
+    /**
+     * A helper method dedicated to transforming a string such as 'hello there' or 'hello *' into a regexp
+     */
+    protected function wildcardStringToRegexp(string $value): string
     {
-        return '^' . str_replace(['\\*'], ['.*'], preg_quote($value, $this->regexpDelimiter)) . '$';
+        $regexp = preg_quote($value, $this->regexpDelimiter);
+        if ($this->expandWildcards) {
+            $regexp = str_replace(['\\*'], ['.*'], $regexp);
+        }
+        return '^' . $regexp . '$';
     }
 
     public function getRegexpDelimiter(): string

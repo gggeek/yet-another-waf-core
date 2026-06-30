@@ -11,6 +11,7 @@ class MethodMatcher extends BaseMatcher
     use StringListMatcherTrait;
 
     /**
+     * @todo should we allow lowercase string to match against?
      * @param string|string[] $filter
      * @throws \Exception
      */
