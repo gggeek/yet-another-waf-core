@@ -38,16 +38,47 @@ class CA_MatchingTest extends ProxyTestCase
             '1.5',
             'not a json array string',
             // rule 1 is not an array
-            '{"rule 1" => true}',
-            '{"rule 1" => 0}',
-            '{"rule 1" => "a string"}',
+            '{"rule 1": true}',
+            '{"rule 1": 0}',
+            '{"rule 1": "a string"}',
             // rule 1 is an array with an invalid body
-            '{"rule 1" => ["whatever"]}',
-            '{"rule 1" => {"whatever": true}}',
-            '{"rule 1" => {"req_match": true}}',
-            '{"rule 1" => {"req_match": 0}}',
-            '{"rule 1" => {"req_match": {"zzz": true}}}}',
-/// @todo... add tests for empty "req_match", "resp_match", non-array req_filters and resp_filters and all other illegal combos
+            '{"rule 1": ["whatever"]}',
+            '{"rule 1": {"whatever": true}}',
+
+            // bad req_match
+            '{"rule 1": {"req_match": true}}',
+            '{"rule 1": {"req_match": 0}}',
+            '{"rule 1": {"req_match": {"zzz": true}}}}',
+            // bad resp_match
+            '{"rule 1": {"req_match": []}}',
+            '{"rule 1": {"resp_match": true}}',
+            '{"rule 1": {"resp_match": 0}}',
+            '{"rule 1": {"resp_match": {"zzz": true}}}}',
+            '{"rule 1": {"resp_match": []}}',
+            // bad req_filters
+            '{"rule 1": {"req_filters": true}}',
+            '{"rule 1": {"req_filters": 0}}',
+            '{"rule 1": {"req_filters": {"zzz": true}}}}',
+            '{"rule 1": {"req_filters": []}}',
+            // bad resp_filters
+            '{"rule 1": {"resp_filters": true}}',
+            '{"rule 1": {"resp_filters": 0}}',
+            '{"rule 1": {"resp_filters": {"zzz": true}}}}',
+            '{"rule 1": {"resp_filters": []}}',
+            // no matchers
+            '{"rule 1": {"req_match": [], "req_action": "allow"}}',
+            '{"rule 1": {"req_match": [], "req_action": "deny"}}',
+            '{"rule 1": {"resp_match": [], "resp_action": "allow"}}',
+            '{"rule 1": {"resp_match": [], "resp_action": "deny"}}',
+            '{"rule 1": {"req_match": [], "resp_match": []}}',
+            // bad combos
+            '{"rule 1": {"req_match": {"host": "localhost"}, "req_action": "unknown"}}',
+            '{"rule 1": {"req_match": {"host": "localhost"}, "req_action": "deny", "req_filters: ["one"]}}',
+            '{"rule 1": {"req_match": {"host": "localhost"}, "req_action": "deny", "resp_match: {"body": "whatever"}}}',
+            '{"rule 1": {"req_match": {"host": "localhost"}, "req_action": "deny", "resp_filters: ["one"]}}',
+            '{"rule 1": {"req_match": {"host": "localhost"}, "req_action": "deny", "resp_action: "deny"}}',
+            '{"rule 1": {"resp_match": {"body": "whatever"}}}',
+            '{"rule 1": {"resp_match": {"body": "whatever"}, "resp_action": "deny, "resp_filters: ["one"]"}}',
         ];
         $out = [];
         foreach (self::getCommonDataProviderOptions() as $opts) {

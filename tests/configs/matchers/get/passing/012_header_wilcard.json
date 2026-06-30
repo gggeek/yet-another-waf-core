@@ -1,7 +1,7 @@
 {
     "rule 1": {
-        "resp_match": {
-            "http_header": {"server": "*"}
+        "req_match": {
+            "http_header": {"x-test-1": "Hello*"}
         }
     }
 }

@@ -75,7 +75,7 @@ class FirewallFactory
 
         foreach ($config as $ruleName => $ruleSpec) {
             try {
-                $rule = $ruleFactory->fromConfiguration($ruleSpec);
+                $rule = $ruleFactory->fromConfiguration($ruleSpec, $ruleName);
                 $rules[$ruleName] = $rule;
             } catch (\Exception $e) {
                 throw new \Exception("Error parsing firewall rule '$ruleName': " . $e->getMessage());
