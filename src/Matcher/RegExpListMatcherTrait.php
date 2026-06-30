@@ -21,6 +21,7 @@ trait RegExpListMatcherTrait
      * @param string|string[] $values these can be either regexps, glob-expressions or plain strings, depending on the
      *                                conversion done by `normalizeMatchingRegexp`
      * @throws \Exception
+     * @todo optimize matching when $expandWildcards is false and $caseInsensitive is false and the value to match is a single string
      */
     protected function setMatchingValues(string|array $values): void
     {

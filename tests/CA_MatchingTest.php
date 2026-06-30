@@ -9,8 +9,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class CA_MatchingTest extends ProxyTestCase
 {
     #[DataProvider('invalidRulesDataProvider')]
-    public function testInvalidRules(string $configAsString, string|null $clientType = null, string|null $upstreamClientType = null,
-         string $proxyScheme = 'http', string $serverScheme = 'http')
+    public function testInvalidRules(string $configAsString, string|null $clientType = null, string $proxyScheme = 'http',
+       string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         $response = $this->request(
             ['headers' => ['X-YAWAF-Config' => $configAsString]],
@@ -55,8 +55,8 @@ class CA_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('passingGetRulesDataProvider')]
-    public function testPassingGetRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
-        string $proxyScheme = 'http', string $serverScheme = 'http')
+    public function testPassingGetRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+       string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         // skip test cases which are bound to fail with given configs
         /// @todo this should be more robust/flexible... We should allow the json configs to specify excluded test configs...
@@ -68,14 +68,14 @@ class CA_MatchingTest extends ProxyTestCase
         }
 
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config-File' => $configFileName]],
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
             'GET',
-            static::getServerPath() . '?y=yes&n=no&true=true&true=false=1=1&0=0&0.1=0.1&array[]=one&array[]=two',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
-        //$this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message']);
+        $this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result']);
     }
 
     public static function passingGetRulesDataProvider(): array
@@ -84,13 +84,13 @@ class CA_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('failingGetRulesDataProvider')]
-    public function testFailingGetRules(string $configFileName, string|null $clientType = null, string|null $upstreamClientType = null,
-         string $proxyScheme = 'http', string $serverScheme = 'http')
+    public function testFailingGetRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config-File' => $configFileName]],
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
             'GET',
-            static::getServerPath() . '?y=yes&n=no&true=true&true=false=1=1&0=0&0.1=0.1&array[]=one&array[]=two',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         $failureMessage = $this->getTestDetails($response);
@@ -122,20 +122,40 @@ class CA_MatchingTest extends ProxyTestCase
     {
         $out = [];
         foreach (self::getSupportedServerSchemes() as $serverScheme) {
-            foreach (self::getSupportedProxySchemes() as $proxyScheme) {
-                foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
-                    if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'sfhc_native')) {
-                        continue;
-                    }
+            foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
+                if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'sfhc_native')) {
+                    continue;
+                }
+                foreach (self::getSupportedProxySchemes() as $proxyScheme) {
                     foreach (self::getSupportedClientTypes() as $clientType) {
                         if ($proxyScheme === 'unix' && $clientType === 'native') {
                             continue;
                         }
-                        $out[] = [$clientType, $upstreamClientType, $proxyScheme, $serverScheme];
+                        $out[] = [$clientType, $proxyScheme, $upstreamClientType, $serverScheme];
                     }
                 }
             }
         }
         return $out;
+    }
+
+    protected function getCommonRequestHeaders(): array
+    {
+        return [
+            'X-Test-1' => 'Hello',
+            'X-Test-2' => 1,
+            'X-Test-3' => 0,
+            'X-Test-4' => 0.5,
+            'X-Test-5' => true,
+            'X-Test-6' => false, // serialized as empty string
+            'X-Test-7' => null,  // serialized as empty string
+            'X-Test-8' => ['hi', 'there'],
+            'X-Test-9' => '_ :;.,\/"\'?!(){}[]@<>=-+*#$&`|~^%',
+        ];
+    }
+
+    protected function getCommonQueryString(): string
+    {
+        return '=yes&n=no&true=true&true=false=1=1&0=0&0.1=0.1&array[]=one&array[]=two';
     }
 }

@@ -1,10 +1,14 @@
 - Firewall
   - matching requests/responses
-    - test using and/or/not; body; http_header, query_string; user_agent; content_type; status_code matchers
-	- urls: optionally accommodate a prefix such as /vXXX/ transparently -> ok, test
+    - test using and/or/not; body; query_string; user_agent; content_type; status_code matchers
+	- urls: optionally accommodate a prefix such as /vXXX/ transparently -> ok? add tests
 	- urls: test forbidding any qs element, via wildcards
-	- req. body: wildcard (ok?), literal, regexp, jsonpath-like matching
-    - document the wildcard matching format
+	- req. body: wildcard (ok? what about multiline matches?)
+    - req. body: literal (ok?)
+    - req. body: regexp
+    - req. body: jsonpath-like matching
+    - document the wildcard matching format and the modifiers
+      - add tests for those
     - also, support other wildcards besides the `*`?
       - glob has: ? for one char, [...] for char ranges, [!...] for negated char ranges
       - sql LIKE has `%` and `_`
