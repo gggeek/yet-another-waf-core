@@ -2,20 +2,38 @@
 
 A php library for building Web API Firewalls - and other assorted http proxies.
 
-Primary finished-product targets are forward proxies for filtering the requests and responses of calls to HTTP APIs to only allow
-what you want to expose.
+Primary finished-product targets are forward proxies for filtering the requests and responses of calls to HTTP APIs to
+only let through what you want to expose.
 
 Example use-cases:
 - reducing the surface of an API, eg. only allowing READ requests or access to specific URLs
 - removing sensitive data from an API responses
 - adding/modifying/removing http headers
 - tracing of requests and responses
-- rate limiting (not implemented yet, but should be implementable with existing components from other packages)
-- caching (not implemented yet, but should be implementable with existing components from other packages)
+- rate limiting (not implemented, but should be implementable with existing components from other packages)
+- caching (not implemented, but should be implementable with existing components from other packages)
 
 ## Work In Progress
 
-See the [Roadmap](Roadmap.md) for features not yet implemented
+### Working
+
+- Support for Listening on http and on unix sockets
+- Matching requests and responses based on htp headers, request/response body and most other HTTP fields
+- End-to-end testing of all implemented features using Apache, FrankenPHP, Nginx: locally via a container-based
+  test environment and Continuous Integration on every push to GitHub
+
+### In scope (to be implemented)
+
+Main missing features:
+- Matching request/response bodies using jsonpath/css/xpath expressions
+- Filtering (modification of requests/responses)
+- "restart the processing chain" as possible action for matching rules
+- HTTPS support
+- Documentation
+
+See the [Roadmap](Roadmap.md) for a detailed list of features not yet implemented.
+
+### Out of scope
 
 Not in scope (yet?):
 - a GUI
@@ -23,10 +41,13 @@ Not in scope (yet?):
 - filtering request/response bodies other than Json
 - feature parity with Varnish or performance parity with HAProxy
 - using async requests to connect to upstream servers
+- implementing rate-limiting, caching with own code (we should allow usage of PSR compliant external code for that)
 
 ## Requirements:
 
 PHP 8.2 and up.
+
+A webserver to run it.
 
 Either `symfony/http-client` or `guzzlehttp/guzzle`.
 
@@ -40,7 +61,7 @@ Then install either `symfony/http-client` or `guzzlehttp/guzzle`.
 
 More examples will come...
 
-For the moment, seeee projects https://github.com/gggeek/yet-another-docker-socket-proxy and
+For the moment, see projects https://github.com/gggeek/yet-another-docker-socket-proxy and
 https://github.com/gggeek/yet-another-waf as examples.
 
 Or take a look at the Proxy used for the unit testing suite in `./tests/public`
@@ -82,6 +103,12 @@ the provided docker-based stack to run the test suite
 ./tests/env/container.sh runtests
 ./tests/env/container.sh stop
 ```
+
+The testsuite can be run using FrankenPHP or Apache as webserver with the following commands:
+
+`TEST_WEBSERVER=frankenphp ./tests/env/container.sh runtests`
+
+`TEST_WEBSERVER=apache ./tests/env/container.sh runtests`
 
 ## FAQ
 
