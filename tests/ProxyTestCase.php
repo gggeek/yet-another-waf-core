@@ -120,6 +120,10 @@ abstract class ProxyTestCase extends ServerTestCase
             $out .= "\nServer log:\n$log";
         }
         $out .= "\nResponse received by the test code:\n" . $this->response2Log($response);
+
+///@todo... also check the error-log file of the webserver under test (if known) - if its modification date is "now",
+///         it most likely means that there were server-side php errors or warnings
+///
         return $out . "\n";
     }
 

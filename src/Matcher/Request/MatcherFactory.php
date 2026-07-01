@@ -19,7 +19,8 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
     use LoggerAwareTrait;
 
     protected array $supportedMatcherTypes = [
-        'body', 'client_address', 'client_port', 'content_type', 'host', 'http_header', 'http_method', 'query_string', 'url_path', 'user_agent'
+        'body', 'client_address', 'client_port', 'content_type', 'host', 'http_header', 'http_method', 'port',
+        'query_string', 'url_path', 'user_agent'
     ];
 
     public function __construct(LoggerInterface|null $logger = null)
@@ -72,10 +73,11 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
             case 'http_method':
                 $matcher = new MethodMatcher($values);
                 break;
-/// @todo...
-            //case 'port':
-            //    $matcher = ...;
-            //    break;
+            case 'port':
+                $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);
+                $matcher = new PortMatcher($values, $opts['no_wildcards']);
+                break;
+                break;
             case 'query_string':
                 if (!is_array($values) || count($values) !== 1) {
                     throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");
