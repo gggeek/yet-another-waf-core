@@ -17,7 +17,7 @@ class ClientPortMatcher extends BaseMatcher
      */
     public function __construct(string|int|array $filter, bool $expandWildcards = true)
     {
-        $this-> $expandWildcards = $expandWildcards;
+        $this->expandWildcards = $expandWildcards;
         if (is_int($filter)) {
             $filter = (string)$filter;
         } else {

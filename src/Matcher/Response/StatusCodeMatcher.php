@@ -18,7 +18,7 @@ class StatusCodeMatcher extends BaseMatcher
      */
     public function __construct(string|array $filter, bool $expandWildcards = true)
     {
-        $this-> $expandWildcards = $expandWildcards;
+        $this->expandWildcards = $expandWildcards;
 /// @todo... check that the passed in values match either a int string between 100 and 599, or a wildcard pattern
         $this->setMatchingValues($filter);
     }
