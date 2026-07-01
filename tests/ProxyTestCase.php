@@ -109,22 +109,25 @@ abstract class ProxyTestCase extends ServerTestCase
 
     protected function getTestDetails(ResponseInterface $response): string
     {
-        $out = $this->getProxyRequestTrace();
-        if ($out != '') {
-            $out = "\nRequest received by the proxy (and possibly response generated):\n$out";
-        } else {
-            $out = (string)$out;
-        }
-        $log = $this->getProxyTestLog();
-        if ($log != '') {
-            $out .= "\nServer log:\n$log";
-        }
-        $out .= "\nResponse received by the test code:\n" . $this->response2Log($response);
+        $out = '';
+        if (@$_ENV['VERBOSITY'] >= 1) {
+            $out .= $this->getProxyRequestTrace();
+            if ($out != '') {
+                $out = "\nRequest received by the proxy (and possibly response generated):\n$out";
+            } else {
+                $out = (string)$out;
+            }
+            $log = $this->getProxyTestLog();
+            if ($log != '') {
+                $out .= "\nServer log:\n$log";
+            }
+            $out .= "\nResponse received by the test code:\n" . $this->response2Log($response) . "\n";
 
-///@todo... also check the error-log file of the webserver under test (if known) - if its modification date is "now",
-///         it most likely means that there were server-side php errors or warnings
-///
-        return $out . "\n";
+            /// @todo... also check the error-log file of the webserver under test (if known) - if its modification date is "now",
+            ///          it most likely means that there were server-side php errors or warnings
+        }
+
+        return $out;
     }
 
     protected function getProxyRequestTrace(): string|null|false

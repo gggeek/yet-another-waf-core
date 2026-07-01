@@ -13,6 +13,7 @@ export PHP_VERSION=${PHP_VERSION:-default}
 export UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}
 export APT_PACKAGE_PROXY=${APT_PACKAGE_PROXY:-none}
 export WEBSERVER_TYPE=${WEBSERVER_TYPE:-all}
+export VERBOSITY=${VERBOSITY:-1}
 
 # Webserver ports exposed to the host. Set to 'no' for no port mapping
 HOST_HTTPPORT="${HOST_HTTPPORT:-80}"
@@ -95,7 +96,7 @@ check_requirements() {
             if [ "$(id -u)" != 0 ]; then
                  case "$DOCKER_CMD" in
                    *sudo*) ;;
-                   *) DOCKER_CMD="sudo --preserve-env=APT_PACKAGE_PROXY,PHP_VERSION,UBUNTU_VERSION,WEBSERVER_TYPE ${DOCKER_CMD}" ;;
+                   *) DOCKER_CMD="sudo --preserve-env=APT_PACKAGE_PROXY,PHP_VERSION,UBUNTU_VERSION,VERBOSITY,WEBSERVER_TYPE ${DOCKER_CMD}" ;;
                  esac
 
             fi
@@ -226,8 +227,9 @@ runtests() {
             fi
         fi
     fi
+    ENV_VAR_INJECTION="VERBOSITY=$VERBOSITY"
     if [ -n "$TEST_WEBSERVER" ]; then
-        SERVER_TYPE_ENV_VAR_INJECTION="SERVER_TYPE=$TEST_WEBSERVER"
+        ENV_VAR_INJECTION="$ENV_VAR_INJECTION SERVER_TYPE=$TEST_WEBSERVER"
     fi
     lock
     trap unlock INT
@@ -235,7 +237,7 @@ runtests() {
     {
         ${DOCKER_CMD} exec $USE_TTY "${CONTAINER_NAME}" /root/setup/setup_app.sh "${CONTAINER_WORKSPACE_DIR}"
         ${DOCKER_CMD} exec -i $USE_TTY \
-            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "$SERVER_TYPE_ENV_VAR_INJECTION ./vendor/bin/phpunit $TESTSUITE"
+            "${CONTAINER_NAME}" su "${CONTAINER_USER}" -c "$ENV_VAR_INJECTION ./vendor/bin/phpunit $TESTSUITE"
     } || {
         RETCODE="$?"
     }

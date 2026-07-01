@@ -23,5 +23,6 @@
     <!-- all other env vars are now managed via a .env file, and loaded in bootstrap.php -->
     <php>
         <env name="SERVER_TYPE" value="nginx"/>
+        <env name="VERBOSITY" value="1"/>
     </php>
 </phpunit>
