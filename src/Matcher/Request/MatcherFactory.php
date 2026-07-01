@@ -19,7 +19,7 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
     use LoggerAwareTrait;
 
     protected array $supportedMatcherTypes = [
-        'body', 'client_address', 'client_port', 'content_type', 'host', 'http_header', 'http_method', 'port',
+        'body', 'client_address', 'client_port', 'content_type', 'host', 'http_header', 'http_method', 'port', 'scheme',
         'query_string', 'url_path', 'user_agent'
     ];
 
