@@ -97,7 +97,7 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
             /// @todo accept 'path' as an alias?
             case 'url_path':
                 $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
-                $matcher = new PathMatcher($values, $opts['case_insensitive'], $opts['no_wildcards']);
+                $matcher = new PathMatcher($values, '', $opts['case_insensitive'], $opts['no_wildcards']);
                 break;
             case 'user_agent':
                 $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);

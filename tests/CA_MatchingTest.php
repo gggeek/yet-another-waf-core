@@ -171,6 +171,86 @@ class CA_MatchingTest extends ProxyTestCase
         $this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
     }
 
+    #[DataProvider('getCommonDataProviderOptions')]
+    public function testPortMatcherFail(string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        // skip test cases which are bound to fail with given configs
+        /// @todo this should be more robust/flexible...
+        if ($proxyScheme === 'unix') {
+            // avoid the line noise from the skipped test
+            //$this->markTestSkipped('Can not test a client_address match when running the proxy on a unix socket');
+            $this->assertEquals(0, 0);
+            return;
+        }
+
+        $rule = [['port' => ($_ENV['HTTPSERVER_PORT'] != '' ? ($_ENV['HTTPSERVER_PORT'] + 1) : 79)]];
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule)] + $this->getCommonRequestHeaders()],
+            'GET',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+        // force the response to be fully retrieved, without throwing in case of errors
+        $response->getContent(false);
+
+        $failureMessage = $this->getTestDetails($response);
+        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+        $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+    }
+
+    #[DataProvider('getCommonDataProviderOptions')]
+    public function testPathMatcher(string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        $rule = [['url_path/no_wildcards' => $_ENV['HTTPSERVER_PATH']]];
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule)] + $this->getCommonRequestHeaders()],
+            'GET',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+        // force the response to be fully retrieved, without throwing in case of errors
+        $response->getContent(false);
+
+        $failureMessage = $this->getTestDetails($response);
+        $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+        $this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
+
+        $rule = [['url_path/no_wildcards' => $_ENV['HTTPSERVER_PATH'] . '/yolo']];
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule)] + $this->getCommonRequestHeaders()],
+            'GET',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+        // force the response to be fully retrieved, without throwing in case of errors
+        $response->getContent(false);
+
+        $failureMessage = $this->getTestDetails($response);
+        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+        $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+    }
+
+    #[DataProvider('getCommonDataProviderOptions')]
+    public function testPathMatcherFail(string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        $rule = [['url_path/no_wildcards' => $_ENV['HTTPSERVER_PATH'] . '/yolo']];
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule)] + $this->getCommonRequestHeaders()],
+            'GET',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+        // force the response to be fully retrieved, without throwing in case of errors
+        $response->getContent(false);
+
+        $failureMessage = $this->getTestDetails($response);
+        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+        $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+    }
+
     public static function failingGetRulesDataProvider(): array
     {
         return self::getRuleBasedTestDataProviderOptions('get', 'failing');

@@ -11,6 +11,7 @@
     - client_address: support v6 IPs without forcing users to write a complex regexp
     - other?
       - add a `/trim` modifier, similar to `/case_insensitive` and `/no_wildcards`
+      - a `valid_json` matcher for both body, headers and query string elements
       - eg. ssl on
   - implement filtering support
       - check: can we make filters add "tags" to requests/responses, to ease later processing? See psr 'attributes'
