@@ -1,38 +1,32 @@
 - Firewall
   - matching requests/responses
-    - test using and/or/not; body; query_string; user_agent; content_type; status_code matchers
-	- urls: optionally accommodate a prefix such as /vXXX/ transparently -> ok? add tests
-	- urls: test forbidding any qs element, via wildcards
-	- req. body: wildcard (ok? what about multiline matches?)
-    - req. body: literal (ok?)
     - req. body: regexp
     - req. body: jsonpath-like matching
-    - document the wildcard matching format and the modifiers
-      - add tests for those
-    - also, support other wildcards besides the `*`?
+    - document supported matchers
+    - support other wildcards besides the `*`?
       - glob has: ? for one char, [...] for char ranges, [!...] for negated char ranges
       - sql LIKE has `%` and `_`
       - we could just allow full regexp instead, at least for char ranges...
       - for which matcher a 'literal' version is importamt? body, header, user_agent, query_string, ...
     - client_address: support v6 IPs without forcing users to write a complex regexp
     - other? eg. ssl on
-  - implement and test filtering support
-  - review: can we do the same (but better) as all the haproxy rules in NC-AIO haproxy.cfg?
+  - implement filtering support
+      - check: can we make filters add "tags" to requests/responses, to ease later processing? See psr 'attributes'
   - create a flow diagram with req/resp matching and filtering
-  - clean up the `*MatcherInterface` mess: drop MatcherInterface; move Logic/* matchers to MessageInterface?
   - allow 'restart' as action for (Request) rules
     - allow setting a maxRestarts limit
     - q: should we remove from the current rule chain a rule, after it did trigger a restart? (possibly use 2 `restart` types?)
+  - review: can we do the same (but better) as all the haproxy rules in NC-AIO haproxy.cfg?
   - xml req./resp. body with xpath/css matchers
-  - can we make filters add "tags" to requests/responses, to ease later processing? See psr 'attributes'
   - allow failures of the MethodMatcher to generate a 501 response instead of the default 403?
   - API reworking:
+    - clean up the `*MatcherInterface` mess: drop MatcherInterface; move Logic/* matchers to MessageInterface?
     - check: could we use the firewall filters to implement something like https://github.com/terrylinooo/shieldon instead
       of a waf to remote apps, or would it need some api changes?
 
 - Proxy
-  - test: support for `tcp://` upstreams
-  - add by default the http headers telling upstream about real-ip and x-forwarded-protocol, patch hop-by-hop headers
+  - finish support for `tcp://` upstreams
+  - add by default (or via a filter?) the http headers telling upstream about real-ip and x-forwarded-protocol, patch hop-by-hop headers
     see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
   - tls & https support
   - take a look at supporting somehow https://github.com/php-http/client-common/blob/2.x/src/Plugin.php, so that
@@ -57,17 +51,16 @@
   - improve message formatting: add context
 
 - Testing
-  - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions
-    - finish apache setup to pass tests locally 1st
-      - add one test using frankenphp worker mode?
-    - test also against: php-http-server, lighttpd, openlitespeed, roadrunner, swoole
-      - use a cloud-based platform that provides those ready-built, rather than installing each one by ourselves?
-        Either that, or move to a multi-container setup for testing...
-      - we might give a strong preference to how caddy/frankenphp do set up $_SERVER, as that will be the default way to
-        deploy a WAF based on this code (in the downstream YAWAF project)
-      - swoole has built-in support for psr-15 (mapping an \OpenSwoole\HTTP\Request to a psr one, see https://github.com/openswoole/openswoole/blob/master/core/src/Helper.php)
   - add tests which try to exploit issues in http parsers, see f.e. https://hostoftroubles.com/
     (will need an http client based on fsockopen rather than psr stuff)
+  - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions
+    - add one test using frankenphp worker mode
+    - test also against: apache+mod_php, php-http-server, lighttpd, openlitespeed, roadrunner, swoole
+      - use a cloud-based platform that provides those ready-built, rather than installing each one by ourselves?
+        Either that, or move to a multi-container setup for testing...
+      - we might give a strong preference to how frankenphp sets up $_SERVER, as that will be the default way to
+        deploy a WAF based on this code (in the downstream YAWAF project)
+      - swoole has built-in support for psr-15 (mapping an \OpenSwoole\HTTP\Request to a psr one, see https://github.com/openswoole/openswoole/blob/master/core/src/Helper.php)
   - add tests which make use of middleware from other projects, eg. rate-limiting and caching
 
 - Misc
