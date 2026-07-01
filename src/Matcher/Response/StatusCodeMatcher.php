@@ -13,13 +13,18 @@ class StatusCodeMatcher extends BaseMatcher
 
     /**
      * @see https://www.rfc-editor.org/info/rfc9110/#name-status-codes
-     * @param string|string[] $filter
+     * @param int|string|string[]|int[] $filter
      * @throws \Exception
      */
-    public function __construct(string|array $filter, bool $expandWildcards = true)
+    public function __construct(int|string|array $filter, bool $expandWildcards = true)
     {
         $this->expandWildcards = $expandWildcards;
+        if (is_int($filter)) {
+            $filter = (string)$filter;
+        } else {
 /// @todo... check that the passed in values match either a int string between 100 and 599, or a wildcard pattern
+        }
+/// @todo... cast ints to strings when an array is passed in
         $this->setMatchingValues($filter);
     }
 

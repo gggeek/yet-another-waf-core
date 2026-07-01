@@ -1,0 +1,8 @@
+{
+    "rule 1": {
+        "resp_match": {
+            "status_code": 200
+        },
+        "resp_action": "deny"
+    }
+}
