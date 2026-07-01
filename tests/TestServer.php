@@ -107,7 +107,7 @@ class TestServer
                 $symfonyRequest = SymfonyRequest::createFromGlobals();
                 return $factory->createRequest($symfonyRequest);
             default:
-                throw new Exception("Unsupported library for creating a ServerRequestInterface instance: '$library'");
+                throw new \InvalidArgumentException("Unsupported library for creating a ServerRequestInterface instance: '$library'");
         }
     }
 }

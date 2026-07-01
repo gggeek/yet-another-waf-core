@@ -70,8 +70,11 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         return $clone;
     }
 
-    /// @todo is it worth moving to Symfony option resolver?
-    protected function mapOptions($options)
+    /**
+     * @see Symfony\Contracts\HttpClient\HttpClientInterface
+     * @todo is it worth moving to Symfony option resolver?
+     */
+    protected function mapOptions(array $options): array
     {
         $mappedOptions = [];
         foreach ($options as $name => $value) {
@@ -85,6 +88,12 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
                     //    throw new \Exception("Client option: '$name' requires availability of the Curl php extension");
                     //}
                     $mappedOptions['resolve'] = $value;
+                    break;
+                case UpstreamClientInterface::OPT_CONNECT_TIMEOUT:
+                    $mappedOptions['max_connect_duration'] = $value;
+                    break;
+                case UpstreamClientInterface::OPT_TIMEOUT:
+                    $mappedOptions['max_duration'] = $value;
                     break;
                 case UpstreamClientInterface::OPT_TRANSPORT:
                     if (!in_array($value, ['curl', 'native'])) {

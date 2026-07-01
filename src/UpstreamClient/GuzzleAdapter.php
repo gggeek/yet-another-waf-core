@@ -5,6 +5,7 @@ namespace YAWAF\Core\UpstreamClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -37,8 +38,11 @@ class GuzzleAdapter implements UpstreamClientInterface
         throw new \Exception("withOptions is not implemented yet by the Guzzle Adapter, sorry");
     }
 
-    /// @todo is it worth moving to Symfony option resolver?
-    protected function mapOptions($options)
+    /**
+     * @see \GuzzleHttp\RequestOptions
+     * @todo is it worth moving to Symfony option resolver?
+     */
+    protected function mapOptions(array $options): array
     {
         $mappedOptions = [];
         foreach ($options as $name => $value) {
@@ -48,6 +52,12 @@ class GuzzleAdapter implements UpstreamClientInterface
                         throw new \Exception("Client option: '$name' requires availability of the Curl php extension");
                     }
                     $mappedOptions['curl'] = [CURLOPT_UNIX_SOCKET_PATH => $value] + ($mappedOptions['curl'] ?? []);
+                    break;
+                case UpstreamClientInterface::OPT_CONNECT_TIMEOUT:
+                    $mappedOptions[RequestOptions::CONNECT_TIMEOUT] = $value;
+                    break;
+                case UpstreamClientInterface::OPT_TIMEOUT:
+                    $mappedOptions[RequestOptions::TIMEOUT] = $value;
                     break;
                 case UpstreamClientInterface::OPT_TRANSPORT:
                     $mappedOptions['handler'] = function ($request, $options) use ($value) {

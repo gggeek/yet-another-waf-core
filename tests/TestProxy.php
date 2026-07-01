@@ -70,24 +70,24 @@ class TestProxy extends FilteringProxy
                 }
                 return 'unix:' . $_ENV['HTTPSERVER_SOCKET'];
             default:
-                throw new \Exception("Unsupported scheme for upstream server: $scheme");
+                throw new \InvalidArgumentException("Unsupported scheme for upstream server: $scheme");
         }
     }
 
     /**
      * @throws \Exception
      */
-    public static function createUpstreamClient(string $clientType): UpstreamClientInterface
+    public static function createUpstreamClient(string $clientType, array $options = []): UpstreamClientInterface
     {
         switch ($clientType) {
             case 'guzzle':
-                return new GuzzleAdapter();
+                return new GuzzleAdapter($options);
             case 'sfhc_native':
-                return new SymfonyHttpClientAdapter([UpstreamClientInterface::OPT_TRANSPORT => 'native']);
+                return new SymfonyHttpClientAdapter([UpstreamClientInterface::OPT_TRANSPORT => 'native'] + $options);
             case 'sfhc_curl':
-                return new SymfonyHttpClientAdapter([UpstreamClientInterface::OPT_TRANSPORT => 'curl']);
+                return new SymfonyHttpClientAdapter([UpstreamClientInterface::OPT_TRANSPORT => 'curl'] + $options);
             default:
-                throw new \Exception("Unsupported upstream client type: '$clientType'");
+                throw new \InvalidArgumentException("Unsupported upstream client type: '$clientType'");
         }
     }
 }

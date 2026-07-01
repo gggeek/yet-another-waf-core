@@ -137,10 +137,14 @@ class CA_MatchingTest extends ProxyTestCase
         // force the response to be fully retrieved, without throwing in case of errors
         $response->getContent(false);
 
-        /// @todo... given the async nature of Sf http client, pass a stringable ob
         $failureMessage = $this->getTestDetails($response);
         $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
         $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+    }
+
+    public static function failingGetRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('get', 'failing');
     }
 
     #[DataProvider('getCommonDataProviderOptions')]
@@ -251,9 +255,57 @@ class CA_MatchingTest extends ProxyTestCase
         $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
     }
 
-    public static function failingGetRulesDataProvider(): array
+    #[DataProvider('passingHeadRulesDataProvider')]
+    public function NotYetTestPassingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
-        return self::getRuleBasedTestDataProviderOptions('get', 'failing');
+        // skip test cases which are bound to fail with given configs
+        /// @todo this should be more robust/flexible... We should allow the json configs to specify excluded test configs...
+        if ($proxyScheme === 'unix' && in_array(basename($configFileName), [
+                '001_client_address_fixed.json', '003_client_address_many.json',
+            ])) {
+            // avoid the line noise from the skipped test
+            //$this->markTestSkipped('Can not test a client_address match when running the proxy on a unix socket');
+            $this->assertEquals(0, 0);
+            return;
+        }
+
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
+            'HEAD',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+
+        $failureMessage = $this->getTestDetails($response);
+        $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+        /// @todo... check that resp. body is empty
+    }
+
+    public static function passingHeadRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('head', 'passing');
+    }
+
+    #[DataProvider('failingHeadRulesDataProvider')]
+    public function NotYetTestFailingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
+            'HEAD',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+
+        $failureMessage = $this->getTestDetails($response);
+        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+        /// @todo... check that resp. body is empty
+    }
+
+    public static function failingHeadRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('head', 'failing');
     }
 
     protected static function getRuleBasedTestDataProviderOptions(string $method, string $status): array

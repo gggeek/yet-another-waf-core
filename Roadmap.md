@@ -2,7 +2,7 @@
   - matching requests/responses
     - req. body: regexp
     - req. body: jsonpath-like matching
-    - document supported matchers
+    - document the supported matchers
     - support other wildcards besides the `*`?
       - glob has: ? for one char, [...] for char ranges, [!...] for negated char ranges
       - sql LIKE has `%` and `_`
@@ -15,7 +15,7 @@
       - eg. ssl on
   - implement filtering support
       - check: can we make filters add "tags" to requests/responses, to ease later processing? See psr 'attributes'
-  - create a flow diagram with req/resp matching and filtering
+  - create flow diagrams with req/resp matching and filtering
   - allow 'restart' as action for (Request) rules
     - allow setting a maxRestarts limit
     - q: should we remove from the current rule chain a rule, after it did trigger a restart? (possibly use 2 `restart` types?)
@@ -31,6 +31,8 @@
   - finish support for `tcp://` upstreams
   - add by default (or via a filter?) the http headers telling upstream about real-ip and x-forwarded-protocol, patch hop-by-hop headers
     see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
+  - add support for setting timeouts (connect, read? and total)
+    - also, other options? see the ones present both in Symfony\Contracts\HttpClient\HttpClientInterface and GuzzleHttp\requestOptions
   - tls & https support
   - take a look at supporting somehow https://github.com/php-http/client-common/blob/2.x/src/Plugin.php, so that
     we can allow users to profit from the existing plugins and/or vice-versa make our Firewall available as plugin...

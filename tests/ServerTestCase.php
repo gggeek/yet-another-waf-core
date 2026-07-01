@@ -144,6 +144,12 @@ abstract class ServerTestCase extends TestCase
             $clientOptions['bindto'] = $_ENV['HTTPSERVER_SOCKET'];
         }
 
+        // avoid tests lasting too long in case of things going south - the test server is supposed to respond quickly in any case
+        $clientOptions = $clientOptions + [
+            'max_connect_duration' => 1.0, // seconds
+            'max_duration' => 3.0, // seconds
+        ];
+
         switch (@$testOptions['client_type']) {
             case 'curl':
                 // the constructor already checks for the curl extension - no need to do it here
@@ -154,7 +160,7 @@ abstract class ServerTestCase extends TestCase
             case 'any':
                 return HttpClient::create($clientOptions);
             default:
-                throw new \Exception("Unsupported preferred client type: '{$testOptions['preferred_client_type']}'");
+                throw new \InvalidArgumentException("Unsupported preferred client type: '{$testOptions['preferred_client_type']}'");
         }
     }
 
@@ -174,7 +180,7 @@ abstract class ServerTestCase extends TestCase
             //case 'unix':
             //    return 'unix:' . $_ENV['HTTPSERVER_SOCKET'];
             default:
-                throw new \Exception("Unsupported server scheme: $scheme");
+                throw new \InvalidArgumentException("Unsupported server scheme: $scheme");
         }
     }
 

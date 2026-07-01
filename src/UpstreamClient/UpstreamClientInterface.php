@@ -15,6 +15,9 @@ interface UpstreamClientInterface extends ClientInterface
     // Note that not all transports do support all possible proxy configurations, eg. connecting to a unix socket upstream requires curl
     const OPT_TRANSPORT = 'transport';
 
+    const OPT_TIMEOUT = 'timeout';
+    const OPT_CONNECT_TIMEOUT = 'connect_timeout';
+
     /**
      * @throws \Exception
      */

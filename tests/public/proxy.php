@@ -145,10 +145,11 @@ class ProxyPage
             // NB: HTTP_PROXY uppercase should not be used by any clients, as it can be spoofed by an http header from clients...
             unset($_SERVER['http_proxy'], $_SERVER['HTTP_PROXY'], $_SERVER['https_proxy'], $_SERVER['HTTPS_PROXY'], $_SERVER['no_proxy'], $_SERVER['NO_PROXY']);
 
+            /// @todo... allow more options to be set to the client
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
                 $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);
             } else {
-                $httpClient = null;
+                $httpClient = [];
             }
 
             $upstreamConnector = new FixedUpstreamProxy($upstream, $httpClient, null, $logger);

@@ -74,7 +74,7 @@ abstract class ProxyTestCase extends ServerTestCase
             //case 'unix':
             //    return 'unix:' . $_ENV['PROXY_SOCKET'];
             default:
-                throw new \Exception("Unsupported proxy scheme: $scheme");
+                throw new \InvalidArgumentException("Unsupported proxy scheme: $scheme");
         }
     }
 

@@ -21,7 +21,7 @@ class FixedUpstreamProxy extends Proxy
     /**
      * @throws \Exception
      */
-    public function __construct(string $upstream, UpstreamClientInterface|null $httpClient = null,
+    public function __construct(string $upstream, UpstreamClientInterface|array|null $httpClient = null,
         UriFactoryInterface|null $uriFactory = null, LoggerInterface|null $logger = null)
     {
         // set first the logger
@@ -38,7 +38,7 @@ class FixedUpstreamProxy extends Proxy
      * @throws \Exception
      * @todo use more specific exceptions
      */
-    protected function setUpstream(string $upstream, UpstreamClientInterface|null $httpClient = null): UpstreamClientInterface
+    protected function setUpstream(string $upstream, UpstreamClientInterface|array|null $httpClient = null): UpstreamClientInterface
     {
         $upstream = trim($upstream);
         if ($upstream === '') {
@@ -58,8 +58,8 @@ class FixedUpstreamProxy extends Proxy
                         $this->upstream['port'] = 80;
                     }
                 }
-                if (!$httpClient) {
-                    $httpClient = (new UpstreamClientFactory())->createClient();
+                if ($httpClient === null || is_array($httpClient)) {
+                    $httpClient = (new UpstreamClientFactory())->createClient((array)$httpClient);
                 }
                 $this->info("Proxying http upstream '$upstream'");
                 break;
@@ -137,7 +137,7 @@ class FixedUpstreamProxy extends Proxy
                     $absoluteUri = $absoluteUri->withUserInfo($this->upstream['user'], @$this->upstream['pass']);
                 }
 
-/// @todo... what if both $this->upstream and $uri have a path? Prefix one to the other!
+/// @todo... what if both $this->upstream and $uri have a path? Prefix one to the other! But check for superpositions?
                 $request = $request->withUri($absoluteUri);
                 break;
 
