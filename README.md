@@ -45,11 +45,17 @@ Not in scope (yet?):
 
 ## Requirements:
 
-PHP 8.2 and up.
+PHP 8.2 and up, with extension: ctype, curl, json and zlib.
 
 A webserver to run it.
 
-Either `symfony/http-client` or `guzzlehttp/guzzle`.
+If you want to have the proxy listening on a unix socket instead of an http port, choose an http server which can do that:
+as of June 2026 Nginx and frankenPHP can, while Apache can't.
+
+Either the `symfony/http-client` or `guzzlehttp/guzzle` php package.
+
+The php `curl` extension is recommended, as it is required for most of the complex http stuff when making requests to
+the upstream server.
 
 ## Installation
 

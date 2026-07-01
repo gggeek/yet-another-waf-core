@@ -12,7 +12,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * NB: despite the output format being basically the same as what you from CURL, and despite the name, there is
  * no guarantee that this will print the actual over-the-wire http request/response, as building that is left to the Client...
  * @todo investigate if we can somehow fix that
- * @todo allow more flexibility in what to trace: 1st line only, also headers, also body
+ * @todo allow more flexibility in what to trace: 1st line only, also headers, also body (body can be ugly when binary)
  */
 class Tracer implements MiddlewareInterface
 {

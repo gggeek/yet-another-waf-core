@@ -134,7 +134,7 @@ abstract class ServerTestCase extends TestCase
 
     /**
      * Creates an http client with the given options, allowing to pick a preferred implementation.
-     * @param array $clientOptions
+     * @param array $clientOptions see Symfony\Contracts\HttpClient\HttpClientInterface
      * @param array $testOptions supported: client_type => curl/native/null
      * @throws \Exception
      */
