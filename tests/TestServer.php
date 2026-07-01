@@ -20,7 +20,29 @@ class TestServer
     /**
      * Echoes a json payload with as much info as possible about the request received, to help testing
      */
-    public function respond(string $serverRequestLibrary = 'yawaf'): void
+    public function respond(int|string $statusCode = 200, string $serverRequestLibrary = 'yawaf'): void
+    {
+        switch ((int)$statusCode) {
+            case 301:
+            case 302:
+            case 303:
+            case 307:
+            case 308:
+                $this->displayRedirectResponse((int)$statusCode);
+                break;
+            case 200:
+            default:
+                $this->displayInfoResponse($serverRequestLibrary);
+        }
+    }
+
+    protected function displayRedirectResponse(int $statusCode, string $location = '/server.php'): void
+    {
+        http_response_code($statusCode);
+        header("Location: $location");
+    }
+
+    protected function displayInfoResponse(string $serverRequestLibrary = 'yawaf'): void
     {
         $serverRequest = $this->buildServerRequest($serverRequestLibrary);
 
@@ -54,8 +76,14 @@ class TestServer
             $response['getallheaders'] = apache_response_headers();
         }
 
+        $response = json_encode($response);
+
         header('Content-type: application/json');
-        echo json_encode($response);
+        if (@$_SERVER['REQUEST_METHOD'] === 'HEAD') {
+            header("Content-Length: " . strlen($response));
+        } else {
+            echo $response;
+        }
     }
 
     /**
