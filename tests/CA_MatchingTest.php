@@ -229,6 +229,6 @@ class CA_MatchingTest extends ProxyTestCase
 
     protected function getCommonQueryString(): string
     {
-        return '=yes&n=no&true=true&true=false=1=1&0=0&0.1=0.1&array[]=one&array[]=two';
+        return 'y=yes&n=no&true=true&false=false&1=1&0=0&0.1=0.1&array[]=one&array[]=two&surprise';
     }
 }

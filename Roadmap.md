@@ -9,7 +9,9 @@
       - we could just allow full regexp instead, at least for char ranges...
       - for which matcher a 'literal' version is importamt? body, header, user_agent, query_string, ...
     - client_address: support v6 IPs without forcing users to write a complex regexp
-    - other? eg. ssl on
+    - other?
+      - add a `/trim` modifier, similar to `/case_insensitive` and `/no_wildcards`
+      - eg. ssl on
   - implement filtering support
       - check: can we make filters add "tags" to requests/responses, to ease later processing? See psr 'attributes'
   - create a flow diagram with req/resp matching and filtering
