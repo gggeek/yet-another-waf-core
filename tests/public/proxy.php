@@ -131,7 +131,7 @@ class ProxyPage
                 if (file_exists($traceFileName)) {
                     file_put_contents($traceFileName, '');
                 }
-                $firewall = new Dispatcher([new Tracer($traceFileName), $firewall]);
+                $firewall = new Dispatcher([new Tracer($traceFileName), $firewall, new Tracer($traceFileName, '>> ', '<< ')]);
             }
 
             // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
@@ -147,6 +147,7 @@ class ProxyPage
 
             /// @todo... allow more options to be set to the client
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
+                $logger->debug("Using '{$_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']}' client type to connect to upstream");
                 $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);
             } else {
                 $httpClient = [];

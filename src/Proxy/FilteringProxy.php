@@ -43,10 +43,10 @@ abstract class FilteringProxy implements RequestHandlerInterface, LoggerAwareInt
             $response = $this->filter->process($request, $this->upstreamConnector);
             $this->debug("Returned response: " . $this->response2Log($response));
         } catch (RequestDenied $e) {
-            $this->debug("Request Denied Exception thrown during processing of request: " . $e->getMessage());
+            $this->debug("Request Denied Exception thrown during processing of request" . (($msg = $e->getMessage()) !== '' ? (': ' . $msg) : ''));
             $response = $this->deniedResponse($request, $e);
         } catch (\Throwable $e) {
-            $this->error("Exception thrown during processing of request: " . $e->getMessage());
+            $this->error("Exception thrown during processing of request" . (($msg = $e->getMessage()) !== '' ? (': ' . $msg) : ''));
             // NB: we do not catch exceptions thrown during this function call as we would not know what to return anyway...
             $response = $this->errorResponse($request, $e);
         }
