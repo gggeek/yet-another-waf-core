@@ -1,7 +1,7 @@
 {
     "rule 1": {
         "resp_match": {
-            "body": "*\"localhost\"*"
+            "body": "*\"localhost*"
         },
         "resp_action": "deny"
     }
