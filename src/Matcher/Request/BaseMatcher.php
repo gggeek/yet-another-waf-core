@@ -15,7 +15,7 @@ abstract class BaseMatcher implements RequestMatcherInterface
     public function matches(...$items): bool
     {
         if (count($items) !== 1 || ! $items[0] instanceof ServerRequestInterface) {
-            throw new \Exception('Request Matcher expected a ServerRequestInterface but got instead a ' . gettype($items[0]));
+            throw new \InvalidArgumentException('Request Matcher expected a ServerRequestInterface but got instead a ' . gettype($items[0]));
         }
 
         return $this->matchesRequest($items[0]);

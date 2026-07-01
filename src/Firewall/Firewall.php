@@ -34,7 +34,7 @@ class Firewall implements MiddlewareInterface, LoggerAwareInterface
     {
         $this->logger = $logger;
         if (!Stdlib::array_of($rules, Rule::class)) {
-            throw new \Exception("Array passed to " . static::class . " constructor must contain only instances of " . Rule::class);
+            throw new \InvalidArgumentException("Array passed to " . static::class . " constructor must contain only instances of " . Rule::class);
         }
         /// @todo remove this warning if implementing an `addRule` method
         if (!$rules) {

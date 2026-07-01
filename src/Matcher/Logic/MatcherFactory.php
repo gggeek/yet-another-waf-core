@@ -5,6 +5,7 @@ namespace YAWAF\Core\Matcher\Logic;
 
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
+use YAWAF\Core\Exception\ConfigurationError;
 use YAWAF\Core\Matcher\MatcherFactoryAwareTrait;
 use YAWAF\Core\Matcher\MatcherFactoryInterface;
 use YAWAF\Core\Matcher\MatcherInterface;
@@ -37,7 +38,7 @@ class MatcherFactory extends SuffixedMatcherFactory implements MatcherFactoryInt
             case 'and':
             case 'or':
                 if (!is_array($values) || count($values) <= 1) {
-                    throw new \Exception("Invalid logical matching configuration: '$type' should have as value an array with at least 2 elements");
+                    throw new ConfigurationError("Invalid logical matching configuration: '$type' should have as value an array with at least 2 elements");
                 }
                 $matchers = [];
                 foreach ($values as $type => $subValues) {
@@ -49,10 +50,10 @@ class MatcherFactory extends SuffixedMatcherFactory implements MatcherFactoryInt
                 return new NeverMatcher();
             case 'not':
                 if (!is_array($values) || count($values) !== 1) {
-                    throw new \Exception("Invalid logical matching configuration: '$type' should have as value an array with a single element");
+                    throw new ConfigurationError("Invalid logical matching configuration: '$type' should have as value an array with a single element");
                 }
                 return new NegativeMatcher($this->matcherFactory->fromConfiguration(array_key_first($values), reset($values)));
         }
-        throw new \Exception("Invalid logical matching configuration: '$type' => " . var_export($values, true));
+        throw new ConfigurationError("Invalid logical matching configuration: '$type' => " . var_export($values, true));
     }
 }

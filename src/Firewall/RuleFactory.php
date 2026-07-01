@@ -5,6 +5,7 @@ namespace YAWAF\Core\Firewall;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
+use YAWAF\Core\Exception\ConfigurationError;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\Matcher\ChainFactory;
 use YAWAF\Core\Matcher\Logic\AndMatcher;
@@ -33,10 +34,10 @@ class RuleFactory
      * @return Rule
      * @throws \Exception
      */
-    public function fromConfiguration(array $config, string|int $ruleName): Rule
+    public function fromConfiguration(array $config): Rule
     {
         if (!$config) {
-            throw new \Exception("Bad configuration: the value for firewall rule $ruleName should not be an empty array");
+            throw new ConfigurationError("The value should not be an empty array");
         }
 
         // Allow 'simplified' configuration
@@ -46,7 +47,7 @@ class RuleFactory
         }
 
         if ($badKeys = array_diff(array_keys($config), ['req_match', 'req_action', 'req_filters', 'resp_match', 'resp_action', 'resp_filters'])) {
-            throw new \Exception("Bad configuration: the value for firewall rule $ruleName should not have keys: " . implode(',', $badKeys));
+            throw new ConfigurationError("Unsupported keys: " . implode(',', $badKeys));
         }
 
         // *** Here Be Dragons ***
@@ -61,13 +62,13 @@ class RuleFactory
 
         if (!is_array($config['req_match']) || !is_array($config['req_filters']) || !is_array($config['resp_match']) ||
             !is_array($config['resp_filters'])) {
-            throw new \Exception("Bad configuration for rule $ruleName: req_match, req_filters, resp_match and resp_filters should be arrays");
+            throw new ConfigurationError("req_match, req_filters, resp_match and resp_filters should be arrays");
         }
 
         if (array_key_exists('req_action', $config)) {
             $requestAction = RuleAction::tryFrom($config['req_action']);
             if ($requestAction === null) {
-                throw new \Exception("Bad configuration for rule $ruleName: unsupported value for req_action '{$config['req_action']}'");
+                throw new ConfigurationError("Unsupported value for req_action '{$config['req_action']}'");
             }
         } else {
             $requestAction = RuleAction::Allow;
@@ -75,11 +76,11 @@ class RuleFactory
 
         if ($requestAction === RuleAction::Deny && (!$config['req_match'] || $config['req_filters'] ||
                 $config['resp_match'] || $config['resp_filters'] || array_key_exists('resp_action', $config))) {
-            throw new \Exception("Bad configuration: when req_action is deny there can be no req_filters, resp_filters, resp_match or a resp_action, and there has to be a req_match");
+            throw new ConfigurationError("When req_action is deny there can be no req_filters, resp_filters, resp_match or a resp_action, and there has to be a req_match");
         }
         if ($requestAction === RuleAction::Allow && (!$config['req_match'])) {
             if (!$config['resp_match'] && !$config['resp_filters']) {
-                throw new \Exception("Bad configuration for rule $ruleName: when req_action is allow there have to be some req_match condition");
+                throw new ConfigurationError("When req_action is allow there have to be some req_match condition");
             } else {
                 $config['req_match'] = ['always' => true];
             }
@@ -88,7 +89,7 @@ class RuleFactory
         if (array_key_exists('resp_action', $config)) {
             $responseAction = RuleAction::tryFrom($config['resp_action']);
             if ($requestAction === null) {
-                throw new \Exception("Bad configuration for rule $ruleName: unsupported value for resp_action '{$config['resp_action']}'");
+                throw new ConfigurationError("Unsupported value for resp_action '{$config['resp_action']}'");
             }
         } else {
             $responseAction = RuleAction::Allow;
@@ -98,10 +99,10 @@ class RuleFactory
         }
 
         if ($responseAction === RuleAction::Deny && ($config['resp_filters'] || !$config['resp_match'])) {
-            throw new \Exception("Bad configuration for rule $ruleName: when resp_action is deny there can be no resp_filters and there has to be a resp_match");
+            throw new ConfigurationError("When resp_action is deny there can be no resp_filters and there has to be a resp_match");
         }
         if ($responseAction === RuleAction::Allow && (!$config['resp_match'] || (!$config['resp_filters'] && $config['resp_match'] !== ['never' => true]))) {
-            throw new \Exception("Bad configuration for rule $ruleName: when resp_action is allow there have to be some resp_match condition and resp_filters");
+            throw new ConfigurationError("When resp_action is allow there have to be some resp_match condition and resp_filters");
         }
 
         $requestMatcherFactory = $this->getRequestMatcherFactory([]);
@@ -138,7 +139,7 @@ class RuleFactory
     protected function parseMatcherConfiguration(array $matcherSpec, MatcherFactoryInterface $matcherFactory): RequestMatcherInterface|ResponseMatcherInterface
     {
         if (!$matcherSpec) {
-            throw new \Exception("The value for each rule 'match' section must be a non-empty array of conditions");
+            throw new ConfigurationError("The value for each rule 'match' section must be a non-empty array of conditions");
         }
 
         if (count($matcherSpec) === 1) {

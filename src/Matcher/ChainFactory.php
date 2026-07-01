@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Matcher;
 
+use YAWAF\Core\Exception\ConfigurationError;
+
 class ChainFactory implements MatcherFactoryInterface
 {
     /** @var MatcherFactoryInterface[] */
@@ -15,7 +17,7 @@ class ChainFactory implements MatcherFactoryInterface
     public function __construct(array $factories)
     {
         if (!$factories) {
-            throw new \Exception('Empty list of factories passed to Matcher Chain Factory');
+            throw new \InvalidArgumentException('Empty list of factories passed to Matcher Chain Factory');
         }
         foreach ($factories as $factory) {
             $this->addFactory($factory);
@@ -50,6 +52,6 @@ class ChainFactory implements MatcherFactoryInterface
                 return $factory->fromConfiguration($type, $values);
             }
         }
-        throw new \Exception("Unsupported matcher type: '$type'");
+        throw new ConfigurationError("Unsupported matcher type: '$type'");
     }
 }

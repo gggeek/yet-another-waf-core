@@ -6,6 +6,7 @@ namespace YAWAF\Core\Matcher\Request;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
+use YAWAF\Core\Exception\ConfigurationError;
 use YAWAF\Core\Matcher\MatcherFactoryInterface;
 use YAWAF\Core\Matcher\MatcherInterface;
 use YAWAF\Core\Matcher\Message\BodyMatcher;
@@ -57,12 +58,12 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
             /// @todo accept 'request_http_header' as an alias?
             case 'http_header':
                 if (!is_array($values) || count($values) !== 1) {
-                    throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");
+                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");
                 }
                 $hv = reset($values);
                 $hn = array_key_first($values);
                 if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
-                    throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
+                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
                 $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
                 $matcher = new HeaderMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards']);
@@ -77,12 +78,12 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
             //    break;
             case 'query_string':
                 if (!is_array($values) || count($values) !== 1) {
-                    throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");
+                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");
                 }
                 $qsv = reset($values);
                 $qsn = array_key_first($values);
                 if (!is_string($qsn) || !(is_string($qsv) || is_array($qsv))) {
-                    throw new \Exception("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
+                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
                 $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
                 $matcher = new QueryStringMatcher($qsn, $qsv, $opts['case_insensitive'], $opts['no_wildcards']);
@@ -101,7 +102,7 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
                 $matcher = new UserAgentMatcher($values, $opts['case_insensitive'], $opts['no_wildcards']);
                 break;
             default:
-                throw new \Exception("Invalid request matching configuration: '$type' => " . var_export($values, true));
+                throw new ConfigurationError("Invalid request matching configuration: '$type' => " . var_export($values, true));
         }
         if ($this->logger && $matcher instanceof LoggerAwareInterface) {
             $matcher->setLogger($this->logger);

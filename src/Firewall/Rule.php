@@ -42,12 +42,13 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
         ResponseMatcherInterface|null $responseMatcher = null, array $responseFilters = [], RuleAction $responseAction = RuleAction::Allow)
     {
         if (! Stdlib::array_of($requestFilters, RequestFilterInterface::class)) {
-            throw new \Exception('requestFilters argument to Rule constructor must be an array of RequestFilterInterface');
+            throw new \InvalidArgumentException('requestFilters argument to Rule constructor must be an array of RequestFilterInterface');
         }
         if (! Stdlib::array_of($responseFilters, ResponseFilterInterface::class)) {
-            throw new \Exception('responseFilters argument to Rule constructor must be an array of ResponseFilterInterface');
+            throw new \InvalidArgumentException('responseFilters argument to Rule constructor must be an array of ResponseFilterInterface');
         }
 
+/// @todo... review these checks - make sure they are in sync with what is built by the RuleFactory
         if ($requestAction === RuleAction::Deny) {
             if ($requestFilters || $responseFilters || $responseAction !== RuleAction::Allow) {
                 throw new \Exception('A firewall rule with Deny request action can never fulfill request filters, response filters or response actions');
@@ -55,7 +56,6 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
             if ($requestMatcher instanceof AlwaysMatcher) {
                 $this->warning('A firewall rule with Deny request action and matching all requests is a bad smell. The firewall default is to block all requests not matching any rule...');
             }
-
         }
         if ($responseAction === RuleAction::Deny) {
             if ($responseFilters) {
@@ -77,7 +77,7 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
     public function matches(...$items): bool
     {
         if (count($items) !== 1 || ! $items[0] instanceof ServerRequestInterface) {
-            throw new \Exception('Rule expected a ServerRequestInterface to match but got instead a ' . gettype($items[0]));
+            throw new \InvalidArgumentException('Rule expected a ServerRequestInterface to match but got instead a ' . gettype($items[0]));
         }
 
         return $this->matchesRequest($items[0]);

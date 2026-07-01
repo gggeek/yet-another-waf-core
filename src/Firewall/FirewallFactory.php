@@ -4,6 +4,7 @@ namespace YAWAF\Core\Firewall;
 
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
+use YAWAF\Core\Exception\ConfigurationError;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\Stdlib;
 
@@ -27,7 +28,7 @@ class FirewallFactory
     {
         $this->info("Loading firewall configuration from file '$configurationFile'");
         if (($configString = @file_get_contents($configurationFile)) === false) {
-            throw new \Exception("Can not load configuration file '$configurationFile' " . error_get_last()['message']);
+            throw new ConfigurationError("Can not load configuration file '$configurationFile' " . error_get_last()['message']);
         }
         return $this->fromConfigString($configString);
     }
@@ -45,7 +46,7 @@ class FirewallFactory
         } else {
             $config = @json_decode($configuration, true);
             if (!is_array($config)) {
-                throw new \Exception("The configuration passed in is not a valid json array. Error: " . json_last_error_msg());
+                throw new ConfigurationError("The configuration passed in is not a valid json array. Error: " . json_last_error_msg());
             }
         }
         return $this->fromConfiguration($config);
@@ -64,7 +65,7 @@ class FirewallFactory
 
         foreach ($config as $ruleName => $ruleSpec) {
             if (!is_array($ruleSpec)) {
-                throw new \Exception("Bad configuration: the value for firewall rule '$ruleName' should be an array");
+                throw new ConfigurationError("Bad configuration: the value for firewall rule '$ruleName' should be an array");
             }
         }
 
@@ -75,10 +76,10 @@ class FirewallFactory
 
         foreach ($config as $ruleName => $ruleSpec) {
             try {
-                $rule = $ruleFactory->fromConfiguration($ruleSpec, $ruleName);
+                $rule = $ruleFactory->fromConfiguration($ruleSpec);
                 $rules[$ruleName] = $rule;
             } catch (\Exception $e) {
-                throw new \Exception("Error parsing firewall rule '$ruleName': " . $e->getMessage());
+                throw new ConfigurationError("Error parsing firewall rule '$ruleName': " . $e->getMessage());
             }
         }
 

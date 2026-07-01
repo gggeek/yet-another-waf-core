@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriFactoryInterface;
 use Psr\Log\LoggerInterface;
+use YAWAF\Core\Exception\ConfigurationError;
 use YAWAF\Core\UpstreamClient\UpstreamClientFactory;
 use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
@@ -41,10 +42,10 @@ class FixedUpstreamProxy extends Proxy
     {
         $upstream = trim($upstream);
         if ($upstream === '') {
-            throw new \Exception('Empty upstream passed in');
+            throw new ConfigurationError('Empty upstream passed in');
         }
         if (!preg_match('#^(/|unix:/|tcp://|https?://)#', $upstream, $matches)) {
-            throw new \Exception('Upstream not supported. Only unix sockets (paths starting with "/"), tcp sockets (urls starting with "tcp://") and http urls are');
+            throw new ConfigurationError('Upstream not supported. Only unix sockets (paths starting with "/"), tcp sockets (urls starting with "tcp://") and http urls are');
         }
         switch ($matches[1]) {
             case 'http://':
@@ -66,7 +67,7 @@ class FixedUpstreamProxy extends Proxy
             case 'tcp://':
                 $this->upstream = parse_url($upstream);
                 if (!isset($this->upstream['port'])) {
-                    throw new \Exception('Upstream not supported. Missing port');
+                    throw new ConfigurationError('Upstream not supported. Missing port');
                 }
                 if (!$httpClient) {
                     $httpClient = (new UpstreamClientFactory())->createClient();
@@ -81,7 +82,7 @@ class FixedUpstreamProxy extends Proxy
                 $this->upstream['scheme'] = 'unix';
                 // 'port' is not parsed for unix urls - colons get in the path
                 if (str_contains($this->upstream['path'], ':')) {
-                    throw new \Exception('Upstream not supported: can not have port for unix sockets');
+                    throw new ConfigurationError('Upstream not supported: can not have port for unix sockets');
                 }
                 if (!$httpClient) {
                     $httpClient = (new UpstreamClientFactory())->createClient([UpstreamClientInterface::OPT_BINDTO => $this->upstream['path']]);
@@ -92,14 +93,14 @@ class FixedUpstreamProxy extends Proxy
                 break;
 
             default:
-                throw new \Exception("Unsupported upstream scheme: '{$matches[1]}'");
+                throw new ConfigurationError("Unsupported upstream scheme: '{$matches[1]}'");
         }
 
         if ($this->upstream['scheme'] === 'unix' || $this->upstream['scheme'] === 'tcp') {
             if (isset($this->upstream['user']) || isset($this->upstream['pass']) || isset($this->upstream['query']) ||
                 (isset($this->upstream['fragment']))) {
                 /// @todo review: is this actually needed? Could we proxy those infos to a tcp / socket?
-                throw new \Exception("The upstream '$upstream' is not valid: either of user/pass/query/fragment is not supported for scheme '{$this->upstream['scheme']}'");
+                throw new ConfigurationError("The upstream '$upstream' is not valid: either of user/pass/query/fragment is not supported for scheme '{$this->upstream['scheme']}'");
             }
         }
 

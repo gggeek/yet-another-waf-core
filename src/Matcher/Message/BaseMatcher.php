@@ -19,7 +19,7 @@ abstract class BaseMatcher implements MessageMatcherInterface, RequestMatcherInt
     public function matches(...$items): bool
     {
         if (count($items) !== 1 || ! $items[0] instanceof MessageInterface) {
-            throw new \Exception('Request Matcher expected a single MessageInterface element to match');
+            throw new \InvalidArgumentException('Request Matcher expected a single MessageInterface element to match');
         }
         return $this->matchesMessage($items[0]);
     }

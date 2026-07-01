@@ -2,6 +2,8 @@
 
 namespace YAWAF\Core\Matcher;
 
+use YAWAF\Core\Exception\ConfigurationError;
+
 /**
  * Implements functionality common to Matcher factories:
  * - optional postfixes to the matcher type
@@ -34,7 +36,7 @@ abstract class OptionAwareMatcherFactory extends SuffixedMatcherFactory
         for ($i = 1; $i < count($data); $i++) {
             $optionName = $data[$i];
             if (!array_key_exists($optionName, $options)) {
-                throw new \Exception("Matcher modifier '{$this->optionSeparatorChar}{$optionName}' is not supported");
+                throw new ConfigurationError("Matcher modifier '{$this->optionSeparatorChar}{$optionName}' is not supported");
             }
             $out[$optionName] = !$options[$optionName];
         }
