@@ -31,7 +31,7 @@ class MatcherFactory extends SuffixedMatcherFactory implements MatcherFactoryInt
      */
     public function fromConfiguration(string $type, mixed $values): MatcherInterface
     {
-        switch ($this->getMatcherType($type)) {
+        switch ($target = $this->getMatcherType($type)) {
             case 'always':
                 /// @todo log a warning if $values is falsey
                 return new AlwaysMatcher();

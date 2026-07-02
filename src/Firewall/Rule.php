@@ -7,21 +7,21 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerAwareTrait;
 use YAWAF\Core\Exception\RequestDenied;
-use YAWAF\Core\Filter\Server\Request\RequestFilterInterface;
-use YAWAF\Core\Filter\Server\Response\ResponseFilterInterface;
+use YAWAF\Core\Filter\Request\ServerRequestFilterInterface;
+use YAWAF\Core\Filter\Response\ResponseFilterInterface;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\Matcher\Logic\AlwaysMatcher;
 use YAWAF\Core\Matcher\Request\RequestMatcherInterface;
 use YAWAF\Core\Matcher\Response\ResponseMatcherInterface;
 use YAWAF\Core\Stdlib;
 
-class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseFilterInterface
+class Rule implements RequestMatcherInterface, ServerRequestFilterInterface, ResponseFilterInterface
 {
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
     protected RequestMatcherInterface $requestMatcher;
-    /** @var RequestFilterInterface[] */
+    /** @var ServerRequestFilterInterface[] */
     protected array $requestFilters = [];
     protected RuleAction $requestAction = RuleAction::Allow;
     protected null|ResponseMatcherInterface $responseMatcher;
@@ -31,7 +31,7 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
 
     /**
      * @param RequestMatcherInterface $requestMatcher
-     * @param RequestFilterInterface[] $requestFilters
+     * @param ServerRequestFilterInterface[] $requestFilters
      * @param RuleAction $requestAction
      * @param ResponseMatcherInterface|null $responseMatcher
      * @param ResponseFilterInterface[] $responseFilters
@@ -41,7 +41,7 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
     public function __construct(RequestMatcherInterface $requestMatcher, array $requestFilters = [], RuleAction $requestAction = RuleAction::Allow,
         ResponseMatcherInterface|null $responseMatcher = null, array $responseFilters = [], RuleAction $responseAction = RuleAction::Allow)
     {
-        if (! Stdlib::array_of($requestFilters, RequestFilterInterface::class)) {
+        if (! Stdlib::array_of($requestFilters, ServerRequestFilterInterface::class)) {
             throw new \InvalidArgumentException('requestFilters argument to Rule constructor must be an array of RequestFilterInterface');
         }
         if (! Stdlib::array_of($responseFilters, ResponseFilterInterface::class)) {
@@ -88,15 +88,15 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
         return $this->requestMatcher->matchesRequest($request);
     }
 
-    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface
+    public function filterServerRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface
     {
         if ($this->requestAction === RuleAction::Deny) {
             throw new RequestDenied();
         }
 
         foreach ($this->requestFilters as $requestFilter) {
-            $request = $requestFilter->filterRequest($request);
-            if (/*$request === false ||*/ $request instanceof ResponseInterface) {
+            $request = $requestFilter->filterServerRequest($request);
+            if ($request instanceof ResponseInterface) {
                 return $request;
             }
         }
@@ -116,9 +116,6 @@ class Rule implements RequestMatcherInterface, RequestFilterInterface, ResponseF
             }
             foreach ($this->responseFilters as $responseFilter) {
                 $response = $responseFilter->filterResponse($response, $request);
-                //if ($response === false) {
-                //    return false;
-                //}
             }
         }
         return $response;

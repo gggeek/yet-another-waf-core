@@ -6,7 +6,6 @@ use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use YAWAF\Core\Exception\ConfigurationError;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
-use YAWAF\Core\Stdlib;
 
 class FirewallFactory
 {

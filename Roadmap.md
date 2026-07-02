@@ -34,9 +34,8 @@
   - if a matcher of filter touching the resp. body has been set, and the received response has a content-encoding
     header, we should make sure the filter works on the decompressed version
   - the same is true for requests that come in with a content-encoding header
-  - if a forced accept-encoding is set, and the original request had one, we should transcode the response to a format
-    supported by the original caller (this might require moving the handling of forced accept-encoding to a middleware,
-    as it makes no sense to re-encode the body before the firewall can examine it...)
+  - middleware: if a forced accept-encoding is set, and the original request had one, we should transcode the response to
+    a format supported by the original caller
   - finish support for `tcp://` upstreams
   - tls & https support
   - figure out if we can make it easy to allow using the existing "client middlewares" from other libraries, to allow
@@ -79,4 +78,4 @@
 
 - Misc
   - introduce more structured exceptions
-  - allow fine-tuning resource usage: maxconn, etc... (here on in downstream projects?)
+  - allow fine-tuning resource usage: max concurrent conns, etc... (here on in downstream projects?)

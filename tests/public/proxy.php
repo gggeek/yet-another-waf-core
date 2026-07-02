@@ -13,16 +13,15 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Symfony\Component\Dotenv\Dotenv;
-use YAWAF\Core\Filter\Client\Bidirectional\Tracer as ClientTracer;
-use YAWAF\Core\Filter\Server\Bidirectional\ForceAcceptEncoding;
+use YAWAF\Core\Filter\Bidirectional\Tracer;
+use YAWAF\Core\Filter\Bidirectional\ForceAcceptEncoding;
 use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
-use YAWAF\Core\Middleware\Tracer;
 use YAWAF\Core\Proxy\FixedUpstreamProxy;
-use YAWAF\Core\UpstreamClient\MiddlewareAware as MiddlewareAwareClient;
 use YAWAF\Core\ServerRequest\Psr7\Creator as ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
+use YAWAF\Core\UpstreamClient\MiddlewareAware as MiddlewareAwareClient;
 
 $proxy = new ProxyPage();
 $logger = $proxy->preflight();
@@ -133,7 +132,7 @@ class ProxyPage
 
                 // We put 2 tracers in the chain, one at the very start and one at the very end
                 $middlewareChain->appendMiddleware(new Tracer($traceFileName));
-                $httpClient = new MiddlewareAwareClient(new ClientTracer($traceFileName, '>> ', '<< '), $httpClient, $logger);
+                $httpClient = new MiddlewareAwareClient(new Tracer($traceFileName, '>> ', '<< '), $httpClient, $logger);
             }
 
             $firewallFactory = new FirewallFactory($logger);

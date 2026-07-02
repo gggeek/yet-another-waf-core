@@ -83,7 +83,7 @@ trait PrivateLoggerTrait
      * @param mixed $level
      * @throws \Psr\Log\InvalidArgumentException
      */
-    protected function log($level, string|\Stringable $message, array $context = []): void
+    protected function log(mixed $level, string|\Stringable $message, array $context = []): void
     {
         $this->logger?->log($level, $message, $context);
     }

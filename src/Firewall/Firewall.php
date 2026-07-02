@@ -48,24 +48,23 @@ class Firewall implements MiddlewareInterface, LoggerAwareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $request = $this->filterRequest($request);
+        $request = $this->filterServerRequest($request);
         $response = $handler->handle($request);
 /// @todo should we send the original request to filterResponse() ??? (possibly cloned, have to check immutability...)
-        $response = $this->filterResponse($response, $request);
-        return $response;
+        return $this->filterResponse($response, $request);
     }
 
     /**
      * @throws RequestDenied
      */
-    protected function filterRequest(ServerRequestInterface $request): ServerRequestInterface
+    protected function filterServerRequest(ServerRequestInterface $request): ServerRequestInterface
     {
         $this->currentRule = null;
         foreach ($this->rules as $ruleName => $rule) {
             if ($rule->matchesRequest($request)) {
                 $this->debug("Firewall rule '$ruleName' matched request: " . $this->request2Log($request));
                 $this->currentRule = $rule;
-                return $rule->filterRequest($request);
+                return $rule->filterServerRequest($request);
             }
         }
 

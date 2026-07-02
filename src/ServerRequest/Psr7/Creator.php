@@ -235,10 +235,8 @@ class Creator
      * delegate to normalizeNestedFileSpec() and return that return value.
      *
      * @param array $value $_FILES struct
-     *
-     * @return array|UploadedFileInterface
      */
-    private function createUploadedFileFromSpec(array $value)
+    private function createUploadedFileFromSpec(array $value): array|UploadedFileInterface
     {
         if (\is_array($value['tmp_name'])) {
             return $this->normalizeNestedFileSpec($value);

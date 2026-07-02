@@ -1,13 +1,14 @@
 <?php
 
-namespace YAWAF\Core\Filter\Client\Bidirectional;
+namespace YAWAF\Core\Filter\Bidirectional;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use YAWAF\Core\Tracer\RequestTracerTrait;
 use YAWAF\Core\Tracer\ResponseTracerTrait;
 
-class Tracer implements BidirectionalFilterInterface
+class Tracer extends MiddlewareFilter implements ClientBidirectionalFilterInterface
 {
     use RequestTracerTrait;
     use ResponseTracerTrait;
@@ -16,14 +17,20 @@ class Tracer implements BidirectionalFilterInterface
     protected string $requestPrefix;
     protected string $responsePrefix;
 
-    public function __construct(string $fileName, string $requestPrefix = '> ', string $responsePrefix = '< ',)
+    public function __construct(string $fileName, string $requestPrefix = '> ', string $responsePrefix = '< ')
     {
         $this->fileName = $fileName;
         $this->requestPrefix = $requestPrefix;
         $this->responsePrefix = $responsePrefix;
     }
 
-    public function filterRequest(RequestInterface $request): RequestInterface
+    public function filterClientRequest(RequestInterface $request): RequestInterface
+    {
+        file_put_contents($this->fileName, $this->serializeRequest($request), FILE_APPEND);
+        return $request;
+    }
+
+    public function filterServerRequest(ServerRequestInterface $request): ServerRequestInterface
     {
         file_put_contents($this->fileName, $this->serializeRequest($request), FILE_APPEND);
         return $request;

@@ -7,7 +7,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
-use YAWAF\Core\Filter\Client\Bidirectional\BidirectionalFilterInterface;
+use YAWAF\Core\Filter\Bidirectional\ClientBidirectionalFilterInterface;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 
 class MiddlewareAware implements UpstreamClientInterface, LoggerAwareInterface
@@ -15,10 +15,10 @@ class MiddlewareAware implements UpstreamClientInterface, LoggerAwareInterface
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
-    protected BidirectionalFilterInterface $filter;
+    protected ClientBidirectionalFilterInterface $filter;
     protected UpstreamClientInterface $upstreamClient;
 
-    public function __construct(BidirectionalFilterInterface $filter, UpstreamClientInterface $upstreamClient, LoggerInterface|null $logger = null)
+    public function __construct(ClientBidirectionalFilterInterface $filter, UpstreamClientInterface $upstreamClient, LoggerInterface|null $logger = null)
     {
         $this->filter = $filter;
         $this->upstreamClient = $upstreamClient;
@@ -27,7 +27,7 @@ class MiddlewareAware implements UpstreamClientInterface, LoggerAwareInterface
 
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
-        $request = $this->filter->filterRequest($request);
+        $request = $this->filter->filterClientRequest($request);
         if ($request instanceof ResponseInterface) {
             return $request;
         }

@@ -49,7 +49,7 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $request = $this->filterRequest($request, $this->client);
+        $request = $this->filterRequest($request);
 
 /// @todo... we should follow the rules set out in https://httpwg.org/specs/rfc9112.html#rfc.section.3.2.2: use the
 ///          host/port from the absolute form of the uri to replace the value from Host header

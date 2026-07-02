@@ -1,14 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Filter\Server\Bidirectional;
+namespace YAWAF\Core\Filter\Bidirectional;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class FilterChain implements BidirectionalFilterInterface
+class ServerFilterChain implements ServerBidirectionalFilterInterface
 {
-    /** @var BidirectionalFilterInterface[] */
+    /** @var ClientBidirectionalFilterInterface[] */
     protected array $filters = [];
     /** @var ServerRequestInterface[] */
     protected array $requestChain = [];
@@ -20,17 +20,17 @@ class FilterChain implements BidirectionalFilterInterface
         }
     }
 
-    public function addFilter(BidirectionalFilterInterface $filter)
+    public function addFilter(ClientBidirectionalFilterInterface $filter)
     {
         $this->filters[] = $filter;
     }
 
-    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface
+    public function filterServerRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface
     {
         $this->requestChain = [];
         foreach ($this->filters as $filter) {
             $this->requestChain[] = $request;
-            $request = $filter->filterRequest($request);
+            $request = $filter->filterServerRequest($request);
             if ($request instanceof ResponseInterface) {
                 $this->requestChain = [];
                 return $request;

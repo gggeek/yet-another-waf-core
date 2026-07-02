@@ -8,6 +8,9 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * A Middleware "stack"
+ */
 class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
 {
     /** @var MiddlewareInterface[] */

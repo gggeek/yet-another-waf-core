@@ -55,7 +55,7 @@ abstract class MiddlewareAware implements RequestHandlerInterface, LoggerAwareIn
         if ($request->getMethod() === 'HEAD') {
             /// @todo we could log a warning if upstream sent a body, but that would force us to read it fully, so
             ///       we don't do that to save resources
-            $response = $response->withBody(Stream::create(''));
+            $response = $response->withBody(Stream::create());
         }
 
         return $response;

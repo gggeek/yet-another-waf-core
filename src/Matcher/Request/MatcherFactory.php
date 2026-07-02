@@ -77,7 +77,6 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
                 $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);
                 $matcher = new PortMatcher($values, $opts['no_wildcards']);
                 break;
-                break;
             case 'query_string':
                 if (!is_array($values) || count($values) !== 1) {
                     throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element only");

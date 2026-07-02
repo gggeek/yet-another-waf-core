@@ -59,7 +59,7 @@ class Stdlib
                 $name = 'content-'.\strtolower(\substr($key, 8));
                 $headers[$name] = $value;
 
-                continue;
+                //continue;
             }
         }
 

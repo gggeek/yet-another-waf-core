@@ -1,12 +1,12 @@
 <?php
 
-namespace YAWAF\Core\Filter\Server\Bidirectional;
+namespace YAWAF\Core\Filter\Bidirectional;
 
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
-abstract class HeaderInjector extends MiddlewareFilter
+class HeaderAdder extends MiddlewareFilter implements ClientBidirectionalFilterInterface
 {
     protected array $overrideHeaders = [];
     protected array $overriddenHeaders = [];
@@ -16,7 +16,14 @@ abstract class HeaderInjector extends MiddlewareFilter
         $this->overrideHeaders = $headers;
     }
 
-    public function filterRequest(ServerRequestInterface $request): ServerRequestInterface
+    public function filterServerRequest(ServerRequestInterface $request): ServerRequestInterface
+    {
+        /** @var ServerRequestInterface $request */
+        $request = $this->filterClientRequest($request);
+        return $request;
+    }
+
+    public function filterClientRequest(RequestInterface $request): RequestInterface
     {
         $this->overriddenHeaders = [];
         foreach ($this->overrideHeaders as $name => $value) {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace YAWAF\Core\Matcher\Response;
 
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
 
 class StatusCodeMatcher extends BaseMatcher

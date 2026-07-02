@@ -11,7 +11,7 @@ use Psr\Log\LogLevel;
  */
 class FrankenPHPLogger extends AbstractLogger
 {
-    static $map = [
+    static array $map = [
         /** @noinspection PhpUndefinedConstantInspection */
         /** @phpstan-ignore constant.notFound */
         Loglevel::EMERGENCY => FRANKENPHP_LOG_LEVEL_ERROR,

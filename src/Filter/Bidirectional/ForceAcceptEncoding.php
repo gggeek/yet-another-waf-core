@@ -1,6 +1,6 @@
 <?php
 
-namespace YAWAF\Core\Filter\Server\Bidirectional;
+namespace YAWAF\Core\Filter\Bidirectional;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -9,7 +9,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * Used to force  to enable/disable accepting encoded (compressed) responses.
  * List of valid values: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept-Encoding
  */
-class ForceAcceptEncoding extends HeaderInjector
+class ForceAcceptEncoding extends HeaderAdder
 {
     public function __construct(string $acceptEncoding)
     {
