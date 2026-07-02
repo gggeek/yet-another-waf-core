@@ -13,12 +13,14 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Symfony\Component\Dotenv\Dotenv;
+use YAWAF\Core\Filter\Client\Bidirectional\Tracer as ClientTracer;
 use YAWAF\Core\Filter\Server\Bidirectional\ForceAcceptEncoding;
 use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
 use YAWAF\Core\Middleware\Tracer;
 use YAWAF\Core\Proxy\FixedUpstreamProxy;
+use YAWAF\Core\UpstreamClient\MiddlewareAware as MiddlewareAwareClient;
 use YAWAF\Core\ServerRequest\Psr7\Creator as ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
 
@@ -109,6 +111,18 @@ class ProxyPage
         $emitter = new SapiEmitter();
 
         try {
+
+            // in case these are set, they might interfere with the configuration of the Client that gets built
+            // NB: HTTP_PROXY uppercase should not be used by any clients, as it can be spoofed by an http header from clients...
+            unset($_SERVER['http_proxy'], $_SERVER['HTTP_PROXY'], $_SERVER['https_proxy'], $_SERVER['HTTPS_PROXY'], $_SERVER['no_proxy'], $_SERVER['NO_PROXY']);
+
+            if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
+                $logger->debug("Using '{$_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']}' client type to connect to upstream");
+                $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);
+            } else {
+                $httpClient = TestProxy::createUpstreamClient();
+            }
+
             $middlewareChain = new Dispatcher([]);
 
             if (array_key_exists('HTTP_X_YAWAF_TRACE_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_TRACE_FILE']) !== '') {
@@ -117,9 +131,9 @@ class ProxyPage
                     file_put_contents($traceFileName, '');
                 }
 
-                // Putting a Tracer in the chain after the firewall leads to misleading results, as the request it traces
-                // gets further modified by the Proxy...
+                // We put 2 tracers in the chain, one at the very start and one at the very end
                 $middlewareChain->appendMiddleware(new Tracer($traceFileName));
+                $httpClient = new MiddlewareAwareClient(new ClientTracer($traceFileName, '>> ', '<< '), $httpClient, $logger);
             }
 
             $firewallFactory = new FirewallFactory($logger);
@@ -141,7 +155,7 @@ class ProxyPage
             }
             $middlewareChain->appendMiddleware($firewall);
 
-            // this disables requesting for compressed responses
+            // this disables requesting for compressed responses - currently done to avoid issues with Body matchers
             /// @todo make this a toggle that can be flipped via a custom http header
             $middlewareChain->appendMiddleware(new ForceAcceptEncoding('identity'));
 
@@ -153,17 +167,6 @@ class ProxyPage
             }
 
             /// @todo... allow more options to be set, either to the httpClient or in the middlewareChain
-
-            // in case these are set, they might interfere with the configuration of the Client that gets built
-            // NB: HTTP_PROXY uppercase should not be used by any clients, as it can be spoofed by an http header from clients...
-            unset($_SERVER['http_proxy'], $_SERVER['HTTP_PROXY'], $_SERVER['https_proxy'], $_SERVER['HTTPS_PROXY'], $_SERVER['no_proxy'], $_SERVER['NO_PROXY']);
-
-            if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
-                $logger->debug("Using '{$_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']}' client type to connect to upstream");
-                $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);
-            } else {
-                $httpClient = null;
-            }
 
             $upstreamConnector = new FixedUpstreamProxy($upstreamUri, $httpClient, null, $logger);
             $proxy = new TestProxy($middlewareChain, $upstreamConnector, $logger);

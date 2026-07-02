@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use YAWAF\Core\Server\MiddlewareAware;
 use YAWAF\Core\UpstreamClient\GuzzleAdapter;
 use YAWAF\Core\UpstreamClient\SymfonyHttpClientAdapter;
+use YAWAF\Core\UpstreamClient\UpstreamClientFactory;
 use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
 class TestProxy extends MiddlewareAware
@@ -77,9 +78,11 @@ class TestProxy extends MiddlewareAware
     /**
      * @throws \Exception
      */
-    public static function createUpstreamClient(string $clientType, array $options = []): UpstreamClientInterface
+    public static function createUpstreamClient(string $clientType = '', array $options = []): UpstreamClientInterface
     {
         switch ($clientType) {
+            case '':
+                return (new UpstreamClientFactory())->createClient($options);
             case 'guzzle':
                 return new GuzzleAdapter($options);
             case 'sfhc_native':
