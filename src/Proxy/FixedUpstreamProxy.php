@@ -19,9 +19,11 @@ class FixedUpstreamProxy extends Proxy
     protected UriFactoryInterface $uriFactory;
 
     /**
+     * @todo fold the $logger, $uriFactory arg into the options?
+     * @todo what about unifying the arrays of options for $this and for the $httpClient?
      * @throws \Exception
      */
-    public function __construct(string $upstream, UpstreamClientInterface|array|null $httpClient = null,
+    public function __construct(string $upstream, array $options = [], UpstreamClientInterface|array|null $httpClient = null,
         UriFactoryInterface|null $uriFactory = null, LoggerInterface|null $logger = null)
     {
         // set first the logger
@@ -31,6 +33,10 @@ class FixedUpstreamProxy extends Proxy
         }
         $this->uriFactory = $uriFactory;
         $this->client = $this->setUpstream($upstream, $httpClient);
+        $this->overrideHeaders['User-Agent'] = 'YAWAF Proxy HttpClient' . (
+            ($cua = $this->client->getUserAgent()) !== '' ? ' (' . $cua . ')' : ''
+        );
+        $this->setOptions($options);
     }
 
     /**
@@ -115,9 +121,7 @@ class FixedUpstreamProxy extends Proxy
     {
         $client = $this->client;
 
-        $request = $this->withProxyHeaders($request, $client);
-
-/// @todo... add x-forwarded headers and co.
+        $request = $this->filterRequest($request);
 
         switch ($this->upstream['scheme']) {
             case 'http':
@@ -178,6 +182,7 @@ class FixedUpstreamProxy extends Proxy
         $response = $client->sendRequest($request);
         $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
             $response->getReasonPhrase());
-        return $response;
+
+        return $this->filterResponse($response, $request);
     }
 }

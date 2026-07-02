@@ -20,7 +20,6 @@ use YAWAF\Core\Middleware\Tracer;
 use YAWAF\Core\Proxy\FixedUpstreamProxy;
 use YAWAF\Core\ServerRequest\Psr7\Creator as ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
-use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
 $proxy = new ProxyPage();
 $logger = $proxy->preflight();
@@ -140,27 +139,29 @@ class ProxyPage
 
             // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_SCHEME', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']) !== '') {
-                $upstream = TestProxy::getUpstream($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']);
+                $upstreamUri = TestProxy::getUpstreamUri($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']);
             } else {
-                $upstream = TestProxy::getUpstream();
+                $upstreamUri = TestProxy::getUpstreamUri();
             }
+
+            /// @todo... allow more options to be set, either to the client or to the upstreamConnector
+
+            $upstreamConnectorOptions = [
+                FixedUpstreamProxy::OPT_FORCE_ACCEPT_ENCODING => 'identity', // this disables requesting for compressed responses
+            ];
 
             // in case these are set, they might interfere with the configuration of the Client that gets built
             // NB: HTTP_PROXY uppercase should not be used by any clients, as it can be spoofed by an http header from clients...
             unset($_SERVER['http_proxy'], $_SERVER['HTTP_PROXY'], $_SERVER['https_proxy'], $_SERVER['HTTPS_PROXY'], $_SERVER['no_proxy'], $_SERVER['NO_PROXY']);
 
-            /// @todo... allow more options to be set to the client
-            $upstreamClientOptions = [
-                UpstreamClientInterface::OPT_ACCEPT_ENCODING => 'identity', // this disables requesting for compressed responses
-            ];
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
                 $logger->debug("Using '{$_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']}' client type to connect to upstream");
-                $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE'], $upstreamClientOptions);
+                $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);
             } else {
-                $httpClient = $upstreamClientOptions;
+                $httpClient = null;
             }
 
-            $upstreamConnector = new FixedUpstreamProxy($upstream, $httpClient, null, $logger);
+            $upstreamConnector = new FixedUpstreamProxy($upstreamUri, $upstreamConnectorOptions, $httpClient, null, $logger);
             $proxy = new TestProxy($firewall, $upstreamConnector, $logger);
 
             $serverRequest = $this->fromGlobals();

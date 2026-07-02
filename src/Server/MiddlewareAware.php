@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Proxy;
+namespace YAWAF\Core\Server;
 
 use Nyholm\Psr7\Stream;
 use Psr\Http\Message\ResponseInterface;
@@ -17,10 +17,8 @@ use YAWAF\Core\Logger\PrivateLoggerTrait;
 /**
  * Allows adding middlewares to execute logic before forwarding the request / after having received the response,
  * such as e.g. a firewall middleware component.
- * Note: what makes this a proxy really is the fact that a proper Proxy is passed in as $upstreamConnector...
- * Should we change the typehint for $upstreamConnector to eg. a specific subclass of RequestHandlerInterface?
  */
-abstract class FilteringProxy implements RequestHandlerInterface, LoggerAwareInterface
+abstract class MiddlewareAware implements RequestHandlerInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
@@ -53,6 +51,7 @@ abstract class FilteringProxy implements RequestHandlerInterface, LoggerAwareInt
 
         // We should never send a body back to HEAD requests. Be lenient of upstreams and access denied errors
         // Hopefully this does not modify the content-type header...
+        /// @todo we should move this to a 'drop-body-for-head-responses' middleware (or maybe to the upstreamConnector)?
         if ($request->getMethod() === 'HEAD') {
             /// @todo we could log a warning if upstream sent a body, but that would force us to read it fully, so
             ///       we don't do that to save resources

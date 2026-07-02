@@ -6,12 +6,12 @@ namespace YAWAF\Core\Tests;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use YAWAF\Core\Proxy\FilteringProxy;
+use YAWAF\Core\Server\MiddlewareAware;
 use YAWAF\Core\UpstreamClient\GuzzleAdapter;
 use YAWAF\Core\UpstreamClient\SymfonyHttpClientAdapter;
 use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
-class TestProxy extends FilteringProxy
+class TestProxy extends MiddlewareAware
 {
     /// @todo instead of hardcoding these, we should get their value from the same env vars which are used to drive the
     ///       client-side of the tests
@@ -51,7 +51,7 @@ class TestProxy extends FilteringProxy
     /**
      * @throws \Exception
      */
-    public static function getUpstream(string $scheme = 'http'): string
+    public static function getUpstreamUri(string $scheme = 'http'): string
     {
         switch ($scheme) {
             case 'http':

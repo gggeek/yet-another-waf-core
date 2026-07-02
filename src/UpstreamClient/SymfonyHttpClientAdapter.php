@@ -15,7 +15,6 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
 {
     protected HttpClientInterface $httpClient;
     protected Psr18Client $psr18Client;
-    protected array $forcedHeaders = [];
 
     /**
      * @throws \Exception
@@ -53,11 +52,6 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
 
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
-        $request = $request->withHeader('User-Agent', $this->getUserAgent());
-        foreach ($this->forcedHeaders as $header => $value) {
-            $request = $request->withHeader($header, $value);
-        }
-
         return $this->psr18Client->sendRequest($request);
     }
 
@@ -85,9 +79,6 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         $mappedOptions = [];
         foreach ($options as $name => $value) {
             switch ($name) {
-                case UpstreamClientInterface::OPT_ACCEPT_ENCODING:
-                    $this->forcedHeaders['Accept-Encoding'] = $value;
-                    break;
                 case UpstreamClientInterface::OPT_BINDTO:
                     $mappedOptions['bindto'] = $value;
                     break;
@@ -118,8 +109,8 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         return $mappedOptions;
     }
 
-    protected function getUserAgent(): string
+    public function getUserAgent(): string
     {
-        return 'YAWAF Proxy HttpClient (Symfony/' . substr(strrchr(get_class($this->httpClient), '\\'), 1) . ')';
+        return 'Symfony/' . substr(strrchr(get_class($this->httpClient), '\\'), 1);
     }
 }

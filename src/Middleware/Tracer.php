@@ -3,10 +3,13 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Middleware;
 
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use YAWAF\Core\Tracer\RequestTracerTrait;
+use YAWAF\Core\Tracer\ResponseTracerTrait;
 
 /**
  * NB: despite the output format being basically the same as what you from CURL, and despite the name, there is
@@ -16,6 +19,9 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class Tracer implements MiddlewareInterface
 {
+    use RequestTracerTrait;
+    use ResponseTracerTrait;
+
     protected string $fileName;
     protected string $requestPrefix;
     protected string $responsePrefix;
@@ -33,33 +39,5 @@ class Tracer implements MiddlewareInterface
         $response = $handler->handle($request);
         file_put_contents($this->fileName, $this->serializeResponse($response) . "--\n", FILE_APPEND);
         return $response;
-    }
-
-    protected function serializeRequest(ServerRequestInterface $request): string
-    {
-        $out =  $this->requestPrefix . $request->getMethod() . ' ' . $request->getRequestTarget() . ' HTTP/' . $request->getProtocolVersion() . "\n";
-        foreach ($request->getHeaders() as $name => $values) {
-            $out .=  $this->requestPrefix . $name . ": " . implode(", ", $values) . "\n";
-        }
-        $out .=  $this->requestPrefix . "\n";
-        $body = (string)$request->getBody();
-        if ($body !== '') {
-            $out .= $body . "\n";
-        }
-        return $out;
-    }
-
-    protected function serializeResponse(ResponseInterface $response): string
-    {
-        $out =  $this->responsePrefix . 'HTTP/' . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' . $response->getReasonPhrase() . "\n";
-        foreach ($response->getHeaders() as $name => $values) {
-            $out .= $this->responsePrefix . $name . ": " . implode(", ", $values) . "\n";
-        }
-        $out .= $this->responsePrefix . "\n";
-        $body = (string)$response->getBody();
-        if ($body !== '') {
-            $out .= $body . "\n";
-        }
-        return $out;
     }
 }

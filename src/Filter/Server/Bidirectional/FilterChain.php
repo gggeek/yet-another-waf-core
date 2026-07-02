@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Filter\Bidirectional;
+namespace YAWAF\Core\Filter\Server\Bidirectional;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -10,7 +10,7 @@ class FilterChain implements BidirectionalFilterInterface
 {
     /** @var BidirectionalFilterInterface[] */
     protected array $filters = [];
-    /** @var ServerRequestInterface */
+    /** @var ServerRequestInterface[] */
     protected array $requestChain = [];
 
     public function __construct(array $filters)
@@ -39,14 +39,14 @@ class FilterChain implements BidirectionalFilterInterface
         return $request;
     }
 
-    public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface|false
+    public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface
     {
         for ($i = count($this->filters) - 1; $i >= 0; $i--) {
             $response = $this->filters[$i]->filterResponse($response, $this->requestChain[$i]);
-            if ($response === false) {
-                $this->requestChain = [];
-                return false;
-            }
+            //if ($response === false) {
+            //    $this->requestChain = [];
+            //    return false;
+            //}
         }
         $this->requestChain = [];
         return $response;

@@ -28,7 +28,7 @@ class Firewall implements MiddlewareInterface, LoggerAwareInterface
 
     /**
      * @param Rule[] $rules
-     * @throws \Exception
+     * @throws \InvalidArgumentException
      */
     public function __construct(array $rules, LoggerInterface|null $logger = null)
     {
