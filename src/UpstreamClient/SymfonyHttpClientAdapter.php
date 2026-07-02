@@ -15,6 +15,7 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
 {
     protected HttpClientInterface $httpClient;
     protected Psr18Client $psr18Client;
+    protected array $forcedHeaders = [];
 
     /**
      * @throws \Exception
@@ -52,6 +53,11 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
 
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
+        $request = $request->withHeader('User-Agent', $this->getUserAgent());
+        foreach ($this->forcedHeaders as $header => $value) {
+            $request = $request->withHeader($header, $value);
+        }
+
         return $this->psr18Client->sendRequest($request);
     }
 
@@ -79,6 +85,9 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         $mappedOptions = [];
         foreach ($options as $name => $value) {
             switch ($name) {
+                case UpstreamClientInterface::OPT_ACCEPT_ENCODING:
+                    $this->forcedHeaders['Accept-Encoding'] = $value;
+                    break;
                 case UpstreamClientInterface::OPT_BINDTO:
                     $mappedOptions['bindto'] = $value;
                     break;
@@ -90,6 +99,7 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
                     $mappedOptions['resolve'] = $value;
                     break;
                 case UpstreamClientInterface::OPT_CONNECT_TIMEOUT:
+/// @todo... this is only used in 8.1.0 and up. throw if sfhc version is lower
                     $mappedOptions['max_connect_duration'] = $value;
                     break;
                 case UpstreamClientInterface::OPT_TIMEOUT:
@@ -108,8 +118,8 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         return $mappedOptions;
     }
 
-    public function getUserAgent(): string
+    protected function getUserAgent(): string
     {
-        return 'Symfony/' . substr(strrchr(get_class($this->httpClient), '\\'), 1);
+        return 'YAWAF Proxy HttpClient (Symfony/' . substr(strrchr(get_class($this->httpClient), '\\'), 1) . ')';
     }
 }

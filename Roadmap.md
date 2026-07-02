@@ -33,6 +33,9 @@
     see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
   - add support for setting timeouts (connect, read? and total)
     - also, other options? see the ones present both in Symfony\Contracts\HttpClient\HttpClientInterface and GuzzleHttp\requestOptions
+  - also, if a matcher of filter touching the resp. body has been set, and the original request has an accept-encoding
+    header, we should transform its value into one that we can decode (eg. what about br, zstd?), and feed back to the
+    caller either a non-compressed response or a re-compresssed one
   - tls & https support
   - take a look at supporting somehow https://github.com/php-http/client-common/blob/2.x/src/Plugin.php, so that
     we can allow users to profit from the existing plugins and/or vice-versa make our Firewall available as plugin...

@@ -7,6 +7,9 @@ use Psr\Http\Client\ClientInterface;
 
 interface UpstreamClientInterface extends ClientInterface
 {
+    // Used to force the client to enable/disable accepting encoded (compressed) responses.
+    // List of valid values: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept-Encoding
+    const OPT_ACCEPT_ENCODING = 'accept_encoding';
     // Used to send requests to a unix socket
     const OPT_BINDTO = 'bindto';
     // Used to force dns resolution of a host to an IP. Array of hostname => IP mappings
@@ -23,5 +26,5 @@ interface UpstreamClientInterface extends ClientInterface
      */
     public function withOptions(array $options): UpstreamClientInterface;
 
-    public function getUserAgent(): string;
+//    public function getUserAgent(): string;
 }

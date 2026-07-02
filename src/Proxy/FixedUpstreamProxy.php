@@ -31,7 +31,6 @@ class FixedUpstreamProxy extends Proxy
         }
         $this->uriFactory = $uriFactory;
         $this->client = $this->setUpstream($upstream, $httpClient);
-        $this->clientUserAgent = $this->client->getUserAgent();
     }
 
     /**
@@ -69,8 +68,8 @@ class FixedUpstreamProxy extends Proxy
                 if (!isset($this->upstream['port'])) {
                     throw new ConfigurationError('Upstream not supported. Missing port');
                 }
-                if (!$httpClient) {
-                    $httpClient = (new UpstreamClientFactory())->createClient();
+                if ($httpClient === null || is_array($httpClient)) {
+                    $httpClient = (new UpstreamClientFactory())->createClient((array)$httpClient);
                 }
                 $this->info("Proxying tcp upstream '$upstream'");
                 break;
@@ -84,8 +83,8 @@ class FixedUpstreamProxy extends Proxy
                 if (str_contains($this->upstream['path'], ':')) {
                     throw new ConfigurationError('Upstream not supported: can not have port for unix sockets');
                 }
-                if (!$httpClient) {
-                    $httpClient = (new UpstreamClientFactory())->createClient([UpstreamClientInterface::OPT_BINDTO => $this->upstream['path']]);
+                if ($httpClient === null || is_array($httpClient)) {
+                    $httpClient = (new UpstreamClientFactory())->createClient([UpstreamClientInterface::OPT_BINDTO => $this->upstream['path']] + (array)$httpClient);
                 } else {
                     $httpClient = $httpClient->withOptions([UpstreamClientInterface::OPT_BINDTO => $this->upstream['path']]);
                 }

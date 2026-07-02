@@ -27,6 +27,10 @@
         "guzzlehttp/guzzle": "^7.12.1",
         "yoast/phpunit-polyfills": "^4.0"
     },
+    "conflict": {
+        "symfony/http-client": "<7.0",
+        "guzzlehttp/guzzle": "<7.8"
+    },
     "suggest": {
         "ext-curl": "Required (atm at least) for connecting to unix-socket based upstreams",
         "symfony/http-client": "Either this or guzzlehttp/guzzle are required",

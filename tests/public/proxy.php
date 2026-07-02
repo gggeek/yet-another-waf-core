@@ -20,6 +20,7 @@ use YAWAF\Core\Middleware\Tracer;
 use YAWAF\Core\Proxy\FixedUpstreamProxy;
 use YAWAF\Core\ServerRequest\Psr7\Creator as ServerRequestCreator;
 use YAWAF\Core\Tests\TestProxy;
+use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
 $proxy = new ProxyPage();
 $logger = $proxy->preflight();
@@ -131,7 +132,10 @@ class ProxyPage
                 if (file_exists($traceFileName)) {
                     file_put_contents($traceFileName, '');
                 }
-                $firewall = new Dispatcher([new Tracer($traceFileName), $firewall, new Tracer($traceFileName, '>> ', '<< ')]);
+
+                // Putting a Tracer in the chain after the firewall leads to misleading results, as the request it traces
+                // gets further modified by the Proxy...
+                $firewall = new Dispatcher([new Tracer($traceFileName), $firewall /*, new Tracer($traceFileName, '>> ', '<< ')*/]);
             }
 
             // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
@@ -146,11 +150,14 @@ class ProxyPage
             unset($_SERVER['http_proxy'], $_SERVER['HTTP_PROXY'], $_SERVER['https_proxy'], $_SERVER['HTTPS_PROXY'], $_SERVER['no_proxy'], $_SERVER['NO_PROXY']);
 
             /// @todo... allow more options to be set to the client
+            $upstreamClientOptions = [
+                UpstreamClientInterface::OPT_ACCEPT_ENCODING => 'identity', // this disables requesting for compressed responses
+            ];
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
                 $logger->debug("Using '{$_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']}' client type to connect to upstream");
-                $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);
+                $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE'], $upstreamClientOptions);
             } else {
-                $httpClient = [];
+                $httpClient = $upstreamClientOptions;
             }
 
             $upstreamConnector = new FixedUpstreamProxy($upstream, $httpClient, null, $logger);

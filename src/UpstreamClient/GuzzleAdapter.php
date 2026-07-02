@@ -12,6 +12,7 @@ use Psr\Http\Message\ResponseInterface;
 class GuzzleAdapter implements UpstreamClientInterface
 {
     protected ClientInterface $guzzleClient;
+    protected array $forcedHeaders = [];
 
     /**
      * @throws \Exception
@@ -29,6 +30,11 @@ class GuzzleAdapter implements UpstreamClientInterface
 
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
+        $request = $request->withHeader('User-Agent', $this->getUserAgent());
+        foreach ($this->forcedHeaders as $header => $value) {
+            $request = $request->withHeader($header, $value);
+        }
+
         return $this->guzzleClient->sendRequest($request);
     }
 
@@ -47,6 +53,9 @@ class GuzzleAdapter implements UpstreamClientInterface
         $mappedOptions = [];
         foreach ($options as $name => $value) {
             switch ($name) {
+                case UpstreamClientInterface::OPT_ACCEPT_ENCODING:
+                    $this->forcedHeaders['Accept-Encoding'] = $value;
+                    break;
                 case UpstreamClientInterface::OPT_BINDTO:
                     if (!defined('CURLOPT_UNIX_SOCKET_PATH')) {
                         throw new \Exception("Client option: '$name' requires availability of the Curl php extension");
@@ -72,8 +81,8 @@ class GuzzleAdapter implements UpstreamClientInterface
         return $mappedOptions;
     }
 
-    public function getUserAgent(): string
+    protected function getUserAgent(): string
     {
-        return 'GuzzleHttp/Client';
+        return 'YAWAF Proxy HttpClient (GuzzleHttp/Client)';
     }
 }
