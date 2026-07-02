@@ -9,7 +9,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * Used to force  to enable/disable accepting encoded (compressed) responses.
  * List of valid values: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept-Encoding
  */
-class ForceAcceptEncoding extends HeaderAdder
+class ForceAcceptEncoding extends RequestHeaderAdder
 {
     public function __construct(string $acceptEncoding)
     {
