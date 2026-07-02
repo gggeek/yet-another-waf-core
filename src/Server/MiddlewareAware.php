@@ -52,11 +52,12 @@ abstract class MiddlewareAware implements RequestHandlerInterface, LoggerAwareIn
         // We should never send a body back to HEAD requests. Be lenient of upstreams and access denied errors
         // Hopefully this does not modify the content-type header...
 /// @todo... we should move this to a 'drop-body-for-head-responses' middleware / fw rule
+        /*
         if ($request->getMethod() === 'HEAD') {
             /// @todo we could log a warning if upstream sent a body, but that would force us to read it fully, so
             ///       we don't do that to save resources
             $response = $response->withBody(Stream::create());
-        }
+        }*/
 
         return $response;
     }

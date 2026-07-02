@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Tests;
 
+use GuzzleHttp\Handler\StreamHandler;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -82,13 +83,38 @@ class TestProxy extends MiddlewareAware
     {
         switch ($clientType) {
             case '':
-                return (new UpstreamClientFactory())->createClient($options);
+                return (new UpstreamClientFactory())->createClient([
+                    UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                ] + $options);
             case 'guzzle':
-                return new GuzzleAdapter($options);
+            case 'guzzle_curl':
+                return new GuzzleAdapter([
+                    /// @todo if the curl version is too old, guzzle will switch to using the stream handler.Uncomment this
+                    ///       after having checked the default options used in creating the guzzle curl handler
+                    //UpstreamClientInterface::OPT_TRANSPORT => 'curl',
+                    UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                ] + $options);
+            case 'guzzle_stream':
+                /// @todo explore passing in other values for
+                return new GuzzleAdapter([
+                    UpstreamClientInterface::OPT_TRANSPORT => 'native',
+                    UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                ] + $options);
             case 'sfhc_native':
-                return new SymfonyHttpClientAdapter([UpstreamClientInterface::OPT_TRANSPORT => 'native'] + $options);
+                return new SymfonyHttpClientAdapter([
+                    UpstreamClientInterface::OPT_TRANSPORT => 'native',
+                    UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                ] + $options);
             case 'sfhc_curl':
-                return new SymfonyHttpClientAdapter([UpstreamClientInterface::OPT_TRANSPORT => 'curl'] + $options);
+                return new SymfonyHttpClientAdapter([
+                    UpstreamClientInterface::OPT_TRANSPORT => 'curl',
+                    UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                ] + $options);
             default:
                 throw new \InvalidArgumentException("Unsupported upstream client type: '$clientType'");
         }

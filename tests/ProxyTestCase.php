@@ -104,7 +104,7 @@ abstract class ProxyTestCase extends ServerTestCase
      */
     protected static function getSupportedProxyClientTypes(): array
     {
-        return ['sfhc_native', 'sfhc_curl', 'guzzle'];
+        return ['sfhc_native', 'sfhc_curl', 'guzzle', 'guzzle_stream'];
     }
 
     protected function getTestDetails(ResponseInterface $response): string

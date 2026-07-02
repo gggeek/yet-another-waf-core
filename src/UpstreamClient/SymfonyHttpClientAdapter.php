@@ -42,9 +42,11 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
             }
         } else {
             /// @todo... we should validate the existing client options and add our own on top
-            //$this->httpClient = $httpClient;
-            //$this->withOptions($options);
-            throw new \Exception("Starting out with an existing Client is not implemented yet by the Symfony HttpClient Adapter, sorry");
+            $mappedOptions = $this->mapOptions($options);
+            if ($mappedOptions) {
+                throw new \Exception("Starting out with an existing Client is not implemented yet by the Symfony HttpClient Adapter, sorry");
+            }
+            $this->httpClient = $httpClient;
         }
 
         $this->psr18Client = new Psr18Client($this->httpClient);
@@ -97,10 +99,12 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
                     $mappedOptions['max_duration'] = $value;
                     break;
                 case UpstreamClientInterface::OPT_TRANSPORT:
-                    if (!in_array($value, ['curl', 'native'])) {
+                    if (!in_array($value, ['curl', 'native', 'default'])) {
                         throw new \Exception("Client option: '$name' has invalid value '$value'");
                     }
-                    $mappedOptions[UpstreamClientInterface::OPT_TRANSPORT] = $value;
+                    if ($value !== 'default') {
+                        $mappedOptions[UpstreamClientInterface::OPT_TRANSPORT] = $value;
+                    }
                     break;
                 default:
                     throw new \Exception("Unsupported client option: '$name'");

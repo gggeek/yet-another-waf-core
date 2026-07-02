@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace YAWAF\Core\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
 /// @todo declare dependency on SmokeTest
 class CA_MatchingTest extends ProxyTestCase
@@ -256,7 +257,7 @@ class CA_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('passingHeadRulesDataProvider')]
-    public function NotYetTestPassingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+    public function NotReadyYetTestPassingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         // skip test cases which are bound to fail with given configs
@@ -278,7 +279,12 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+        try {
+            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+        } catch (TransportExceptionInterface $e) {
+            $this->assertEquals(200, 0, $e->getMessage());
+        }
+
         /// @todo... check that resp. body is empty
     }
 
@@ -288,7 +294,7 @@ class CA_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('failingHeadRulesDataProvider')]
-    public function NotYetTestFailingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+    public function NotReadyYetTestFailingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         $response = $this->request(
@@ -299,7 +305,11 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+        try {
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+        } catch (TransportExceptionInterface $e) {
+            $this->assertEquals(200, 0, $e->getMessage());
+        }
         /// @todo... check that resp. body is empty
     }
 
@@ -328,7 +338,7 @@ class CA_MatchingTest extends ProxyTestCase
         $out = [];
         foreach (self::getSupportedServerSchemes() as $serverScheme) {
             foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
-                if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'sfhc_native')) {
+                if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'guzzle_stream' || $upstreamClientType === 'sfhc_native')) {
                     continue;
                 }
                 foreach (self::getSupportedProxySchemes() as $proxyScheme) {

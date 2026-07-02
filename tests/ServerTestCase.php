@@ -8,6 +8,7 @@ use SebastianBergmann\CodeCoverage\Data\RawCodeCoverageData;
 use Symfony\Component\HttpClient\CurlHttpClient;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\NativeHttpClient;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 use YAWAF\Core\Tests\PhpunitSelenium\RemoteCoverageCollector;
@@ -147,7 +148,7 @@ abstract class ServerTestCase extends TestCase
         // avoid tests lasting too long in case of things going south - the test server is supposed to respond quickly in any case
         $clientOptions = $clientOptions + [
             'max_connect_duration' => 1.0, // seconds
-            'max_duration' => 3.0, // seconds
+            'max_duration' => 4.0, // seconds: one more than the timeout of the proxy talking to upstream
         ];
 
         switch (@$testOptions['client_type']) {
@@ -243,12 +244,18 @@ abstract class ServerTestCase extends TestCase
     protected function response2Log(ResponseInterface $response): string
     {
         /// @todo can we improve the fidelity of the response dump?
-        $out = 'HTTP/x.y ' . $response->getStatusCode() . " ...\n";
-        foreach ($response->getHeaders(false) as $name => $values) {
-            $out .= ucwords($name, " \t\r\n\f\v-") . ': ' . implode(',', $values) . "\n";
+        try {
+            $out = 'HTTP/x.y ' . $response->getStatusCode() . " ...\n";
+            foreach ($response->getHeaders(false) as $name => $values) {
+                $out .= ucwords($name, " \t\r\n\f\v-") . ': ' . implode(',', $values) . "\n";
+            }
+            $out .= "\n" . $response->getContent(false);
+            return $out;
+        // This is what the Sf http client throws in cases of time-out talking to the server/proxy when trying to access
+        // the status code
+        } catch (TransportExceptionInterface $e) {
+            return $e->getMessage();
         }
-        $out .= "\n" . $response->getContent(false);
-        return $out;
     }
 
     protected static function shouldCollectCodeCoverageInformation(): bool

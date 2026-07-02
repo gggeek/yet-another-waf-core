@@ -80,7 +80,9 @@ class TestServer
 
         header('Content-type: application/json');
         if (@$_SERVER['REQUEST_METHOD'] === 'HEAD') {
-            header("Content-Length: " . strlen($response));
+            // @todo temporarily disabled, as sending back a Content-Length but no Body gives the fits to Guzzle,
+            //       but also to webservers... (note that this is allowed as per rfc9110)
+            //header("Content-Length: " . strlen($response));
         } else {
             echo $response;
         }
