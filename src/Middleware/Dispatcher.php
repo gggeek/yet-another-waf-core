@@ -22,11 +22,16 @@ class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
     public function __construct(array $middlewares)
     {
         foreach ($middlewares as $filter) {
-            $this->addMiddleware($filter);
+            $this->appendMiddleware($filter);
         }
     }
 
-    public function addMiddleware(MiddlewareInterface $filter)
+    public function prependMiddleware(MiddlewareInterface $filter)
+    {
+        array_unshift($this->middlewares, $filter);
+    }
+
+    public function appendMiddleware(MiddlewareInterface $filter)
     {
         $this->middlewares[] = $filter;
     }

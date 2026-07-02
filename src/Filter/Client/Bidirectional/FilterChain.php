@@ -43,10 +43,6 @@ class FilterChain implements BidirectionalFilterInterface
     {
         for ($i = count($this->filters) - 1; $i >= 0; $i--) {
             $response = $this->filters[$i]->filterResponse($response, $this->requestChain[$i]);
-            //if ($response === false) {
-            //    $this->requestChain = [];
-            //    return false;
-            //}
         }
         $this->requestChain = [];
         return $response;

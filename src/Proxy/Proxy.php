@@ -16,10 +16,6 @@ use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
 class Proxy implements RequestHandlerInterface, LoggerAwareInterface
 {
-    // Used to force the client to enable/disable accepting encoded (compressed) responses.
-    // List of valid values: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept-Encoding
-    const OPT_FORCE_ACCEPT_ENCODING = 'force_accept_encoding';
-
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
@@ -30,9 +26,10 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     /**
      * @todo fold the $logger arg into the options?
      * @todo what about unifying the arrays of options for $this and for the $httpClient?
+     * @todo
      * @throws \Exception
      */
-    public function __construct(array $options = [], UpstreamClientInterface|array|null $httpClient = null, LoggerInterface|null $logger = null)
+    public function __construct(UpstreamClientInterface|array|null $httpClient = null, LoggerInterface|null $logger = null)
     {
         // set first the logger
         $this->logger = $logger;
@@ -43,7 +40,6 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
         $this->overrideHeaders['User-Agent'] = 'YAWAF Proxy HttpClient' . (
             ($cua = $this->$this->client->getUserAgent()) !== '' ? ' (' . $cua . ')' : ''
         );
-        $this->setOptions($options);
     }
 
     /**
@@ -65,26 +61,11 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
         return $this->filterResponse($response, $request);
     }
 
-    /**
-     * @throws \Exception
-     */
-    protected function setOptions(array $options): void
-    {
-        foreach ($options as $name => $value) {
-            switch ($name) {
-                case self::OPT_FORCE_ACCEPT_ENCODING:
-                    $this->overrideHeaders['Accept-Encoding'] = $value;
-                    break;
-                default:
-                    throw new \Exception("unsupported option: '$name'");
-            }
-        }
-    }
-
     protected function filterRequest(ServerRequestInterface $request): ServerRequestInterface
     {
-/// @todo... add x-forwarded headers and co., strip/massage hop-by-hop headers (use a dedicated function)
+/// @todo... add x-forwarded headers and co., strip/massage hop-by-hop headers
 
+        $this->overriddenHeaders = [];
         foreach ($this->overrideHeaders as $name => $value) {
             if ($request->hasHeader($name)) {
                 $this->overriddenHeaders[$name] = $request->getHeader($name);
@@ -97,11 +78,6 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
 
     protected function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface
     {
-        if (array_key_exists('Accept-Encoding', $this->overriddenHeaders) && $response->hasHeader('Content-Encoding')) {
-/// @todo... recode the response body using a compression which was part of the accepted ones
-///          NB: the content could have been multiple-encoded, such as `deflate, gzip`
-        }
-
         return $response;
     }
 }

@@ -2,7 +2,6 @@
   - matching requests/responses
     - req. body: regexp
     - req. body: jsonpath-like matching
-    - document the supported matchers
     - support other wildcards besides the `*`?
       - glob has: ? for one char, [...] for char ranges, [!...] for negated char ranges
       - sql LIKE has `%` and `_`
@@ -15,7 +14,6 @@
       - eg. ssl on
   - implement filtering support
       - check: can we make filters add "tags" to requests/responses, to ease later processing? See psr 'attributes'
-  - create flow diagrams with req/resp matching and filtering
   - allow 'restart' as action for (Request) rules
     - allow setting a maxRestarts limit
     - q: should we remove from the current rule chain a rule, after it did trigger a restart? (possibly use 2 `restart` types?)
@@ -26,32 +24,40 @@
     - clean up the `*MatcherInterface` mess: drop MatcherInterface; move Logic/* matchers to MessageInterface?
     - check: could we use the firewall filters to implement something like https://github.com/terrylinooo/shieldon instead
       of a waf to remote apps, or would it need some api changes?
+    - do we need to keep *Filter as an alternative to Middleware?
 
 - Proxy
-  - finish support for `tcp://` upstreams
   - add by default (or via a filter?) the http headers telling upstream about real-ip and x-forwarded-protocol, patch hop-by-hop headers
     see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
-  - add support for setting timeouts (connect, read? and total)
+  - finish support for setting timeouts (connect, read? and total)
     - also, other options? see the ones present both in Symfony\Contracts\HttpClient\HttpClientInterface and GuzzleHttp\requestOptions
-  - also, if a matcher of filter touching the resp. body has been set, and the original request has an accept-encoding
-    header, we should transform its value into one that we can decode (eg. what about br, zstd?), and feed back to the
-    caller either a non-compressed response or a re-compresssed one
+  - if a matcher of filter touching the resp. body has been set, and the received response has a content-encoding
+    header, we should make sure the filter works on the decompressed version
+  - the same is true for requests that come in with a content-encoding header
+  - if a forced accept-encoding is set, and the original request had one, we should transcode the response to a format
+    supported by the original caller (this might require moving the handling of forced accept-encoding to a middleware,
+    as it makes no sense to re-encode the body before the firewall can examine it...)
+  - finish support for `tcp://` upstreams
   - tls & https support
-  - take a look at supporting somehow https://github.com/php-http/client-common/blob/2.x/src/Plugin.php, so that
-    we can allow users to profit from the existing plugins and/or vice-versa make our Firewall available as plugin...
-    -> the firewall rules work off a ServerRequestInterface, not a RequestInterface. Some of those matchers _do_ need
-       access to the extra info the former has over the latter, so we can not just replace our interfaces.
-    _But_
-    - we could adopt the PluginClient style of chaining plugins, if that makes it easier to implement async clients
-    - could we implement adapters that wrap existing plugins and run them as either middlewares or filters?
-      (either that or allow usage of PluginClient in a byoc scenario)
-    - could we implement adapters that wrap the firewall into a plugin?
+  - figure out if we can make it easy to allow using the existing "client middlewares" from other libraries, to allow
+    adding behaviour such as caching, throttling, etc...
+    - when using the Sf HTTP Client: this is possible via creating an Sf HTTP Client that "wraps" the base one
+    - when using Guzzle: this is possible by passing a 'handler' option to the Client creator, and adding
+      middleware handlers to it (see https://docs.guzzlephp.org/en/stable/handlers-and-middleware.html)
+    - HTTPlug: middlewares are called 'plugins', implementing https://github.com/php-http/client-common/blob/2.x/src/Plugin.php
+    -> could we wrap Guzzle handlers and HTTPlug plugins in a way to make them satisfy the *Filter interfaces?
+    -> could we implement adapters that do the opposite, with our filters?
+    -> how does our code fare in the context of async clients?
   - make it easy to implement a reverse proxy too + add tests + give examples on how to do that
-  - add http client adapters for php-http/curl-client and other "well known" psr-18 http clients (there are eg. a plethora
-    of them in httplug's client-common package. Including the PluginClient, which allows to add further processing to
-    the request before it hits upstream)
+  - add http client adapters for php-http/curl-client (see https://docs.php-http.org/en/latest/clients/curl-client.html)
+    and other "well known" psr-18 http clients (there are eg. a plethora of them in httplug's client-common package,
+    including the PluginClient, which allows to add further processing to the request before it hits upstream, but that
+    one does not allow access to its wrapped client in any way, so we can not push down options to it...)
 
 - Docs
+  - create diagram for proxy / middlewares / handlers
+  - create flow diagram with firewall rules req/resp matching and filtering
+  - document all the supported matchers
   - add config examples for common use-cases, eg. 'all readonly', 'redact secrets', 'inject headers', 'fix Host', etc...
     see fe. all cases listed at https://codingchallenges.fyi/challenges/challenge-forward-proxy/
 
@@ -73,4 +79,4 @@
 
 - Misc
   - introduce more structured exceptions
-  - allow fine-tuning resource usage: timeouts, maxconn, etc... (here on in downstream projects?)
+  - allow fine-tuning resource usage: maxconn, etc... (here on in downstream projects?)

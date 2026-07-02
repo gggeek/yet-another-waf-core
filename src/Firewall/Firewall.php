@@ -50,7 +50,7 @@ class Firewall implements MiddlewareInterface, LoggerAwareInterface
     {
         $request = $this->filterRequest($request);
         $response = $handler->handle($request);
-/// @todo should we clone the original request and pass that one to filterResponse() ?
+/// @todo should we send the original request to filterResponse() ??? (possibly cloned, have to check immutability...)
         $response = $this->filterResponse($response, $request);
         return $response;
     }

@@ -13,6 +13,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Symfony\Component\Dotenv\Dotenv;
+use YAWAF\Core\Filter\Server\Bidirectional\ForceAcceptEncoding;
 use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
@@ -108,6 +109,19 @@ class ProxyPage
         $emitter = new SapiEmitter();
 
         try {
+            $middlewareChain = new Dispatcher([]);
+
+            if (array_key_exists('HTTP_X_YAWAF_TRACE_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_TRACE_FILE']) !== '') {
+                $traceFileName = sys_get_temp_dir() . '/' . basename($_SERVER['HTTP_X_YAWAF_TRACE_FILE']);
+                if (file_exists($traceFileName)) {
+                    file_put_contents($traceFileName, '');
+                }
+
+                // Putting a Tracer in the chain after the firewall leads to misleading results, as the request it traces
+                // gets further modified by the Proxy...
+                $middlewareChain->appendMiddleware(new Tracer($traceFileName));
+            }
+
             $firewallFactory = new FirewallFactory($logger);
             $config = array_key_exists('HTTP_X_YAWAF_CONFIG', $_SERVER) ? trim($_SERVER['HTTP_X_YAWAF_CONFIG']) : '';
             $configFile = array_key_exists('HTTP_X_YAWAF_CONFIG_FILE', $_SERVER) ? trim($_SERVER['HTTP_X_YAWAF_CONFIG_FILE']) : '';
@@ -125,17 +139,11 @@ class ProxyPage
                 }
                 $firewall = $firewallFactory->fromConfigString($config);
             }
+            $middlewareChain->appendMiddleware($firewall);
 
-            if (array_key_exists('HTTP_X_YAWAF_TRACE_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_TRACE_FILE']) !== '') {
-                $traceFileName = sys_get_temp_dir() . '/' . basename($_SERVER['HTTP_X_YAWAF_TRACE_FILE']);
-                if (file_exists($traceFileName)) {
-                    file_put_contents($traceFileName, '');
-                }
-
-                // Putting a Tracer in the chain after the firewall leads to misleading results, as the request it traces
-                // gets further modified by the Proxy...
-                $firewall = new Dispatcher([new Tracer($traceFileName), $firewall /*, new Tracer($traceFileName, '>> ', '<< ')*/]);
-            }
+            // this disables requesting for compressed responses
+            /// @todo make this a toggle that can be flipped via a custom http header
+            $middlewareChain->appendMiddleware(new ForceAcceptEncoding('identity'));
 
             // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_SCHEME', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']) !== '') {
@@ -144,11 +152,7 @@ class ProxyPage
                 $upstreamUri = TestProxy::getUpstreamUri();
             }
 
-            /// @todo... allow more options to be set, either to the client or to the upstreamConnector
-
-            $upstreamConnectorOptions = [
-                FixedUpstreamProxy::OPT_FORCE_ACCEPT_ENCODING => 'identity', // this disables requesting for compressed responses
-            ];
+            /// @todo... allow more options to be set, either to the httpClient or in the middlewareChain
 
             // in case these are set, they might interfere with the configuration of the Client that gets built
             // NB: HTTP_PROXY uppercase should not be used by any clients, as it can be spoofed by an http header from clients...
@@ -161,8 +165,8 @@ class ProxyPage
                 $httpClient = null;
             }
 
-            $upstreamConnector = new FixedUpstreamProxy($upstreamUri, $upstreamConnectorOptions, $httpClient, null, $logger);
-            $proxy = new TestProxy($firewall, $upstreamConnector, $logger);
+            $upstreamConnector = new FixedUpstreamProxy($upstreamUri, $httpClient, null, $logger);
+            $proxy = new TestProxy($middlewareChain, $upstreamConnector, $logger);
 
             $serverRequest = $this->fromGlobals();
             $response = $proxy->handle($serverRequest);

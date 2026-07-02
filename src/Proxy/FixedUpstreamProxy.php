@@ -19,11 +19,10 @@ class FixedUpstreamProxy extends Proxy
     protected UriFactoryInterface $uriFactory;
 
     /**
-     * @todo fold the $logger, $uriFactory arg into the options?
      * @todo what about unifying the arrays of options for $this and for the $httpClient?
      * @throws \Exception
      */
-    public function __construct(string $upstream, array $options = [], UpstreamClientInterface|array|null $httpClient = null,
+    public function __construct(string $upstream, UpstreamClientInterface|array|null $httpClient = null,
         UriFactoryInterface|null $uriFactory = null, LoggerInterface|null $logger = null)
     {
         // set first the logger
@@ -36,7 +35,6 @@ class FixedUpstreamProxy extends Proxy
         $this->overrideHeaders['User-Agent'] = 'YAWAF Proxy HttpClient' . (
             ($cua = $this->client->getUserAgent()) !== '' ? ' (' . $cua . ')' : ''
         );
-        $this->setOptions($options);
     }
 
     /**
