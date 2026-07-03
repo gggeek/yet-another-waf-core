@@ -10,12 +10,18 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
+use YAWAF\Core\Exception\RequestDenied;
+use YAWAF\Core\Exception\UpstreamRequestError;
+use YAWAF\Core\Exception\UpstreamRequestTimeout;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\UpstreamClient\UpstreamClientFactory;
 use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
 class Proxy implements RequestHandlerInterface, LoggerAwareInterface
 {
+    const UPSTREAM_ERROR_STATUS_CODE = 502;
+    const UPSTREAM_TIMEOUT_STATUS_CODE = 504;
+
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
@@ -43,9 +49,9 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     }
 
     /**
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     * @throws ClientExceptionInterface
+     * @throws RequestDenied when using a middleware-aware client, this could be thrown
+     * @throws UpstreamRequestError
+     * @throws UpstreamRequestTimeout
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -54,11 +60,39 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
 /// @todo... we should follow the rules set out in https://httpwg.org/specs/rfc9112.html#rfc.section.3.2.2: use the
 ///          host/port from the absolute form of the uri to replace the value from Host header
 
-        $response = $this->client->sendRequest($request);
+        $response = $this->sendRequest($this->client, $request);
+
+        return $this->filterResponse($response, $request);
+    }
+
+    /**
+     * Aka. "handleInner"
+     * @throws RequestDenied when using a middleware-aware client, this could be thrown
+     * @throws UpstreamRequestError
+     * @throws UpstreamRequestTimeout
+     */
+    protected function sendRequest(UpstreamClientInterface $client, ServerRequestInterface $request): ResponseInterface
+    {
+        try {
+            $response = $client->sendRequest($request);
+        } catch (RequestDenied $e) {
+            $this->debug("Request denied before sending to upstream: " . $e->getMessage());
+            throw $e;
+        } catch (UpstreamRequestTimeout $e) {
+            $this->debug("Timeout sending request to upstream: " . $e->getMessage());
+            throw $e;
+        } catch (UpstreamRequestError $e) {
+            $this->debug("Error sending request to upstream: " . $e->getMessage());
+            throw $e;
+        } catch (\Throwable $e) {
+            $this->debug("Unexpected error sending request to upstream (" . get_class($e) . "): " . $e->getMessage());
+            throw new UpstreamRequestError($e->getMessage(), $e->getCode(), $e);
+        }
+
         $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
             $response->getReasonPhrase());
 
-        return $this->filterResponse($response, $request);
+        return $response;
     }
 
     protected function filterRequest(ServerRequestInterface $request): ServerRequestInterface

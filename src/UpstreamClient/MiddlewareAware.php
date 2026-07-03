@@ -25,6 +25,14 @@ class MiddlewareAware implements UpstreamClientInterface, LoggerAwareInterface
         $this->logger = $logger;
     }
 
+    /**
+     * @throws \Psr\Http\Client\ClientExceptionInterface possibly thrown by other adapters than the Guzzle, Symfony ones
+     * @throws \YAWAF\Core\Exception\RequestDenied
+     * @throws \YAWAF\Core\Exception\UpstreamRequestError
+     * @throws \YAWAF\Core\Exception\UpstreamRequestTimeout
+     *
+* @todo... we should probably wrap ClientExceptionInterface (and basically every other error but for UpstreamRequestError, UpstreamRequestTimeout) into an UpstreamRequestError?
+     */
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
         $request = $this->filter->filterClientRequest($request);

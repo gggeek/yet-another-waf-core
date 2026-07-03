@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\UpstreamClient;
 
+use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\HttpClient\CurlHttpClient;
@@ -10,11 +11,14 @@ use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\NativeHttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use YAWAF\Core\Exception\UpstreamRequestError;
+use YAWAF\Core\Exception\UpstreamRequestTimeout;
 
 class SymfonyHttpClientAdapter implements UpstreamClientInterface
 {
     protected HttpClientInterface $httpClient;
     protected Psr18Client $psr18Client;
+    protected int|float $maxExecutionTime = 0; // in seconds
 
     /**
      * @throws \Exception
@@ -52,9 +56,37 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         $this->psr18Client = new Psr18Client($this->httpClient);
     }
 
+    /**
+     * @throws UpstreamRequestError
+     * @throws UpstreamRequestTimeout
+     */
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
-        return $this->psr18Client->sendRequest($request);
+        try {
+            if ($this->maxExecutionTime > 0) {
+                $start = microtime(true);
+            } else {
+                $start = 0;
+            }
+            return $this->psr18Client->sendRequest($request);
+        } catch (NetworkExceptionInterface $e) {
+            /// @todo can we tighten to catching Psr18NetworkException / NetworkExceptionInterface?
+            if (str_contains($e->getMessage(), 'Max duration was reached') ||
+                str_contains($e->getMessage(), 'Operation timed out') ||
+                ($this->maxExecutionTime > 0 && $this->maxExecutionTime < (microtime(true) - $start))
+            ) {
+                throw new UpstreamRequestTimeout($e->getMessage(), $e->getCode(), $e);
+            } else {
+                throw new UpstreamRequestError($e->getMessage(), $e->getCode(), $e);
+            }
+        } catch (\Throwable $e) {
+            if ($this->maxExecutionTime > 0 && $this->maxExecutionTime < (microtime(true) - $start)) {
+                throw new UpstreamRequestTimeout($e->getMessage(), $e->getCode(), $e);
+            } else {
+                file_put_contents('/tmp/exc.log', "MEC: {$this->maxExecutionTime} vs. " . (microtime(true) - $start) . "\n", FILE_APPEND);
+                throw new UpstreamRequestError($e->getMessage(), $e->getCode(), $e);
+            }
+        }
     }
 
     public function withOptions(array $options): UpstreamClientInterface
@@ -92,11 +124,12 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
                     $mappedOptions['resolve'] = $value;
                     break;
                 case UpstreamClientInterface::OPT_CONNECT_TIMEOUT:
-/// @todo... this is only used in 8.1.0 and up. throw if sfhc version is lower
+/// @todo... this is only available in 8.1.0 and up. Sfhc will throw if version is lower, as it checks for invalid options passed in
                     $mappedOptions['max_connect_duration'] = $value;
                     break;
                 case UpstreamClientInterface::OPT_TIMEOUT:
                     $mappedOptions['max_duration'] = $value;
+                    $this->maxExecutionTime = $value;
                     break;
                 case UpstreamClientInterface::OPT_TRANSPORT:
                     if (!in_array($value, ['curl', 'native', 'default'])) {

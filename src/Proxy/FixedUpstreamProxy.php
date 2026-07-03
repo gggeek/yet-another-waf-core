@@ -4,12 +4,16 @@ declare(strict_types=1);
 namespace YAWAF\Core\Proxy;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\Response;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriFactoryInterface;
 use Psr\Log\LoggerInterface;
 use YAWAF\Core\Exception\ConfigurationError;
+use YAWAF\Core\Exception\RequestDenied;
+use YAWAF\Core\Exception\UpstreamRequestError;
+use YAWAF\Core\Exception\UpstreamRequestTimeout;
 use YAWAF\Core\UpstreamClient\UpstreamClientFactory;
 use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
@@ -111,9 +115,9 @@ class FixedUpstreamProxy extends Proxy
     }
 
     /**
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     * @throws ClientExceptionInterface
+     * @throws RequestDenied when using a middleware-aware client, this could be thrown
+     * @throws UpstreamRequestError
+     * @throws UpstreamRequestTimeout
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -177,9 +181,7 @@ class FixedUpstreamProxy extends Proxy
                 throw new \Exception("Unsupported upstream scheme: '{$this->upstream['scheme']}'");
         }
 
-        $response = $client->sendRequest($request);
-        $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
-            $response->getReasonPhrase());
+        $response = $this->sendRequest($client, $request);
 
         return $this->filterResponse($response, $request);
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Server;
 
+use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -12,7 +13,10 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use YAWAF\Core\Exception\RequestDenied;
+use YAWAF\Core\Exception\UpstreamRequestError;
+use YAWAF\Core\Exception\UpstreamRequestTimeout;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
+use YAWAF\Core\Proxy\Proxy;
 
 /**
  * Allows adding middlewares to execute logic before forwarding the request / after having received the response,
@@ -43,6 +47,10 @@ abstract class MiddlewareAware implements RequestHandlerInterface, LoggerAwareIn
         } catch (RequestDenied $e) {
             $this->debug("Request Denied Exception thrown during processing of request" . (($msg = $e->getMessage()) !== '' ? (': ' . $msg) : ''));
             $response = $this->deniedResponse($request, $e);
+        } catch (UpstreamRequestTimeout $e) {
+            $response = $this->upstreamTimeoutResponse($request, $e);
+        } catch (UpstreamRequestError $e) {
+            $response = $this->upstreamErrorResponse($request, $e);
         } catch (\Throwable $e) {
             $this->error("Exception thrown during processing of request" . (($msg = $e->getMessage()) !== '' ? (': ' . $msg) : ''));
             // NB: we do not catch exceptions thrown during this function call as we would not know what to return anyway...
@@ -60,6 +68,22 @@ abstract class MiddlewareAware implements RequestHandlerInterface, LoggerAwareIn
         }*/
 
         return $response;
+    }
+
+    /**
+     * To be overridden in subclasses if needed
+     */
+    protected function upstreamErrorResponse(ServerRequestInterface $request, \Throwable|null $e = null): ResponseInterface
+    {
+        return new Response(Proxy::UPSTREAM_ERROR_STATUS_CODE);
+    }
+
+    /**
+     * To be overridden in subclasses if needed
+     */
+    protected function upstreamTimeoutResponse(ServerRequestInterface $request, \Throwable|null $e = null): ResponseInterface
+    {
+        return new Response(Proxy::UPSTREAM_TIMEOUT_STATUS_CODE);
     }
 
     /**

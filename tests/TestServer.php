@@ -5,7 +5,6 @@ namespace YAWAF\Core\Tests;
 
 use GuzzleHttp\Psr7\ServerRequest as GuzzleServerRequest;
 use Nyholm\Psr7\Factory\Psr17Factory;
-use PHPUnit\Framework\Exception;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
@@ -17,10 +16,28 @@ class TestServer
     const DEFAULT_RESPONSE = ['result' => 'OK', '_GET' => [], '_POST' => [], '_COOKIE' => [], 'getallheaders' => null,
         'getHeadersFromServer' => [], 'serverRequest' => null];
 
+    public function respond(string $action = 'info', array $actionArgs = []): void
+    {
+        switch ($action) {
+            case 'error':
+                $this->displayErrorResponse($actionArgs[0] ?? 500);
+                break;
+            case 'redirect':
+                $this->displayRedirectResponse($actionArgs[0] ?? 301);
+                break;
+            case 'slowloris':
+                $this->displaySlowResponse($actionArgs[0] ?? 30);
+                break;
+            case 'info':
+            default:
+                $this->displayInfoResponse($actionArgs[0] ?? 'yawaf');
+        }
+    }
+
     /**
-     * Echoes a json payload with as much info as possible about the request received, to help testing
+     * Displays a redirection response
      */
-    public function respond(int|string $statusCode = 200, string $serverRequestLibrary = 'yawaf'): void
+    protected function displayRedirectResponse($statusCode = 301, string $location = '/server.php'): void
     {
         switch ((int)$statusCode) {
             case 301:
@@ -28,20 +45,43 @@ class TestServer
             case 303:
             case 307:
             case 308:
-                $this->displayRedirectResponse((int)$statusCode);
+                http_response_code($statusCode);
+                header("Location: $location");
                 break;
-            case 200:
             default:
-                $this->displayInfoResponse($serverRequestLibrary);
+                throw new \InvalidArgumentException("Unsupported status code for returning a redirection response");
         }
     }
 
-    protected function displayRedirectResponse(int $statusCode, string $location = '/server.php'): void
+    /**
+     * Displays an error response
+     */
+    protected function displayErrorResponse($statusCode = 500, string $message = ''): void
     {
+        if ($statusCode < 400 || $statusCode > 599) {
+            throw new \InvalidArgumentException("Unsupported status code for returning an error response");
+        }
         http_response_code($statusCode);
-        header("Location: $location");
+        echo $message;
     }
 
+    protected function displaySlowResponse($duration = 30): void
+    {
+        if ($duration < 0 || $duration > ini_get('max_execution_time')) {
+            throw new \InvalidArgumentException("Unsupported duration for returning a slow response");
+        }
+        $end = microtime(true) + $duration;
+        while (microtime(true) < $end) {
+            echo '.';
+            flush();
+            usleep(500000);
+        }
+        echo ":-)";
+    }
+
+    /**
+     * Echoes a json payload with as much info as possible about the request received, to help testing
+     */
     protected function displayInfoResponse(string $serverRequestLibrary = 'yawaf'): void
     {
         $serverRequest = $this->buildServerRequest($serverRequestLibrary);
@@ -80,16 +120,16 @@ class TestServer
 
         header('Content-type: application/json');
         if (@$_SERVER['REQUEST_METHOD'] === 'HEAD') {
-            // @todo temporarily disabled, as sending back a Content-Length but no Body gives the fits to Guzzle,
-            //       but also to webservers... (note that this is allowed as per rfc9110)
-            //header("Content-Length: " . strlen($response));
+            // NB: sending back a Content-Length but no Body gives the fits to Guzzle, but also to webservers...
+            // (note that this is allowed as per RFC 9110)
+            header("Content-Length: " . strlen($response));
         } else {
             echo $response;
         }
     }
 
     /**
-     * @todo any other well known libraries we could use?
+     * @todo any other well known libraries we could use to build the ServerRequestInterface?
      */
     protected function buildServerRequest(string $library = 'yawaf'): ServerRequestInterface
     {

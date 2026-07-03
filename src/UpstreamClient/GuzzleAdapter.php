@@ -8,12 +8,16 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\Handler\StreamHandler;
 use GuzzleHttp\RequestOptions;
+use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use YAWAF\Core\Exception\UpstreamRequestError;
+use YAWAF\Core\Exception\UpstreamRequestTimeout;
 
 class GuzzleAdapter implements UpstreamClientInterface
 {
     protected ClientInterface $guzzleClient;
+    protected int|float $maxExecutionTime = 0; // in seconds
 
     /**
      * @throws \Exception
@@ -37,22 +41,36 @@ class GuzzleAdapter implements UpstreamClientInterface
         }
     }
 
+    /**
+     * @throws UpstreamRequestError
+     * @throws UpstreamRequestTimeout
+     * @throws \Psr\Http\Client\ClientExceptionInterface
+     */
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
-        if ($request->getMethod() === 'HEAD') {
-            // reimplement inline `sendRequest`, with extra options for curl, to avoid hangs. Fixes guzzle issue #3728
-            /// @todo we could avoid doing this when the handler within $this->guzzleClient is the stream one - but it might
-            ///       be hard telling that apart...
-/// @todo... this probably just leaves curl waiting until it times out - even if it does not report a failure any more.
-///          It helped fix a timeout issue when running tests against frankenphp, but it does not fix them for apache/nginx
-            $options = [];
-            $options[RequestOptions::SYNCHRONOUS] = true;
-            $options[RequestOptions::ALLOW_REDIRECTS] = false;
-            $options[RequestOptions::HTTP_ERRORS] = false;
-            $options['curl'] = [CURLOPT_IGNORE_CONTENT_LENGTH => 1];
-            return $this->guzzleClient->sendAsync($request, $options)->wait();
+        try {
+            if ($this->maxExecutionTime > 0) {
+                $start = microtime(true);
+            } else {
+                $start = 0;
+            }
+            return $this->guzzleClient->sendRequest($request);
+        } catch (NetworkExceptionInterface $e) {
+            // this is when using curl and there is a read timeout
+            if (str_contains($e->getMessage(), 'Operation timed out') || str_contains($e->getMessage(), 'Connection timed out')) {
+                throw new UpstreamRequestTimeout($e->getMessage(), $e->getCode(), $e);
+            } else {
+                throw new UpstreamRequestError($e->getMessage(), $e->getCode(), $e);
+            }
+        } catch (\Throwable $e) {
+            // Timeouts when using the Stream handler a bit harder to detect - we get a RequestException with message
+            // 'Unable to read from stream'. So we instead save the timeout options we ere passed in, and, if any, check it
+            if ($this->maxExecutionTime > 0 && $this->maxExecutionTime < (microtime(true) - $start)) {
+                throw new UpstreamRequestTimeout($e->getMessage(), $e->getCode(), $e);
+            } else {
+                throw new UpstreamRequestError($e->getMessage(), $e->getCode(), $e);
+            }
         }
-        return $this->guzzleClient->sendRequest($request);
     }
 
     /// @todo...
@@ -81,6 +99,7 @@ class GuzzleAdapter implements UpstreamClientInterface
                     break;
                 case UpstreamClientInterface::OPT_TIMEOUT:
                     $mappedOptions[RequestOptions::TIMEOUT] = $value;
+                    $this->maxExecutionTime = $value;
                     break;
                 case UpstreamClientInterface::OPT_TRANSPORT:
                     switch($value) {
@@ -106,6 +125,8 @@ class GuzzleAdapter implements UpstreamClientInterface
 
     public function getUserAgent(): string
     {
-        return 'GuzzleHttp/Client';
+        /// @todo retrieve the info about the handler in $this->client and add it here. Note that it might be complex,
+        ///       as there could be a whole stack of those
+        return 'GuzzleHttp ' . ClientInterface::MAJOR_VERSION;
     }
 }

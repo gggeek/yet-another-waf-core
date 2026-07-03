@@ -8,6 +8,9 @@ use SebastianBergmann\CodeCoverage\Data\RawCodeCoverageData;
 use Symfony\Component\HttpClient\CurlHttpClient;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\NativeHttpClient;
+use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
@@ -241,21 +244,21 @@ abstract class ServerTestCase extends TestCase
         return '';
     }
 
+    /**
+     * @throws ClientExceptionInterface
+     * @throws RedirectionExceptionInterface On a 3xx when $throw is true and the "max_redirects" option has been reached
+     * @throws ServerExceptionInterface
+     * @throws TransportExceptionInterface When a network error occurs
+     */
     protected function response2Log(ResponseInterface $response): string
     {
         /// @todo can we improve the fidelity of the response dump?
-        try {
-            $out = 'HTTP/x.y ' . $response->getStatusCode() . " ...\n";
-            foreach ($response->getHeaders(false) as $name => $values) {
-                $out .= ucwords($name, " \t\r\n\f\v-") . ': ' . implode(',', $values) . "\n";
-            }
-            $out .= "\n" . $response->getContent(false);
-            return $out;
-        // This is what the Sf http client throws in cases of time-out talking to the server/proxy when trying to access
-        // the status code
-        } catch (TransportExceptionInterface $e) {
-            return $e->getMessage();
+        $out = 'HTTP/x.y ' . $response->getStatusCode() . " ...\n";
+        foreach ($response->getHeaders(false) as $name => $values) {
+            $out .= ucwords($name, " \t\r\n\f\v-") . ': ' . implode(',', $values) . "\n";
         }
+        $out .= "\n" . $response->getContent(false);
+        return $out;
     }
 
     protected static function shouldCollectCodeCoverageInformation(): bool

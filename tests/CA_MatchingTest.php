@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace YAWAF\Core\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
-use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 
 /// @todo declare dependency on SmokeTest
 class CA_MatchingTest extends ProxyTestCase
@@ -19,12 +19,14 @@ class CA_MatchingTest extends ProxyTestCase
             '',
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
-        // force the response to be fully retrieved, without throwing in case of errors
-        $response->getContent(false);
 
-        $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-        $this->assertArrayIsEqualToArrayIgnoringListOfKeys($response->toArray(false), TestProxy::ERROR_RESPONSE, ['message', 'file', 'line'], $failureMessage);
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            $this->assertArrayIsEqualToArrayIgnoringListOfKeys(TestProxy::ERROR_RESPONSE, $response->toArray(false), ['message', 'file', 'line'], $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(TestProxy::ERROR_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
     }
 
     public static function invalidRulesDataProvider(): array
@@ -112,12 +114,13 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
-        // force the response to be fully retrieved, without throwing in case of errors
-        $response->getContent(false);
-
-        $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
-        $this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
     }
 
     public static function passingGetRulesDataProvider(): array
@@ -135,12 +138,13 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
-        // force the response to be fully retrieved, without throwing in case of errors
-        $response->getContent(false);
-
-        $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-        $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, $response->toArray(false), $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
     }
 
     public static function failingGetRulesDataProvider(): array
@@ -168,12 +172,14 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
-        // force the response to be fully retrieved, without throwing in case of errors
-        $response->getContent(false);
 
-        $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
-        $this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
     }
 
     #[DataProvider('getCommonDataProviderOptions')]
@@ -196,12 +202,14 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
-        // force the response to be fully retrieved, without throwing in case of errors
-        $response->getContent(false);
 
-        $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-        $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
     }
 
     #[DataProvider('getCommonDataProviderOptions')]
@@ -215,12 +223,14 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
-        // force the response to be fully retrieved, without throwing in case of errors
-        $response->getContent(false);
 
-        $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
-        $this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
 
         $rule = [['url_path/no_wildcards' => $_ENV['HTTPSERVER_PATH'] . '/yolo']];
         $response = $this->request(
@@ -229,12 +239,14 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
-        // force the response to be fully retrieved, without throwing in case of errors
-        $response->getContent(false);
 
-        $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-        $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, $response->toArray(false), $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
     }
 
     #[DataProvider('getCommonDataProviderOptions')]
@@ -248,12 +260,14 @@ class CA_MatchingTest extends ProxyTestCase
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
-        // force the response to be fully retrieved, without throwing in case of errors
-        $response->getContent(false);
 
-        $failureMessage = $this->getTestDetails($response);
-        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-        $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
     }
 
     #[DataProvider('passingHeadRulesDataProvider')]
@@ -278,11 +292,11 @@ class CA_MatchingTest extends ProxyTestCase
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
 
-        $failureMessage = $this->getTestDetails($response);
         try {
+            $failureMessage = $this->getTestDetails($response);
             $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
-        } catch (TransportExceptionInterface $e) {
-            $this->assertEquals(200, 0, $e->getMessage());
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
 
         /// @todo... check that resp. body is empty
@@ -304,11 +318,11 @@ class CA_MatchingTest extends ProxyTestCase
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
 
-        $failureMessage = $this->getTestDetails($response);
         try {
+            $failureMessage = $this->getTestDetails($response);
             $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-        } catch (TransportExceptionInterface $e) {
-            $this->assertEquals(200, 0, $e->getMessage());
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
         /// @todo... check that resp. body is empty
     }
@@ -326,28 +340,6 @@ class CA_MatchingTest extends ProxyTestCase
             if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
                 foreach (self::getCommonDataProviderOptions() as $opts) {
                     $out[] = array_merge(["matchers/$method/$status/$fileName"], $opts);
-                }
-            }
-        }
-        return $out;
-    }
-
-    /// @todo can we find a better name?
-    public static function getCommonDataProviderOptions(): array
-    {
-        $out = [];
-        foreach (self::getSupportedServerSchemes() as $serverScheme) {
-            foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
-                if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'guzzle_stream' || $upstreamClientType === 'sfhc_native')) {
-                    continue;
-                }
-                foreach (self::getSupportedProxySchemes() as $proxyScheme) {
-                    foreach (self::getSupportedClientTypes() as $clientType) {
-                        if ($proxyScheme === 'unix' && $clientType === 'native') {
-                            continue;
-                        }
-                        $out[] = [$clientType, $proxyScheme, $upstreamClientType, $serverScheme];
-                    }
                 }
             }
         }

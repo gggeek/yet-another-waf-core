@@ -86,6 +86,30 @@ abstract class ProxyTestCase extends ServerTestCase
         return $_ENV['PROXY_PATH'];
     }
 
+    /// @todo can we find a better name?
+    public static function getCommonDataProviderOptions(): array
+    {
+        $out = [];
+        foreach (self::getSupportedServerSchemes() as $serverScheme) {
+            foreach (self::getSupportedProxyClientTypes() as $upstreamClientType) {
+                // so far the only upstream client which we can successfully configure to bind to a socket is the sfhc curl one
+                if ($serverScheme === 'unix' && ($upstreamClientType === 'guzzle' || $upstreamClientType === 'guzzle_stream' || $upstreamClientType === 'sfhc_native')) {
+                    continue;
+                }
+                foreach (self::getSupportedProxySchemes() as $proxyScheme) {
+                    foreach (self::getSupportedClientTypes() as $clientType) {
+                        // the sfhc can talk to unix sockets only when using curl
+                        if ($proxyScheme === 'unix' && $clientType === 'native') {
+                            continue;
+                        }
+                        $out[] = [$clientType, $proxyScheme, $upstreamClientType, $serverScheme];
+                    }
+                }
+            }
+        }
+        return $out;
+    }
+
     protected static function getSupportedProxySchemes(): array
     {
         $schemes = [];
@@ -107,6 +131,12 @@ abstract class ProxyTestCase extends ServerTestCase
         return ['sfhc_native', 'sfhc_curl', 'guzzle', 'guzzle_stream'];
     }
 
+    /**
+     * @throws \Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface
+     * @throws \Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface
+     * @throws \Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface
+     * @throws \Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface
+     */
     protected function getTestDetails(ResponseInterface $response): string
     {
         $out = '';
