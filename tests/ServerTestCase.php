@@ -150,7 +150,8 @@ abstract class ServerTestCase extends TestCase
 
         // avoid tests lasting too long in case of things going south - the test server is supposed to respond quickly in any case
         $clientOptions = $clientOptions + [
-            'max_connect_duration' => 1.0, // seconds
+            /// @todo this will fail when testing with sfhc < 8.1. Enable this selectively
+            //'max_connect_duration' => 1.0, // seconds
             'max_duration' => 4.0, // seconds: one more than the timeout of the proxy talking to upstream
         ];
 
