@@ -85,7 +85,8 @@ class TestProxy extends MiddlewareAware
             case '':
                 return (new UpstreamClientFactory())->createClient([
                     UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
-                    UpstreamClientInterface::OPT_TIMEOUT => 2.0,
+                    /// @todo enable this if SFHC is version 8.1 or later - can we figure it out?
+                    //UpstreamClientInterface::OPT_TIMEOUT => 2.0,
                 ] + $options);
             case 'guzzle':
             case 'guzzle_curl':
