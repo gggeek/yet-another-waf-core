@@ -31,6 +31,9 @@ fi
 # Allow non-root to listen apache log files, same as it is possible for nginx
 chmod 755 /var/log/apache2
 
+cp -f "$SCRIPT_DIR/../config/apache_fcgi" /etc/apache2/mods-available/proxy_fcgi.conf
+ln -s /etc/apache2/mods-available/proxy_fcgi.conf /etc/apache2/mods-enabled/proxy_fcgi.conf
+
 # configure virtual hosts
 
 # this overwrites the default vhost

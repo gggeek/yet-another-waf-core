@@ -18,6 +18,8 @@ server {
     listen 80 default_server;
     listen [::]:80 default_server;
 
+    fastcgi_buffering off;
+
     access_log /var/log/nginx/access.log extended;
 
     root $tests_root_dir;
@@ -58,6 +60,8 @@ server {
 
     listen 8080 default_server;
     listen [::]:8080 default_server;
+
+    fastcgi_buffering off;
 
     access_log /var/log/nginx/access.log extended;
 
@@ -104,6 +108,8 @@ server {
     listen 443 ssl default_server;
     listen [::]:443 ssl default_server;
 
+    fastcgi_buffering off;
+
     # @todo replace with better certificates
     include snippets/snakeoil.conf;
 
@@ -147,6 +153,8 @@ server {
 
     listen 8443 ssl default_server;
     listen [::]:8443 ssl default_server;
+
+    fastcgi_buffering off;
 
     # @todo replace with better certificates
     include snippets/snakeoil.conf;
