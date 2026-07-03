@@ -14,7 +14,7 @@ RUN /root/setup/build.sh
 
 COPY --chmod=755 docker/entrypoint.sh /root/entrypoint.sh
 
-EXPOSE 80 443 8080 8443
+EXPOSE 80 81 1082 8080 8081 8082
 
 # @todo can we avoid hardcoding this here? We can f.e. get it passed down as ARG...
 WORKDIR /home/docker/workspace

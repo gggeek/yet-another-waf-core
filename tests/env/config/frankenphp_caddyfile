@@ -9,6 +9,8 @@
     persist_config off
 
     frankenphp {
+        # nb: keep in sync with php.append.ini
+
         php_ini display_errors On
         php_ini display_startup_errors On
         php_ini enable_dl Off
@@ -17,6 +19,14 @@
         php_ini include_path .
         php_ini log_errors On
         php_ini short_open_tag Off
+
+        php_ini error_level -1
+        php_ini max_execution_time 15
+        php_ini output_buffering Off
+
+        # set to a high number as we have tests making multiple concurrent requests (while workers are kept busy on slow responses)
+        #nb: max_threads defaults to 2 x num_threads
+        num_threads 15
     }
 
     log {
@@ -51,6 +61,8 @@
 }
 
 # allow running unprivileged: instead of 82, go for 1082
+# @todo test if setcap works now that we set it up, and move back to port 82.
+#       Remember to change .env.frankenphp, Dockerfile and container.sh too
 :1082 {
     bind unix//run/frankenphp/caddy.server.sock|0222
 

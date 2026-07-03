@@ -20,12 +20,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 configure_php_ini() {
     # note: these settings are not required for cli config
-    # shellcheck disable=SC2129
-    echo "cgi.fix_pathinfo = 1" >> "${1}"
-    echo "always_populate_raw_post_data = -1" >> "${1}"
-    # make all errors visible - this will make tests fail which hit a php warning server-side
-    echo "display_errors = 1" >> "${1}"
-    echo "error_level = -1" >> "${1}"
+    cat "$SCRIPT_DIR/../config/php.append.ini" >> "${1}"
 
     # we disable xdebug for speed for both cli and web mode
     # @todo make this optional
@@ -38,6 +33,11 @@ configure_php_ini() {
     else
         echo "Could not disable loading of xdebug - xdebug.ini file not found" >&2
     fi
+}
+
+configure_php_fpm() {
+    # a high number of fpm processes is required for slow-loris tests
+    sed -e "s|^pm.max_children .*|pm.max_children = 30|g" --in-place "$1"
 }
 
 install_native() {
@@ -148,7 +148,10 @@ elif [ -f "/usr/local/php/${PHPVER}/etc/php.ini" ]; then
     configure_php_ini "/usr/local/php/${PHPVER}/etc/php.ini"
 fi
 
-# @todo shall we configure php-fpm?
+# @todo is the default pool always named www.conf?
+if [ -f "/etc/php/${PHPVER}/fpm/pool.d/www.conf" ]; then
+    configure_php_fpm "/etc/php/${PHPVER}/fpm/pool.d/www.conf"
+fi
 
 # use a nice name for the php-fpm service, so that it does not depend on php version running. Try to make that work
 # both for docker and VMs

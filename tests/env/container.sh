@@ -16,10 +16,14 @@ export WEBSERVER_TYPE=${WEBSERVER_TYPE:-all}
 export VERBOSITY=${VERBOSITY:-1}
 
 # Webserver ports exposed to the host. Set to 'no' for no port mapping
-HOST_HTTPPORT="${HOST_HTTPPORT:-80}"
-HOST_HTTPSPORT="${HOST_HTTPSPORT:-443}"
-HOST_PROXYPORT_HTTP="${HOST_PROXYPORT_HTTP:-8080}"
-HOST_PROXYPORT_HTTPS="${HOST_PROXYPORT_HTTPS:-8443}"
+HOST_HTTPPORT_APACHE="${HOST_HTTPPORT_APACHE:-81}"
+HOST_HTTPPORT_FRANKENPHP="${HOST_HTTPPORT_FRANKENPHP:-1082}"
+HOST_HTTPPORT_NGINX="${HOST_HTTPPORT_NGINX:-80}"
+#HOST_HTTPSPORT="${HOST_HTTPSPORT:-443}"
+HOST_PROXYPORT_APACHE="${HOST_PROXYPORT_APACHE:-8081}"
+HOST_PROXYPORT_FRANKENPHP="${HOST_PROXYPORT_FRANKENPHP:-8082}"
+HOST_PROXYPORT_NGINX="${HOST_PROXYPORT_NGINX:-8080}"
+#HOST_PROXYPORT_HTTPS="${HOST_PROXYPORT_HTTPS:-8443}"
 
 COMPOSER_INSTALL_ON_START="${COMPOSER_INSTALL_ON_START:-false}"
 START_WEBSERVER="${START_WEBSERVER:-all}"
@@ -69,10 +73,8 @@ Environment variables:
   used by the 'start' action
     COMPOSER_INSTALL_ON_START default value: false. Set to true to run a 'composer install' on container start
     START_WEBSERVER        default value: 'all'. Can be set to apache, nginx, frankenphp
-    HOST_HTTPPORT          default value: 80. Set to 'no' to disable exposing the container port to the host
-    HOST_HTTPSPORT         default value: 443. Set to 'no' to disable exposing the container port to the host
-    HOST_PROXYPORT_HTTP    default value: 8080. Set to 'no' to disable exposing the container port to the host
-    HOST_PROXYPORT_HTTPS   default value: 8443. Set to 'no' to disable exposing the container port to the host
+    HOST_HTTPPORT_\$SRV     default value: 80/81/1082. Set to 'no' to disable exposing the container port to the host
+    HOST_PROXYPORT_\$SRV    default value: 8080/8081/8082. Set to 'no' to disable exposing the container port to the host
   used by both build and start:
     CONTAINER_IMAGE_PREFIX default value: 'yawaf_'. Change if you build/run many containers in parallel
     CONTAINER_NAME_PREFIX  default value: 'yawaf'. Change if you build/run many containers in parallel
@@ -140,19 +142,24 @@ start() {
 
             PORTMAPPING=''
             # @todo improve error message and abort in case any port is not an integer or negative
-            # @todo since we now have 3 webservers inside the container, there are in fact 12 ports which could be exposed.
-            #        Depending on the value of $START_WEBSERVER we should map the external ports to different internal ones...
-            if [ "$HOST_HTTPPORT" != no ] && [ "$HOST_HTTPPORT" != '' ]; then
-                PORTMAPPING="-p $((HOST_HTTPPORT-0)):80 "
+            # @todo depending on the value of $START_WEBSERVER we could map fewer ports to just 80+8080
+            if [ "$HOST_HTTPPORT_APACHE" != no ] && [ "$HOST_HTTPPORT_APACHE" != '' ]; then
+                PORTMAPPING="${PORTMAPPING}-p $((HOST_HTTPPORT_APACHE-0)):81 "
             fi
-            if [ "$HOST_HTTPSPORT" != no ] && [ "$HOST_HTTPSPORT" != '' ]; then
-                PORTMAPPING="${PORTMAPPING}-p $((HOST_HTTPSPORT-0)):443 "
+            if [ "$HOST_HTTPPORT_FRANKENPHP" != no ] && [ "$HOST_HTTPPORT_FRANKENPHP" != '' ]; then
+                PORTMAPPING="${PORTMAPPING}-p $((HOST_HTTPPORT_FRANKENPHP-0)):1082 "
             fi
-            if [ "$HOST_PROXYPORT_HTTP" != no ] && [ "$HOST_PROXYPORT_HTTP" != '' ]; then
-                PORTMAPPING="${PORTMAPPING}-p $((HOST_PROXYPORT_HTTP-0)):8080 "
+            if [ "$HOST_HTTPPORT_NGINX" != no ] && [ "$HOST_HTTPPORT_NGINX" != '' ]; then
+                PORTMAPPING="${PORTMAPPING}-p $((HOST_HTTPPORT_NGINX-0)):80 "
             fi
-            if [ "$HOST_PROXYPORT_HTTPS" != no ] && [ "$HOST_PROXYPORT_HTTPS" != '' ]; then
-                PORTMAPPING="${PORTMAPPING}-p $((HOST_PROXYPORT_HTTPS-0)):8443 "
+            if [ "$HOST_PROXYPORT_APACHE" != no ] && [ "$HOST_PROXYPORT_APACHE" != '' ]; then
+                PORTMAPPING="${PORTMAPPING}-p $((HOST_PROXYPORT_APACHE-0)):8081 "
+            fi
+            if [ "$HOST_PROXYPORT_FRANKENPHP" != no ] && [ "$HOST_PROXYPORT_FRANKENPHP" != '' ]; then
+                PORTMAPPING="${PORTMAPPING}-p $((HOST_PROXYPORT_FRANKENPHP-0)):8082 "
+            fi
+            if [ "$HOST_PROXYPORT_NGINX" != no ] && [ "$HOST_PROXYPORT_NGINX" != '' ]; then
+                PORTMAPPING="${PORTMAPPING}-p $((HOST_PROXYPORT_NGINX-0)):8080 "
             fi
 
             if [ ! -d "${ROOT_DIR}/tests/env/var/composer_cache" ]; then mkdir -p "${ROOT_DIR}/tests/env/var/composer_cache"; fi

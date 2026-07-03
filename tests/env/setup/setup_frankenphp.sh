@@ -57,5 +57,5 @@ else
     apt-get install -y frankenphp libcap2-bin
     setcap 'cap_net_bind_service=+ep' /usr/bin/frankenphp
 
-    cp /root/config/init.d/frankenphp /etc/init.d/frankenphp && chmod 755 /etc/init.d/frankenphp
+    cp "$SCRIPT_DIR/../config/init.d/frankenphp" /etc/init.d/frankenphp && chmod 755 /etc/init.d/frankenphp
 fi

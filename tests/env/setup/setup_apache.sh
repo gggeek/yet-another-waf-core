@@ -14,6 +14,8 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt-get install -y apache2 ssl-cert
 
+# @todo disable all the apache modules we do not use (see the list in /etc/apache2/mods-enabled)
+
 # set up Apache for php-fpm
 
 a2enmod rewrite proxy_fcgi setenvif ssl
