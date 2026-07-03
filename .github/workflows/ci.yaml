@@ -105,7 +105,7 @@ jobs:
                     files: coverage.clover
 
             -   name: downgrade dependencies
-                run: 'composer install --prefer-lowest --no-interaction --no-progress'
+                run: 'composer update --prefer-lowest --no-interaction --no-progress'
 
             -   name: run tests again
                 run: |
