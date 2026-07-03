@@ -104,7 +104,12 @@ jobs:
                     disable_search: true
                     files: coverage.clover
 
-            # @todo would it be useful to run a 2nd test with composer --prefer-lowest?
+            -   name: downgrade dependencies
+                run: 'composer install --prefer-lowest --no-progress'
+
+            -   name: run tests again
+                run: |
+                    SERVER_TYPE='${{ matrix.webserver }}' ./vendor/bin/phpunit tests
 
             # disabled for the moment...
             #- name: Qodana scan

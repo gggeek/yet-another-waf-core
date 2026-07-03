@@ -1,0 +1,6 @@
+<IfModule proxy_fcgi_module>
+    <Proxy fcgi://localhost>
+        # Do not buffer responses from php-fpm
+        ProxySet flushpackets=on
+    </Proxy>
+</IfModule>
