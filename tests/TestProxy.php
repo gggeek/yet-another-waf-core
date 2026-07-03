@@ -85,7 +85,7 @@ class TestProxy extends MiddlewareAware
             case '':
                 return (new UpstreamClientFactory())->createClient([
                     UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
-                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 2.0,
                 ] + $options);
             case 'guzzle':
             case 'guzzle_curl':
@@ -94,26 +94,28 @@ class TestProxy extends MiddlewareAware
                     ///       after having checked the default options used in creating the guzzle curl handler
                     //UpstreamClientInterface::OPT_TRANSPORT => 'curl',
                     UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
-                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 2.0,
                 ] + $options);
             case 'guzzle_stream':
                 /// @todo explore passing in other values for
                 return new GuzzleAdapter([
                     UpstreamClientInterface::OPT_TRANSPORT => 'native',
                     UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
-                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 2.0,
                 ] + $options);
             case 'sfhc_native':
                 return new SymfonyHttpClientAdapter([
                     UpstreamClientInterface::OPT_TRANSPORT => 'native',
-                    UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
-                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                    /// @todo enable this if SFHC is version 8.1 or later - can we figure it out?
+                    //UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 2.0,
                 ] + $options);
             case 'sfhc_curl':
                 return new SymfonyHttpClientAdapter([
                     UpstreamClientInterface::OPT_TRANSPORT => 'curl',
-                    UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
-                    UpstreamClientInterface::OPT_TIMEOUT => 3.0,
+                    /// @todo enable this if SFHC is version 8.1 or later - can we figure it out?
+                    //UpstreamClientInterface::OPT_CONNECT_TIMEOUT => 1.0,
+                    UpstreamClientInterface::OPT_TIMEOUT => 2.0,
                 ] + $options);
             default:
                 throw new \InvalidArgumentException("Unsupported upstream client type: '$clientType'");
