@@ -29,6 +29,7 @@
     },
     "conflict": {
         "guzzlehttp/guzzle": "<7.13.2",
+        "psr/http-factory": "<1.1.0",
         "symfony/http-client": "<7.0"
     },
     "suggest": {
