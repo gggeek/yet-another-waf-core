@@ -271,7 +271,7 @@ class CA_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('passingHeadRulesDataProvider')]
-    public function NotReadyYetTestPassingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+    public function TestPassingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         // skip test cases which are bound to fail with given configs
@@ -308,7 +308,7 @@ class CA_MatchingTest extends ProxyTestCase
     }
 
     #[DataProvider('failingHeadRulesDataProvider')]
-    public function NotReadyYetTestFailingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+    public function TestFailingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         $response = $this->request(
