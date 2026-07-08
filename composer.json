@@ -19,17 +19,17 @@
     "require-dev": {
         "ext-curl": "*",
         "ext-mbstring": "*",
+        "guzzlehttp/guzzle": "^7.12.3",
         "laminas/laminas-httphandlerrunner": "^2.13.0",
         "phpunit/phpunit": "^11.5.55|^12.5.29|^13.2.1",
         "symfony/dotenv": "^v7.4.11|^8.0.11",
         "symfony/http-client": "^7.4.9",
         "symfony/psr-http-message-bridge": "^v7.4.8|^8.0.8|^8.10",
-        "guzzlehttp/guzzle": "^7.12.1",
         "yoast/phpunit-polyfills": "^4.0"
     },
     "conflict": {
-        "symfony/http-client": "<7.0",
-        "guzzlehttp/guzzle": "<7.8"
+        "guzzlehttp/guzzle": "<7.12.3",
+        "symfony/http-client": "<7.0"
     },
     "suggest": {
         "ext-curl": "Required (atm at least) for connecting to unix-socket based upstreams",
