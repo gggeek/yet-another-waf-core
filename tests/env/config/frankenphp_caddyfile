@@ -43,7 +43,8 @@
 
     log
 
-    rewrite * /server.php
+    # Allow the proxy to make requests that will result in a 404
+    #rewrite * /server.php
 
     php_server
 }
@@ -86,7 +87,7 @@
 
     log
 
-    rewrite * /proxy.php
+    #rewrite * /proxy.php
 
     php_server
 }

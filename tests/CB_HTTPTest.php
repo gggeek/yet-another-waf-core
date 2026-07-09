@@ -23,7 +23,7 @@ class CB_HTTPTest extends ProxyTestCase
 
         $rule = [['always' => true]];
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config' => json_encode($rule)]],
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule), 'X-YAWAF-Force-Accept-Encoding' => 'identity']],
             'GET',
             static::getServerPath() . '?action=slowloris&action_args[]=5',
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
@@ -46,7 +46,7 @@ class CB_HTTPTest extends ProxyTestCase
     {
         $rule = [['always' => true]];
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config' => json_encode($rule)]],
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule), 'X-YAWAF-Force-Accept-Encoding' => 'identity']],
             'GET',
             '/no_such_page',
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
@@ -67,9 +67,13 @@ class CB_HTTPTest extends ProxyTestCase
     public function testNoUpstream(string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
+        if ($serverScheme === 'unix') {
+            $this->markTestIncomplete('Todo: allow the proxy to connect to an overridden (but controlled) unix socket path');
+        }
+
         $rule = [['always' => true]];
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config' => json_encode($rule), 'X-YAWAF-Upstream-Port-Override' => intval(@$_ENV['HTTPSERVER_PORT']) + 3000]],
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule), 'X-YAWAF-Force-Accept-Encoding' => 'identity', 'X-YAWAF-Upstream-Port-Override' => intval(@$_ENV['HTTPSERVER_PORT']) + 3000]],
             'GET',
             static::buildUrl([
                     'scheme' => 'http', 'host' => $_ENV['HTTPSERVER_HOST'], 'port' => intval(@$_ENV['HTTPSERVER_PORT']) + 3000

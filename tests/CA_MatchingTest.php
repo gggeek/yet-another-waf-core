@@ -109,7 +109,7 @@ class CA_MatchingTest extends ProxyTestCase
         }
 
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName, 'X-YAWAF-Force-Accept-Encoding' => 'identity'] + $this->getCommonRequestHeaders()],
             'GET',
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
@@ -133,7 +133,7 @@ class CA_MatchingTest extends ProxyTestCase
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         $response = $this->request(
-            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName, 'X-YAWAF-Force-Accept-Encoding' => 'identity'] + $this->getCommonRequestHeaders()],
             'GET',
             static::getServerPath() . '?' . $this->getCommonQueryString(),
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]

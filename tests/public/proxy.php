@@ -15,6 +15,7 @@ use Psr\Log\LogLevel;
 use Symfony\Component\Dotenv\Dotenv;
 use YAWAF\Core\Filter\Bidirectional\Tracer;
 use YAWAF\Core\Filter\Bidirectional\ForceAcceptEncoding;
+use YAWAF\Core\Filter\Bidirectional\RemoveAcceptEncoding;
 use YAWAF\Core\Firewall\FirewallFactory;
 use YAWAF\Core\Logger\FileLogger;
 use YAWAF\Core\Middleware\Dispatcher;
@@ -154,11 +155,19 @@ class ProxyPage
             }
             $middlewareChain->appendMiddleware($firewall);
 
-            // this disables requesting for compressed responses - currently done to avoid issues with Body matchers
-            /// @todo make this a toggle that can be flipped via a custom http header
-            $middlewareChain->appendMiddleware(new ForceAcceptEncoding('identity'));
+            // this can disable requesting for compressed responses - currently done to avoid issues with Body matchers
+            if (array_key_exists('HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING']) !== '') {
+                if ($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING'] === 'none') {
+                    $middlewareChain->appendMiddleware(new RemoveAcceptEncoding());
+                } else {
+                    $middlewareChain->appendMiddleware(new ForceAcceptEncoding($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING']));
+                }
+            }
 
-            // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
+
+            // allow the scheme+port to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
+            /// @todo allow the caller to request for a non-existent, controlled unix socket. Also, no need to allow
+            ///       _any_ port, just a known non-existent one...
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_SCHEME', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']) !== '') {
                 $upstreamUri = TestProxy::getUpstreamUri(
                     $_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME'],
