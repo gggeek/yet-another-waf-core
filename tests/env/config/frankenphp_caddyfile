@@ -73,7 +73,7 @@
 
     log
 
-    rewrite * /server.php
+    #rewrite * /server.php
 
     php_server
 }
@@ -87,7 +87,7 @@
 
     log
 
-    #rewrite * /proxy.php
+    rewrite * /proxy.php
 
     php_server
 }

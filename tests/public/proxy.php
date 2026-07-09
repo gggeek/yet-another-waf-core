@@ -155,7 +155,8 @@ class ProxyPage
             }
             $middlewareChain->appendMiddleware($firewall);
 
-            // this can disable requesting for compressed responses - currently done to avoid issues with Body matchers
+            // This can disable requesting for compressed responses - currently done to avoid issues with Body matchers
+            // and to ease troubleshooting by visual inspection of payloads
             if (array_key_exists('HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING']) !== '') {
                 if ($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING'] === 'none') {
                     $middlewareChain->appendMiddleware(new RemoveAcceptEncoding());
