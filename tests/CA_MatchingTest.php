@@ -152,6 +152,70 @@ class CA_MatchingTest extends ProxyTestCase
         return self::getRuleBasedTestDataProviderOptions('get', 'failing');
     }
 
+    #[DataProvider('passingPostRulesDataProvider')]
+    public function testPassingPostRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        /// @todo move the request body to a config file
+        $response = $this->request(
+            [
+                'headers' => [
+                    'X-YAWAF-Config-File' => $configFileName,
+                    'X-YAWAF-Force-Accept-Encoding' => 'identity',
+                    'Content-Type' => 'application/json'
+                ] + $this->getCommonRequestHeaders(),
+                'body' => json_encode(['test' => 'localhost'])
+            ],
+            'POST',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
+    }
+
+    public static function passingPostRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('post', 'passing');
+    }
+
+    #[DataProvider('failingPostRulesDataProvider')]
+    public function testFailingPostRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        /// @todo move the request body to a config file
+        $response = $this->request(
+            [
+                'headers' => [
+                    'X-YAWAF-Config-File' => $configFileName,
+                    'X-YAWAF-Force-Accept-Encoding' => 'identity',
+                    'Content-Type' => 'application/json'
+                ] + $this->getCommonRequestHeaders(),
+                'body' => json_encode(['test' => 'localhost'])
+            ],
+            'POST',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, $response->toArray(false), $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
+    }
+
+    public static function failingPostRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('post', 'failing');
+    }
+
     #[DataProvider('getCommonDataProviderOptions')]
     public function testPortMatcher(string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
