@@ -35,7 +35,7 @@ class GuzzleAdapter implements UpstreamClientInterface
             /// @todo... we should validate the existing client options plus add our own on top
             $mappedOptions = $this->mapOptions($options);
             if ($mappedOptions) {
-                throw new \Exception("Starting out with an existing Client is not implemented  yet by the Guzzle Adapter, sorry");
+                throw new \Exception("Starting out with an existing Client is not implemented yet by the Guzzle Adapter, sorry");
             }
             $this->guzzleClient = $guzzleClient;
         }
@@ -51,10 +51,13 @@ class GuzzleAdapter implements UpstreamClientInterface
         try {
             if ($this->maxExecutionTime > 0) {
                 $start = microtime(true);
+                $response = $this->guzzleClient->sendRequest($request);
+                // we have to force reading the whole resp. body to make sure that we trigger timeouts
+                //$response->getBody()->getContents();
+                return $response;
             } else {
-                $start = 0;
+                return $this->guzzleClient->sendRequest($request);
             }
-            return $this->guzzleClient->sendRequest($request);
         } catch (NetworkExceptionInterface $e) {
             // this is when using curl and there is a read timeout
             if (str_contains($e->getMessage(), 'Operation timed out') || str_contains($e->getMessage(), 'Connection timed out')) {
@@ -64,7 +67,7 @@ class GuzzleAdapter implements UpstreamClientInterface
             }
         } catch (\Throwable $e) {
             // Timeouts when using the Stream handler a bit harder to detect - we get a RequestException with message
-            // 'Unable to read from stream'. So we instead save the timeout options we ere passed in, and, if any, check it
+            // 'Unable to read from stream'. So we instead save the timeout options we were passed in, and, if any, check it
             if ($this->maxExecutionTime > 0 && $this->maxExecutionTime < (microtime(true) - $start)) {
                 throw new UpstreamRequestTimeout($e->getMessage(), $e->getCode(), $e);
             } else {

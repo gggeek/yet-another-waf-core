@@ -15,9 +15,9 @@ class CB_HTTPTest extends ProxyTestCase
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
 
-$this->markTestIncomplete('Test known to fail atm. Under investigation...');
+$this->markTestIncomplete('Test known to fail atm with Guzzle/Stream client. See issue #3809...');
 
-        $rule = [['always' => true]];;
+        $rule = [['always' => true]];
         $response = $this->request(
             ['headers' => ['X-YAWAF-Config' => json_encode($rule)]],
             'GET',

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Proxy;
 
+use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -65,15 +66,21 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     }
 
     /**
-     * Aka. "handleInner"
+     * Aka "handleInner".
+     * NB: when $client is async, this might not throw at all, but exceptions might be thrown when trying to read
+     * the response body...
+     *
      * @throws RequestDenied when using a middleware-aware client, this could be thrown
      * @throws UpstreamRequestError
-     * @throws UpstreamRequestTimeout
+     * @throws UpstreamRequestTimeout NB: only if a timeout was set into $client
      */
     protected function sendRequest(UpstreamClientInterface $client, ServerRequestInterface $request): ResponseInterface
     {
         try {
             $response = $client->sendRequest($request);
+
+            $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
+                $response->getReasonPhrase());
         } catch (RequestDenied $e) {
             $this->debug("Request denied before sending to upstream: " . $e->getMessage());
             throw $e;
@@ -83,13 +90,13 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
         } catch (UpstreamRequestError $e) {
             $this->debug("Error sending request to upstream: " . $e->getMessage());
             throw $e;
+        } catch (NetworkExceptionInterface $e) {
+            $this->debug("Network error sending request to upstream (" . get_class($e) . "): " . $e->getMessage());
+            throw new UpstreamRequestError($e->getMessage(), $e->getCode(), $e);
         } catch (\Throwable $e) {
             $this->debug("Unexpected error sending request to upstream (" . get_class($e) . "): " . $e->getMessage());
             throw new UpstreamRequestError($e->getMessage(), $e->getCode(), $e);
         }
-
-        $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
-            $response->getReasonPhrase());
 
         return $response;
     }

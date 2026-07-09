@@ -65,10 +65,13 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
         try {
             if ($this->maxExecutionTime > 0) {
                 $start = microtime(true);
+                $response = $this->psr18Client->sendRequest($request);
+                // we have to force reading the whole resp. body to make sure that we trigger timeouts
+                $response->getBody()->getContents();
+                return $response;
             } else {
-                $start = 0;
+                return $this->psr18Client->sendRequest($request);
             }
-            return $this->psr18Client->sendRequest($request);
         } catch (NetworkExceptionInterface $e) {
             /// @todo can we tighten to catching Psr18NetworkException / NetworkExceptionInterface?
             if (str_contains($e->getMessage(), 'Max duration was reached') ||
@@ -83,7 +86,6 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
             if ($this->maxExecutionTime > 0 && $this->maxExecutionTime < (microtime(true) - $start)) {
                 throw new UpstreamRequestTimeout($e->getMessage(), $e->getCode(), $e);
             } else {
-                file_put_contents('/tmp/exc.log', "MEC: {$this->maxExecutionTime} vs. " . (microtime(true) - $start) . "\n", FILE_APPEND);
                 throw new UpstreamRequestError($e->getMessage(), $e->getCode(), $e);
             }
         }
