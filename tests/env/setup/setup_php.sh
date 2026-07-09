@@ -13,6 +13,8 @@ set -e
 echo "Installing PHP version '${1}'..."
 
 PHP_VERSION="$1"
+# @todo add kjdev/brotli, kjdev/zstd
+PIE_EXTENSIONS=''
 
 SCRIPT_DIR="$(dirname -- "$(readlink -f "$0")")"
 
@@ -136,6 +138,19 @@ else
     else
         install_ondrej
     fi
+fi
+
+# non-native php extensions
+if [ -n "$PIE_EXTENSIONS" ]; then
+    # @todo install the github cli to verify the pie download (see f.e. https://linuxcapable.com/how-to-install-github-cli-on-ubuntu-linux/)
+    #  && gh attestation verify --owner php /tmp/pie.phar \
+    curl -fL --output /tmp/pie.phar https://github.com/php/pie/releases/latest/download/pie.phar && \
+      mv /tmp/pie.phar /usr/local/bin/pie && \
+      chmod +x /usr/local/bin/pie
+
+    for EXTENSION in $PIE_EXTENSIONS; do
+        pie install --auto-install-build-tools --auto-install-system-dependencies --no-interaction "$EXTENSION"
+    done
 fi
 
 PHPVER=$(php -r 'echo implode(".",array_slice(explode(".",PHP_VERSION),0,2));' 2>/dev/null)
