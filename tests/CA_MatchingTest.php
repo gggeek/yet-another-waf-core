@@ -152,6 +152,8 @@ class CA_MatchingTest extends ProxyTestCase
         return self::getRuleBasedTestDataProviderOptions('get', 'failing');
     }
 
+/// @todo... add a test arg allowing sending compressed requests
+/// @todo... add test cases sending requests which populate $_POST, and check for that in the returned data
     #[DataProvider('passingPostRulesDataProvider')]
     public function testPassingPostRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
@@ -173,6 +175,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            /// @todo... check that we get back the json we sent
             $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
@@ -184,6 +187,8 @@ class CA_MatchingTest extends ProxyTestCase
         return self::getRuleBasedTestDataProviderOptions('post', 'passing');
     }
 
+/// @todo... add a test arg allowing sending compressed requests
+/// @todo... add test cases sending requests which populate $_POST
     #[DataProvider('failingPostRulesDataProvider')]
     public function testFailingPostRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
