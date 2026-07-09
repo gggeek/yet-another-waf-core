@@ -15,7 +15,12 @@ abstract class ProxyTestCase extends ServerTestCase
     protected function request(array $requestOptions, string $method = 'GET', string $path = '', array $testOptions = []): ResponseInterface
     {
         $client = $this->getProxyClient([], $testOptions);
-        return $client->request($method, static::getServerBaseUri() . (trim($path) === '' ? static::getServerPath() : $path), $requestOptions);
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            $uri = $path;
+        } else {
+            $uri = static::getServerBaseUri() . (trim($path) === '' ? static::getServerPath() : $path);
+        }
+        return $client->request($method, $uri, $requestOptions);
     }
 
     /**

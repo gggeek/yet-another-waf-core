@@ -67,7 +67,7 @@ class ProxyPage
         }
 
         // Allow the caller to pick a set of configs which differ based on the upstream webserver in use
-        // NB: make sure to allow usage of a proxy running on webserver X and upstream running on webserver Y
+        // @todo make sure to allow usage of a proxy running on webserver X and upstream running on webserver Y
         $dotenv = new Dotenv();
         $_ENV['SERVER_TYPE'] = 'nginx';
         if (isset($_SERVER['HTTP_X_YAWAF_SERVER_TYPE']) && in_array($_SERVER['HTTP_X_YAWAF_SERVER_TYPE'], ['apache', 'frankenphp'])) {
@@ -160,7 +160,11 @@ class ProxyPage
 
             // allow this to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_SCHEME', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']) !== '') {
-                $upstreamUri = TestProxy::getUpstreamUri($_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME']);
+                $upstreamUri = TestProxy::getUpstreamUri(
+                    $_SERVER['HTTP_X_YAWAF_UPSTREAM_SCHEME'],
+                    (array_key_exists('HTTP_X_YAWAF_UPSTREAM_PORT_OVERRIDE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_PORT_OVERRIDE']) !== '') ?
+                        (int)$_SERVER['HTTP_X_YAWAF_UPSTREAM_PORT_OVERRIDE'] : null
+                );
             } else {
                 $upstreamUri = TestProxy::getUpstreamUri();
             }

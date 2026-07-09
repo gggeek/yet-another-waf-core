@@ -53,20 +53,26 @@ class TestProxy extends MiddlewareAware
     /**
      * @throws \Exception
      */
-    public static function getUpstreamUri(string $scheme = 'http'): string
+    public static function getUpstreamUri(string $scheme = 'http', int|null $portOverride = null): string
     {
         switch ($scheme) {
             case 'http':
                 if (trim(@$_ENV['HTTPSERVER_HOST']) === '') {
                     throw new \Exception("Unsupported scheme for upstream server: $scheme");
                 }
-                return 'http://' . $_ENV['HTTPSERVER_HOST'] .
-                    (trim(@$_ENV['HTTPSERVER_PORT']) === '' ? '' : ':' . $_ENV['HTTPSERVER_PORT']) .
-                    $_ENV['HTTPSERVER_PATH'];
+                if ($portOverride !== null && $portOverride !== 0) {
+                    $port = ':' . $portOverride;
+                } else {
+                    $port = trim(@$_ENV['HTTPSERVER_PORT']) === '' ? '' : ':' . $_ENV['HTTPSERVER_PORT'];
+                }
+                return 'http://' . $_ENV['HTTPSERVER_HOST'] . $port . $_ENV['HTTPSERVER_PATH'];
             /// @todo...
             //case 'https':
             //case 'tcp':
             case 'unix':
+                if ($portOverride !== null && $portOverride !== 0) {
+                    throw new \Exception("Unsupported port override for upstream server: $scheme");
+                }
                 if (trim(@$_ENV['HTTPSERVER_SOCKET']) === '') {
                     throw new \Exception("Unsupported scheme for upstream server: $scheme");
                 }

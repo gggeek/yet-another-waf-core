@@ -30,7 +30,6 @@ class AB_ProxySmokeTest extends ProxyTestCase
     #[DataProvider('proxyTestsDataProvider')]
     public function testProxyAsUpstreamWithTestCookie(string|null $clientType = null, string $proxyScheme = 'http')
     {
-
         $clientOptions = ['base_uri' => static::getProxyBaseUri()];
         if ($proxyScheme === 'unix') {
             $clientOptions['bindto'] = $_ENV['PROXY_SOCKET'];

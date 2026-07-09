@@ -10,6 +10,9 @@ use YAWAF\Core\Proxy\Proxy;
 /// @todo declare dependency on SmokeTest
 class CB_HTTPTest extends ProxyTestCase
 {
+    /**
+     * Test getting back a 504 error if upstream is slow in sending back responses
+     */
     #[DataProvider('getCommonDataProviderOptions')]
     public function testSlowUpstream(string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
@@ -31,6 +34,54 @@ class CB_HTTPTest extends ProxyTestCase
             //$this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertEquals(Proxy::UPSTREAM_TIMEOUT_STATUS_CODE, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Test getting back a 404 error if using a bad uri path for upstream
+     */
+    #[DataProvider('getCommonDataProviderOptions')]
+    public function test404Upstream(string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        $rule = [['always' => true]];
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule)]],
+            'GET',
+            '/no_such_page',
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(404, $response->getStatusCode(), $failureMessage);
+            //$this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(404, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Test getting back a 502 error if using a bad port for upstream
+     */
+    #[DataProvider('getCommonDataProviderOptions')]
+    public function testNoUpstream(string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        $rule = [['always' => true]];
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config' => json_encode($rule), 'X-YAWAF-Upstream-Port-Override' => intval(@$_ENV['HTTPSERVER_PORT']) + 3000]],
+            'GET',
+            static::buildUrl([
+                    'scheme' => 'http', 'host' => $_ENV['HTTPSERVER_HOST'], 'port' => intval(@$_ENV['HTTPSERVER_PORT']) + 3000
+                ]) . static::getServerPath(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(Proxy::UPSTREAM_ERROR_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            //$this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(Proxy::UPSTREAM_ERROR_STATUS_CODE, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
         }
     }
 }
