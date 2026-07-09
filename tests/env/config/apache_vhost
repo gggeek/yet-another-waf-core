@@ -7,6 +7,10 @@
 <IfModule http2_module>
   LogLevel http2:info
 </IfModule>
+<IfModule mod_filter.c>
+    # enable compression for application/json
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
 
 Listen 81
 Listen 8081

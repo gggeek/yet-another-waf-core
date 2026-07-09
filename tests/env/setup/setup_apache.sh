@@ -19,6 +19,11 @@ apt-get install -y apache2 ssl-cert
 # set up Apache for php-fpm
 
 a2enmod rewrite proxy_fcgi setenvif ssl
+
+if [ -f /etc/apache2/mods-available/brotli.load ]; then
+    a2enmod brotli
+fi
+
 if [ -f /etc/apache2/mods-available/http2.load ]; then
     a2enmod http2
 fi

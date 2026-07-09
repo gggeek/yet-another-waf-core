@@ -7,6 +7,9 @@ log_format extended '$remote_addr - $remote_user [$time_local] '
 #       A single log file is nice to see the timin/interleaving of client requests to the proxy with proxy requests to the server.
 #       Otoh it makes it slightly harder to tell apart requests received on the various ports/sockets...
 
+# enable compression for application/json and other common response types we might produce (similar to Apache stock config)
+gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
 # HTTP
 
 server {
