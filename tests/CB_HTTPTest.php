@@ -14,8 +14,9 @@ class CB_HTTPTest extends ProxyTestCase
     public function testSlowUpstream(string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
-
-$this->markTestIncomplete('Test known to fail atm with Guzzle/Stream client. See issue #3809...');
+        if ($upstreamClientType === 'guzzle_stream') {
+            $this->markTestIncomplete('Test known to fail atm with Guzzle/Stream client. See issue #3809...');
+        }
 
         $rule = [['always' => true]];
         $response = $this->request(

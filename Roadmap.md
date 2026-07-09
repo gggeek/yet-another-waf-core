@@ -79,3 +79,7 @@
 - Misc
   - introduce more structured exceptions
   - allow fine-tuning resource usage: max concurrent conns, etc... (here on in downstream projects?)
+
+- Maybe?
+  - create our own implementation of the psr-compliant http upstream client used by the proxy (based on eg. phpxmlrpc),
+    as that might lead to easier-to-debug-and-maintain code than Sf and Guzzle...
