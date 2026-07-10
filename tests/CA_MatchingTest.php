@@ -401,20 +401,6 @@ class CA_MatchingTest extends ProxyTestCase
         return self::getRuleBasedTestDataProviderOptions('head', 'failing');
     }
 
-    protected static function getRuleBasedTestDataProviderOptions(string $method, string $status): array
-    {
-        $rootDir = __DIR__ . "/configs/matchers/$method/$status/";
-        $out = [];
-        foreach (scandir($rootDir) as $fileName) {
-            if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
-                foreach (self::getCommonDataProviderOptions() as $opts) {
-                    $out[] = array_merge(["matchers/$method/$status/$fileName"], $opts);
-                }
-            }
-        }
-        return $out;
-    }
-
     protected function getCommonRequestHeaders(): array
     {
         return [

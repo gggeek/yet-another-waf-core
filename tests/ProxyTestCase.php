@@ -136,6 +136,20 @@ abstract class ProxyTestCase extends ServerTestCase
         return ['sfhc_native', 'sfhc_curl', 'guzzle', 'guzzle_stream'];
     }
 
+    protected static function getRuleBasedTestDataProviderOptions(string $method, string $status): array
+    {
+        $rootDir = __DIR__ . "/configs/matchers/$method/$status/";
+        $out = [];
+        foreach (scandir($rootDir) as $fileName) {
+            if (is_file($rootDir . $fileName) && str_ends_with($fileName, '.json')) {
+                foreach (self::getCommonDataProviderOptions() as $opts) {
+                    $out[] = array_merge(["matchers/$method/$status/$fileName"], $opts);
+                }
+            }
+        }
+        return $out;
+    }
+
     /**
      * @throws \Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface
      * @throws \Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface

@@ -8,7 +8,7 @@ use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use YAWAF\Core\Proxy\Proxy;
 
 /// @todo declare dependency on SmokeTest
-class CB_HTTPTest extends ProxyTestCase
+class CB_HTTPErrorsTest extends ProxyTestCase
 {
     /**
      * Test getting back a 504 error if upstream is slow in sending back responses
