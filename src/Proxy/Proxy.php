@@ -6,7 +6,6 @@ namespace YAWAF\Core\Proxy;
 use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -17,7 +16,7 @@ use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\UpstreamClient\UpstreamClientFactory;
 use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
-class Proxy implements RequestHandlerInterface, LoggerAwareInterface
+class Proxy implements ProxyInterface, LoggerAwareInterface
 {
     const UPSTREAM_ERROR_STATUS_CODE = 502;
     const UPSTREAM_TIMEOUT_STATUS_CODE = 504;
@@ -28,6 +27,7 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     protected UpstreamClientInterface $client;
     protected array $overrideHeaders = [];
     protected array $overriddenHeaders = [];
+    protected string $viaHeaderPseudonym = 'YAWAF';
 
     /**
      * @todo fold the $logger arg into the options?
@@ -68,7 +68,7 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     /**
      * Aka "handleInner".
      * NB: when $client is async, this might not throw at all, but exceptions might be thrown when trying to read
-     * the response body...
+     * the response body later...
      *
      * @throws RequestDenied when using a middleware-aware client, this could be thrown
      * @throws UpstreamRequestError
@@ -77,10 +77,13 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     protected function sendRequest(UpstreamClientInterface $client, ServerRequestInterface $request): ResponseInterface
     {
         try {
+            $request = $request->withAddedHeader('Via', $this->getViaHeader($request));
             $response = $client->sendRequest($request);
 
             $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
                 $response->getReasonPhrase());
+
+            $response = $response->withAddedHeader('Via', $this->getViaHeader($request));
         } catch (RequestDenied $e) {
             $this->debug("Request denied before sending to upstream: " . $e->getMessage());
             throw $e;
@@ -119,5 +122,14 @@ class Proxy implements RequestHandlerInterface, LoggerAwareInterface
     protected function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface
     {
         return $response;
+    }
+
+    /**
+     * Override this if you prefer to have host:port, a version nr. in the pseudonym,  or any other compliant string.
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Via
+     */
+    public function getViaHeader(ServerRequestInterface $request): string
+    {
+        return $request->getProtocolVersion() . ' ' . $this->viaHeaderPseudonym;
     }
 }

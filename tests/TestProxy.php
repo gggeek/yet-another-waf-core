@@ -7,6 +7,7 @@ use GuzzleHttp\Handler\StreamHandler;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use YAWAF\Core\Proxy\ProxyInterface;
 use YAWAF\Core\Server\MiddlewareAware;
 use YAWAF\Core\UpstreamClient\GuzzleAdapter;
 use YAWAF\Core\UpstreamClient\SymfonyHttpClientAdapter;
@@ -30,15 +31,23 @@ class TestProxy extends MiddlewareAware
 
     protected function deniedResponse(ServerRequestInterface $request, \Throwable|null $e = null): ResponseInterface
     {
-        return new Response(
+        $response = new Response(
             self::ACCESS_DENIED_STATUS_CODE,
             ['content-type' => 'application/json'],
             json_encode(self::ACCESS_DENIED_RESPONSE));
+        if ($this->upstreamConnector instanceof ProxyInterface) {
+            $response = $response->withAddedHeader('Via', $this->upstreamConnector->getViaHeader($request));
+        }
+        return $response;
     }
 
     protected function errorResponse(ServerRequestInterface|null $request = null, \Throwable|null $e = null): ResponseInterface
     {
-        return self::getErrorResponse($e);
+        $response = self::getErrorResponse($e);
+        if ($this->upstreamConnector instanceof ProxyInterface) {
+            $response = $response->withAddedHeader('Via', $this->upstreamConnector->getViaHeader($request));
+        }
+        return $response;
     }
 
     public static function getErrorResponse(\Throwable|null $e = null): ResponseInterface

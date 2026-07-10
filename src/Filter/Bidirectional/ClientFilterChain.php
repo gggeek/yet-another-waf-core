@@ -20,7 +20,7 @@ class ClientFilterChain implements ClientBidirectionalFilterInterface
         }
     }
 
-    public function addFilter(ClientBidirectionalFilterInterface $filter)
+    public function addFilter(ClientBidirectionalFilterInterface $filter): void
     {
         $this->filters[] = $filter;
     }

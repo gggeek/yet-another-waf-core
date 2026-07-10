@@ -90,6 +90,7 @@ abstract class MiddlewareAware implements RequestHandlerInterface, LoggerAwareIn
      * Generates an "access denied" response.
      * Make sure to mimic what the upstream API returns by default for not-accepted requests - but give a specific hint
      * so that these responses can be told apart from the upstream's "access denied" ones.
+     * Also, it is a good idea to ask $upstreamConnector for data to add to the `via` header of the generated response.
      * @todo make it easy to set this response via configuration
      */
     abstract protected function deniedResponse(ServerRequestInterface $request, \Throwable|null $e = null): ResponseInterface;
@@ -98,6 +99,7 @@ abstract class MiddlewareAware implements RequestHandlerInterface, LoggerAwareIn
      * Generates an "error happened" response.
      * Make sure to mimic correctly what the upstream API returns by default for failed requests - but give a specific hint
      * so that these responses can be told apart from the upstream's "error happened" ones.
+     * Also, it is a good idea to ask $upstreamConnector for data to add to the `via` header of the generated response.
      * @todo make it easy to set this response via configuration
      */
     abstract protected function errorResponse(ServerRequestInterface $request, \Throwable|null $e = null): ResponseInterface;
