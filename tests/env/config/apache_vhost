@@ -17,6 +17,7 @@ Listen 8081
 Listen 444
 Listen 8444
 
+# Upstream server
 <VirtualHost *:81>
 
   <IfModule http2_module>
@@ -28,6 +29,8 @@ Listen 8444
 
   #ErrorLog "${TESTS_ROOT_DIR}/tests/env/var/apache_error.log"
   #CustomLog "${TESTS_ROOT_DIR}/tests/env/var/apache_access.log" combined
+
+  # @todo try to avoid mixing up access to the proxy and the server
 
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
@@ -43,6 +46,7 @@ Listen 8444
 
 </VirtualHost>
 
+# Proxy
 <VirtualHost *:8081>
 
   <IfModule http2_module>
@@ -73,6 +77,7 @@ Listen 8444
 
 <IfModule mod_ssl.c>
 
+# Upstream server
 <VirtualHost _default_:444>
 
   <IfModule http2_module>
@@ -84,6 +89,8 @@ Listen 8444
 
   #ErrorLog "${TESTS_ROOT_DIR}/tests/env/var/apache_error.log"
   #CustomLog "${TESTS_ROOT_DIR}/tests/env/var/apache_access.log" combined
+
+  # @todo try to avoid mixing up access to the proxy and the server
 
   <Directory "${TESTS_ROOT_DIR}/tests/public">
     Options FollowSymLinks MultiViews
@@ -118,6 +125,7 @@ Listen 8444
 
 </VirtualHost>
 
+# Proxy
 <VirtualHost _default_:8444>
 
   <IfModule http2_module>

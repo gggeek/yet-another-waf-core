@@ -13,6 +13,7 @@ gzip_vary on;
 
 # HTTP
 
+# Upstream server
 server {
 
     set $tests_root_dir /var/www/tests/public;
@@ -29,6 +30,11 @@ server {
     root $tests_root_dir;
 
     index index.php;
+
+    # try to avoid mixing up access to the proxy and the server
+    location /proxy.php {
+        return 418 "I'm an upstream server";
+    }
 
     location / {
             # First attempt to serve request as file, then
@@ -56,6 +62,7 @@ server {
     }
 }
 
+# Proxy
 server {
 
     set $tests_root_dir /var/www/tests/public;
@@ -103,6 +110,7 @@ server {
 
 # HTTPS
 
+# Upstream server
 server {
 
     set $tests_root_dir /var/www/tests/public;
@@ -122,6 +130,11 @@ server {
     root $tests_root_dir;
 
     index index.php;
+
+    # try to avoid mixing up access to the proxy and the server
+    location ^~ /proxy.php {
+        return 418 "I'm an upstream server";
+    }
 
     location / {
             # First attempt to serve request as file, then
@@ -149,6 +162,7 @@ server {
     }
 }
 
+# Proxy
 server {
 
     set $tests_root_dir /var/www/tests/public;
@@ -199,6 +213,7 @@ server {
 
 # UNIX SOCKET
 
+# Upstream server
 server {
 
     set $tests_root_dir /var/www/tests/public;
@@ -212,6 +227,11 @@ server {
     root $tests_root_dir;
 
     index index.php;
+
+    # try to avoid mixing up access to the proxy and the server
+    location ^~ /proxy.php {
+        return 418 "I'm an upstream server";
+    }
 
     location / {
             # First attempt to serve request as file, then
@@ -239,6 +259,7 @@ server {
     }
 }
 
+# Proxy
 server {
 
     set $tests_root_dir /var/www/tests/public;

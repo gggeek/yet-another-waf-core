@@ -36,6 +36,7 @@
     }
 }
 
+# Upstream server
 :1082 {
     root /var/www/tests/public
 
@@ -46,9 +47,13 @@
     # Allow the proxy to make requests that will result in a 404
     #rewrite * /server.php
 
+    # try to avoid mixing up access to the proxy and the server
+    respond /proxy.php 418
+
     php_server
 }
 
+# Proxy
 :8082 {
     root /var/www/tests/public
 
@@ -61,6 +66,7 @@
     php_server
 }
 
+# Upstream server
 # allow running unprivileged: instead of 82, go for 1082
 # @todo test if setcap works now that we set it up, and move back to port 82.
 #       Remember to change .env.frankenphp, Dockerfile and container.sh too
@@ -75,9 +81,13 @@
 
     #rewrite * /server.php
 
+    # try to avoid mixing up access to the proxy and the server
+    respond /proxy.php 418
+
     php_server
 }
 
+# Proxy
 :8082 {
     bind unix//run/frankenphp/caddy.proxy.sock|0222
 
