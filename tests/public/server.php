@@ -18,4 +18,4 @@ $dotenv->loadEnv(__DIR__.'/../.env');
 $server = new TestServer();
 
 $server->preflight();
-$server->respond(@$_GET['action'] ?? 'info', @$_GET['action_args'] ? (array)$_GET['action_args'] : []);
+$server->respond(@$_SERVER['REQUEST_METHOD'] ?? 'GET', @$_GET['action'] ?? 'info', @$_GET['action_args'] ? (array)$_GET['action_args'] : []);

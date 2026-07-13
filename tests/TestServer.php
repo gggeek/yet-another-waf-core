@@ -10,11 +10,16 @@ use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use YAWAF\Core\ServerRequest\Psr7\Creator as ServerRequestCreator;
 use YAWAF\Core\Stdlib;
+use YAWAF\Core\Tracer\RequestTracerTrait;
 
 class TestServer
 {
     const DEFAULT_RESPONSE = ['result' => 'OK', '_GET' => [], '_POST' => [], '_COOKIE' => [], 'getallheaders' => null,
         'getHeadersFromServer' => [], 'requestBody' => null, 'serverRequest' => null];
+
+    use RequestTracerTrait;
+
+    protected string $requestPrefix = '';
 
     public function preflight(): void
     {
@@ -33,8 +38,17 @@ class TestServer
 */
     }
 
-    public function respond(string $action = 'info', array $actionArgs = []): void
+    public function respond(string $requestMethod = 'GET', string $action = 'info', array $actionArgs = []): void
     {
+        switch ($requestMethod) {
+            case 'OPTIONS':
+                $this->displayOptionsResponse();
+                return;
+            case 'TRACE':
+                $this->displayTraceResponse();
+                return;
+        }
+
         switch ($action) {
             case 'error':
                 $this->displayErrorResponse($actionArgs[0] ?? 500);
@@ -49,6 +63,27 @@ class TestServer
             default:
                 $this->displayInfoResponse($actionArgs[0] ?? 'yawaf');
         }
+    }
+
+    /**
+     * Displays an error response
+     */
+    protected function displayErrorResponse($statusCode = 500, string $message = ''): void
+    {
+        if ($statusCode < 400 || $statusCode > 599) {
+            throw new \InvalidArgumentException("Unsupported status code for returning an error response");
+        }
+        http_response_code($statusCode);
+        echo $message;
+    }
+
+    /**
+     * Displays the response to an Options method
+     */
+    protected function displayOptionsResponse(): void
+    {
+        http_response_code(204);
+        header('Allow: GET, HEAD, OPTIONS, POST, PUT, TRACE');
     }
 
     /**
@@ -70,18 +105,6 @@ class TestServer
         }
     }
 
-    /**
-     * Displays an error response
-     */
-    protected function displayErrorResponse($statusCode = 500, string $message = ''): void
-    {
-        if ($statusCode < 400 || $statusCode > 599) {
-            throw new \InvalidArgumentException("Unsupported status code for returning an error response");
-        }
-        http_response_code($statusCode);
-        echo $message;
-    }
-
     protected function displaySlowResponse($duration = 30): void
     {
         if ($duration < 0 || $duration > ini_get('max_execution_time')) {
@@ -94,6 +117,15 @@ class TestServer
             usleep(500000);
         }
         echo ":-)";
+    }
+
+    /**
+     * Displays the response to a Trace method
+     */
+    protected function displayTraceResponse(string $serverRequestLibrary = 'yawaf')
+    {
+        header('Content-Type: message/http');
+        echo $this->serializeRequest($this->buildServerRequest($serverRequestLibrary));
     }
 
     /**
