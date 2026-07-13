@@ -82,7 +82,6 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
 
             $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
                 $response->getReasonPhrase());
-
             $response = $response->withAddedHeader('Via', $this->getViaHeader($request));
         } catch (RequestDenied $e) {
             $this->debug("Request denied before sending to upstream: " . $e->getMessage());

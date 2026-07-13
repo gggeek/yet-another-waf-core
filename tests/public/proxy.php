@@ -90,7 +90,9 @@ class ProxyPage
         if ($logger) {
             $logger->debug("Loaded .env config for SERVER_TYPE: {$_ENV['SERVER_TYPE']}");
             if (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] !== '') {
-                $logger->debug("Proxy listening on port: {$_SERVER['SERVER_PORT']}");
+                /// @todo this seems to be wrong most of the time. $_SERVER['SERVER_PORT'] is most likely built from
+                ///       the received `Host` header...
+                //$logger->debug("Proxy listening on port: {$_SERVER['SERVER_PORT']}");
             } else {
                 $logger->debug("Proxy listening on a unix socket");
             }
@@ -155,8 +157,8 @@ class ProxyPage
             }
             $middlewareChain->appendMiddleware($firewall);
 
-            // This can disable requesting for compressed responses - currently done to avoid issues with Body matchers
-            // and to ease troubleshooting by visual inspection of payloads
+            // This can disable/change requesting for compressed responses - currently done both to avoid issues with
+            // Body matchers and to ease troubleshooting by visual inspection of payloads
             if (array_key_exists('HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING']) !== '') {
                 if ($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING'] === 'none') {
                     $middlewareChain->appendMiddleware(new RemoveAcceptEncoding());
@@ -164,7 +166,6 @@ class ProxyPage
                     $middlewareChain->appendMiddleware(new ForceAcceptEncoding($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING']));
                 }
             }
-
 
             // allow the scheme+port to be set via a custom http header, to test http:// vs https:// vs tcp:// vs unix:/
             /// @todo allow the caller to request for a non-existent, controlled unix socket. Also, no need to allow

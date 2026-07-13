@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace YAWAF\Core\Filter\Bidirectional;
 
@@ -11,6 +12,8 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 class ForceAcceptEncoding extends RequestHeaderAdder
 {
+    use BodyCompressorTrait;
+
     public function __construct(string $acceptEncoding)
     {
         parent::__construct(['Accept-encoding' => $acceptEncoding]);
@@ -18,9 +21,13 @@ class ForceAcceptEncoding extends RequestHeaderAdder
 
     public function filterResponse(ResponseInterface $response, ServerRequestInterface $request): ResponseInterface
     {
-        if ($response->hasHeader('Content-Encoding')) {
-/// @todo... recode the response body using a compression which was part of the accepted ones (stored in $this->overriddenHeaders)
-///          NB: the content could have been multiple-encoded, such as `deflate, gzip`
+        if ($response->hasHeader('Content-Encoding') && isset($this->overriddenHeaders['Accept-Encoding'])) {
+            $response = $this->transcodeResponseBody($response, $this->overriddenHeaders['Accept-Encoding']);
+
+            /// @todo is 'accept-encoding' always lowercase?
+            if (!$response->hasHeader('Vary') || !in_array('accept-encoding', $response->getHeader('Vary'))) {
+                $response = $response->withAddedHeader('Vary', 'accept-encoding');
+            }
         }
 
         return $response;

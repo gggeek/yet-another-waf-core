@@ -49,14 +49,19 @@ class GuzzleAdapter implements UpstreamClientInterface
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
         try {
+            // NB: guzzle does transparently decompress the responses, and it gives us back the plain body, stripping the
+            // Content-Encoding header
             if ($this->maxExecutionTime > 0) {
                 $start = microtime(true);
                 $response = $this->guzzleClient->sendRequest($request);
-                // we have to force reading the whole resp. body to make sure that we trigger timeouts
-                //$response->getBody()->getContents();
+                /// @todo (starting w. guzzle 8) we have to force reading the whole resp. body to make sure that we trigger timeouts
+                //$stream = $response->getBody();
+                //$stream->rewind();
+                //$body = $stream->getContents();
                 return $response;
             } else {
-                return $this->guzzleClient->sendRequest($request);
+                $response = $this->guzzleClient->sendRequest($request);
+                return $response;
             }
         } catch (NetworkExceptionInterface $e) {
             // this is when using curl and there is a read timeout

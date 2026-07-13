@@ -63,14 +63,26 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
         try {
-            if ($this->maxExecutionTime > 0) {
+            if ($this->maxExecutionTime > 0 || !$request->hasHeader('Accept-Encoding')) {
                 $start = microtime(true);
                 $response = $this->psr18Client->sendRequest($request);
-                // we have to force reading the whole resp. body to make sure that we trigger timeouts
-                $response->getBody()->getContents();
+                // We have to force reading the whole resp. body to make sure that we trigger timeouts.
+                // Also, the SF Http Client requests for gzip responses and auto-inflates responses when the original
+                // request has no accept-encoding header. But it does not strip the 'Content-Encoding' resp. header...
+                // @see https://github.com/symfony/symfony/issues/64869
+
+                $stream = $response->getBody();
+                $stream->getContents();
+                $stream->rewind();
+
+                if (!$request->hasHeader('Accept-Encoding') && $response->hasHeader('Content-Encoding') &&
+                    $response->getHeaderLine('Content-Encoding') === 'gzip' /*&& $body !== ''*/) {
+                    $response = $response->withoutHeader('Content-Encoding');
+                }
                 return $response;
             } else {
-                return $this->psr18Client->sendRequest($request);
+                $response = $this->psr18Client->sendRequest($request);
+                return $response;
             }
         } catch (NetworkExceptionInterface $e) {
             /// @todo can we tighten to catching Psr18NetworkException / NetworkExceptionInterface?
