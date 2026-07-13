@@ -114,7 +114,9 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
-            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+            $data = $response->toArray(false);
+            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $data['result'], $failureMessage);
+            $this->assertEquals(['test' => 'localhost'], $data['requestBody'], $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }

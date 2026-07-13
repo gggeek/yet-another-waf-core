@@ -211,7 +211,7 @@ class ProxyPage
         }
 
         foreach ($_COOKIE as $name => $value) {
-            if (str_starts_with($name, 'PHPUNIT_')) {
+            if (str_starts_with($name, 'PHPUNIT_') && $name !== 'PHPUNIT_RANDOM_TEST_ID') {
                 $this->removeCookieFromEnv($name);
             }
         }

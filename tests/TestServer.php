@@ -14,7 +14,24 @@ use YAWAF\Core\Stdlib;
 class TestServer
 {
     const DEFAULT_RESPONSE = ['result' => 'OK', '_GET' => [], '_POST' => [], '_COOKIE' => [], 'getallheaders' => null,
-        'getHeadersFromServer' => [], 'serverRequest' => null];
+        'getHeadersFromServer' => [], 'requestBody' => null, 'serverRequest' => null];
+
+    public function preflight(): void
+    {
+/// @todo... enable this after we add support for the PHPUNIT_RANDOM_TEST_ID cookie in the direct-access tests
+/*
+        // In case this file is made available on an open-access server, avoid it being useable by anyone who can not
+        // also write a specific file to disk.
+        // NB: keep filename, cookie name in sync with the code within the TestCase classes sending http requests to this file
+        $idFile = sys_get_temp_dir() . '/phpunit_rand_id.txt';
+        $randId = $_COOKIE['PHPUNIT_RANDOM_TEST_ID'] ?? '';
+        $fileId = file_exists($idFile) ? file_get_contents($idFile) : '';
+        if ($randId == '' || $fileId == '' || $fileId !== $randId) {
+            header('HTTP/1.1 400 Bad Request');
+            die('This url can only be accessed by the test suite');
+        }
+*/
+    }
 
     public function respond(string $action = 'info', array $actionArgs = []): void
     {
@@ -85,6 +102,7 @@ class TestServer
     protected function displayInfoResponse(string $serverRequestLibrary = 'yawaf'): void
     {
         $serverRequest = $this->buildServerRequest($serverRequestLibrary);
+        $requestHeaders = Stdlib::getHeadersFromServer($_SERVER);
 
         $response = array_merge(
             self::DEFAULT_RESPONSE,
@@ -92,10 +110,10 @@ class TestServer
                 '_GET' => $_GET,
                 '_POST' => $_POST,
                 '_COOKIE' => $_COOKIE,
-                /// @todo add php://input if $_POST is empty and/or the request is not GET / based on content-type req. header
                 /// @todo add other bits of $_SERVER and $_ENV that we know are used by ServerRequestCreator::fromGlobals
                 /// @todo what about $_FILES?
-                'getHeadersFromServer' => Stdlib::getHeadersFromServer($_SERVER),
+                'getHeadersFromServer' => $requestHeaders,
+                'requestBody' => $this->decodeRequestBody(file_get_contents('php://input'), $requestHeaders),
                 'serverRequest' => [
                     'method' => $serverRequest->getMethod(),
                     'protocolversion' => $serverRequest->getProtocolVersion(),
@@ -120,7 +138,6 @@ class TestServer
 
         header('Content-type: application/json');
         if (@$_SERVER['REQUEST_METHOD'] === 'HEAD') {
-            // NB: sending back a Content-Length but no Body gives the fits to Guzzle, but also to webservers...
             // (note that this is allowed as per RFC 9110)
             header("Content-Length: " . strlen($response));
         } else {
@@ -151,5 +168,30 @@ class TestServer
             default:
                 throw new \InvalidArgumentException("Unsupported library for creating a ServerRequestInterface instance: '$library'");
         }
+    }
+
+    protected function decodeRequestBody(string $body, array $requestHeaders): mixed
+    {
+        if ($body !== '') {
+            if (isset($requestHeaders['content-encoding'])) {
+                switch ($requestHeaders['content-encoding']) {
+                    case 'deflate':
+                        $body = @gzuncompress($body);
+                        break;
+                    case 'gzip':
+                        $body = @gzinflate(substr($body, 10, -8));
+                        break;
+                }
+            }
+
+            if (isset($requestHeaders['content-type'])) {
+                switch ($requestHeaders['content-type']) {
+                    case 'application/json':
+                        return @json_decode($body);
+                }
+            }
+        }
+
+        return $body;
     }
 }

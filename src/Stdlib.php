@@ -29,6 +29,8 @@ class Stdlib
      * Implementation from Nyholm\Psr7Server\ServerRequestCreator::getHeadersFromServer(), originally from Laminas\Diactoros\marshalHeadersFromSapi().
      * @todo... test differences with https://github.com/ralouphie/getallheaders/blob/develop/src/getallheaders.php for hackish cases
      *          (see also the comments in https://www.php.net/manual/en/function.apache-request-headers.php)
+     *          For a start, we should add an `ucwords` call to be compatible...
+     *          Also, we should replace spaces in header names (in case someone edited $server by hand)
      */
     public static function getHeadersFromServer(array $server): array
     {
