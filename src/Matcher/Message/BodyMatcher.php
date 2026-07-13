@@ -31,7 +31,7 @@ class BodyMatcher extends BaseMatcher
     public function matchesMessage(MessageInterface $message): bool
     {
 /// @todo... inject/save the inflated message body for further reuse: when $message is a ServerRequestInterface using an attribute,
-///          when it's a RequestInterface wrap it in a custom descendant which adds set/getAttributes
+///          when it's a RequestInterface wrap it in a custom descendant class which adds set/getAttributes
         if ($this->messageBodyIsCompressed($message) /*|| $this->messageBodyIsChunked($message)*/) {
             $body = $this->decompressMessageBody($message);
         } else {

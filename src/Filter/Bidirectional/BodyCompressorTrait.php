@@ -6,11 +6,16 @@ namespace YAWAF\Core\Filter\Bidirectional;
 use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use YAWAF\Core\Exception\RequestBodyCantBeCompressed;
 use YAWAF\Core\Exception\RequestBodyCantBeDecompressed;
 use YAWAF\Core\Exception\ResponseBodyCantBeCompressed;
 use YAWAF\Core\Exception\ResponseBodyCantBeDecompressed;
 
+/**
+ * @todo according to https://en.wikipedia.org/wiki/HTTP_compression, there are many unofficial compression schemes
+ *       in use in the wild: bzip2,lzip, lzma, peerdist, rsync, xpress and xz. should we support those?
+ */
 trait BodyCompressorTrait
 {
     protected function messageBodyIsCompressed(MessageInterface $message): bool
@@ -30,44 +35,121 @@ trait BodyCompressorTrait
         return $message->hasHeader('Transfer-Encoding');
     }
 
-    /**
-     * @param string[] $contentEncodings
-     * @throws RequestBodyCantBeCompressed
-     * @throws ResponseBodyCantBeCompressed
-     */
     protected function compressMessageBody(MessageInterface $message, array $contentEncodings, string &$actualEncoding): string
     {
-/// @todo...
-        throw new \Exception("compressMessageBody: not implemented yet!");
+        /// @todo implement streaming compression
+        $stream = $message->getBody();
+        $stream->rewind();
+        $body = $stream->getContents();
 
-        foreach ($contentEncodings as $contentEncoding) {
-            switch (strtolower($contentEncoding)) {
-                /// @todo add support for brotli, zstd if those extensions exist (check for functions, not exts)
-                //case 'br':
-                //case 'dcb':
-                //case 'dcz':
-                //    $actualEncoding = $contentEncoding;
-                //    return '...';
-                case 'deflate':
-                    $actualEncoding = $contentEncoding;
-                    return '...';
-                case 'gzip':
-                    $actualEncoding = $contentEncoding;
-                    return '...';
-                case 'identity':
-                    return '';
-                //case 'zstd':
-                //    $actualEncoding = $contentEncoding;
-                //    return '...';
-                default:
-                    // do nothing
+        $out = $this->compressPayload($body, $contentEncodings, $actualEncoding);
+
+        if ($out === false) {
+            if ($message instanceof RequestInterface) {
+                throw new RequestBodyCantBeCompressed("Unsupported content-encoding(s): '" . implode("', '", $contentEncodings) . "'");
+            } else {
+                throw new ResponseBodyCantBeCompressed("Unsupported content-encoding(s): '" . implode("', '", $contentEncodings) . "'");
             }
         }
-        if ($message instanceof RequestInterface) {
-            throw new RequestBodyCantBeCompressed("Unsupported content-encoding(s): '" . implode("', '", $contentEncodings) . "'");
-        } else {
-            throw new ResponseBodyCantBeCompressed("Unsupported content-encoding(s): '" . implode("', '", $contentEncodings) . "'");
+
+        return $out;
+    }
+
+    /**
+     * Compresses a string with the first possible encoding from a given list. Does not modify the message headers.
+     * Does not check if the message was already compressed.
+     * @param string[] $contentEncodings
+     * @param string $actualEncoding Encoding used. Will be set to an empty string when 'identity' is passed in
+     */
+    protected function compressPayload(string $body, array $contentEncodings, string|null &$actualEncoding): string|false
+    {
+        foreach ($contentEncodings as $contentEncoding) {
+
+            $contentEncoding = strtolower($contentEncoding);
+
+            switch ($contentEncoding) {
+                /// @todo add support for aes128gcm, dcb, dcz, exi, pack200-gzip
+                case 'br':
+                //case 'dcb':
+                //case 'dcz':
+                    if (function_exists('brotli_compress')) {
+                        $compressed = @brotli_compress($body);
+                        if ($compressed !== false) {
+                            $actualEncoding = $contentEncoding;
+                            return $compressed;
+                        } else {
+                            if (isset($this->logger) && $this->logger instanceof LoggerInterface) {
+                                $this->logger->warning("Failed compressing message body with brotli_compress");
+                            }
+                        }
+                    }
+                    break;
+                /// @todo... uncomment this after testing that the UnixCompressor works
+                /*case 'compress':
+                case 'x-compress':
+                        $compressed = UnixCompressor::compress($body);
+                        if ($compressed !== false) {
+                            $actualEncoding = $contentEncoding;
+                            return $compressed;
+                        } else {
+                            if (isset($this->logger) && $this->logger instanceof LoggerInterface) {
+                                $this->logger->warning("Failed compressing message body with compress");
+                            }
+                        }
+                    }
+                    break;*/
+                case 'deflate':
+                    if (function_exists('gzcompress')) {
+                        $compressed = @gzcompress($body);
+                        if ($compressed !== false) {
+                            $actualEncoding = $contentEncoding;
+                            return $compressed;
+                        } else {
+                            if (isset($this->logger) && $this->logger instanceof LoggerInterface) {
+                                $this->logger->warning("Failed compressing message body with gzcompress");
+                            }
+                        }
+                    }
+                    break;
+                case 'gzip':
+                case 'x-gzip':
+                    if (function_exists('gzencode')) {
+                        $compressed = @gzencode($body);
+                        if ($compressed !== false) {
+                            $actualEncoding = $contentEncoding;
+                            return $compressed;
+                        } else {
+                            if (isset($this->logger) && $this->logger instanceof LoggerInterface) {
+                                $this->logger->warning("Failed compressing message body with gzencode");
+                            }
+                        }
+                    }
+                    break;
+                case 'identity':
+                    $actualEncoding = ''; //$contentEncoding;
+                    return $body;
+                case 'zstd':
+                    if (function_exists('zstd_compress')) {
+                        $compressed = @zstd_compress($body);
+                        if ($compressed !== false) {
+                            $actualEncoding = $contentEncoding;
+                            return $compressed;
+                        } else {
+                            if (isset($this->logger) && $this->logger instanceof LoggerInterface) {
+                                $this->logger->warning("Failed compressing message body with zstd_compress");
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    // do nothing
+                    if (isset($this->logger) && $this->logger instanceof LoggerInterface) {
+                        $this->logger->warning("Unsupported compression scheme for message body: '$contentEncoding'");
+                    }
+            }
         }
+
+        return false;
     }
 
     /**
@@ -106,6 +188,13 @@ trait BodyCompressorTrait
                         $errorMessage = "Unsupported content-encoding: '$contentEncoding' (missing php function: brotli_uncompress)";
                     }
                     break;
+                /// @todo enable this after we tested the UnixCompressor
+                /*case 'compress':
+                    $body = UnixCompressor::uncompress($body);
+                    if ($body === false) {
+                        $errorMessage = "Failed decompressing " . $contentEncoding . " body";
+                    }
+                    break;*/
                 case 'deflate':
                     if (function_exists('gzuncompress')) {
                         $body = @gzuncompress($body);
@@ -324,5 +413,4 @@ trait BodyCompressorTrait
         return $new;
     }
 */
-
 }

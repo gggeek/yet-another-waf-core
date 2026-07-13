@@ -161,8 +161,10 @@ class ProxyPage
             // Body matchers and to ease troubleshooting by visual inspection of payloads
             if (array_key_exists('HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING']) !== '') {
                 if ($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING'] === 'none') {
+                    $logger->debug("Removing existing accept-encoding headers to connect to upstream");
                     $middlewareChain->appendMiddleware(new RemoveAcceptEncoding());
                 } else {
+                    $logger->debug("Forcing '{$_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING']}' accept-encoding header to connect to upstream");
                     $middlewareChain->appendMiddleware(new ForceAcceptEncoding($_SERVER['HTTP_X_YAWAF_FORCE_ACCEPT_ENCODING']));
                 }
             }
