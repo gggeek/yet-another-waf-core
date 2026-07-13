@@ -118,6 +118,9 @@ class ProxyPage
             // NB: HTTP_PROXY uppercase should not be used by any clients, as it can be spoofed by an http header from clients...
             unset($_SERVER['http_proxy'], $_SERVER['HTTP_PROXY'], $_SERVER['https_proxy'], $_SERVER['HTTPS_PROXY'], $_SERVER['no_proxy'], $_SERVER['NO_PROXY']);
 
+            // avoid php interfering with the proxy sending out compressed responses
+            ini_set('zlib.output_compression', 0);
+
             if (array_key_exists('HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']) !== '') {
                 $logger->debug("Using '{$_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']}' client type to connect to upstream");
                 $httpClient = TestProxy::createUpstreamClient($_SERVER['HTTP_X_YAWAF_UPSTREAM_CLIENT_TYPE']);
