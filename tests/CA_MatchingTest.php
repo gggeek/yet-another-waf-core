@@ -349,8 +349,9 @@ class CA_MatchingTest extends ProxyTestCase
         }
 
         // NB: we try to make sure that the port is not use, by increasing it on every pass of the test.
-        // Atm this kind "generally" works, helped by the fact that we tell curl to use http 1.0, which means connections
-        // getting closed immediately after use instead of being kept open for reuse until
+        // Atm this kind "generally" works, helped by the fact that we tell curl to use http 1.0 for this test, which
+        // means connections getting closed immediately after use instead of being kept open for reuse.
+        // Nonetheless, there is no real guarantee that self::$clientPort + 1 is available at this very moment...
         self::$clientPort += 1;
 
         $rule = [['client_port' => self::$clientPort]];

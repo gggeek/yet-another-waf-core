@@ -37,8 +37,12 @@ class AC_CompressSmokeTest extends TestCase
 
         $unixCompressed = file_get_contents($fileName . '.Z');
 
-        unlink($fileName);
-        unlink($fileName . '.Z');
+        if (file_exists($fileName)) {
+            unlink($fileName);
+        }
+        if (file_exists($fileName . '.Z')) {
+            unlink($fileName . '.Z');
+        }
 
 /// @todo... enable this, after we fix the trailing padding bytes issue
         //$compressed = UnixCompressor::compress($data);
