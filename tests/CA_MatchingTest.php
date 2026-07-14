@@ -9,6 +9,8 @@ use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 /// @todo declare dependency on SmokeTest
 class CA_MatchingTest extends ProxyTestCase
 {
+    static protected int $clientPort = 31000;
+
     #[DataProvider('invalidRulesDataProvider')]
     public function testInvalidRules(string $configAsString, string|null $clientType = null, string $proxyScheme = 'http',
        string|null $upstreamClientType = null, string $serverScheme = 'http')
@@ -226,10 +228,8 @@ class CA_MatchingTest extends ProxyTestCase
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         // skip test cases which are bound to fail with given configs
-        /// @todo this should be more robust/flexible...
+        /// @todo use a custom DataProvider
         if ($proxyScheme === 'unix') {
-            // avoid the line noise from the skipped test
-            //$this->markTestSkipped('Can not test a client_address match when running the proxy on a unix socket');
             $this->assertEquals(0, 0);
             return;
         }
@@ -256,10 +256,8 @@ class CA_MatchingTest extends ProxyTestCase
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
         // skip test cases which are bound to fail with given configs
-        /// @todo this should be more robust/flexible...
+        /// @todo use a custom DataProvider
         if ($proxyScheme === 'unix') {
-            // avoid the line noise from the skipped test
-            //$this->markTestSkipped('Can not test a client_address match when running the proxy on a unix socket');
             $this->assertEquals(0, 0);
             return;
         }
@@ -339,6 +337,74 @@ class CA_MatchingTest extends ProxyTestCase
         }
     }
 
+    #[DataProvider('getCommonDataProviderOptions')]
+    public function testClientPortMatcher(string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        // skip test cases which are bound to fail with given configs
+        /// @todo use a custom DataProvider
+        if ($proxyScheme === 'unix' || $clientType === 'native') {
+            $this->assertEquals(0, 0);
+            return;
+        }
+
+        // NB: we try to make sure that the port is not use, by increasing it on every pass of the test.
+        // Atm this kind "generally" works, helped by the fact that we tell curl to use http 1.0, which means connections
+        // getting closed immediately after use instead of being kept open for reuse until
+        self::$clientPort += 1;
+
+        $rule = [['client_port' => self::$clientPort]];
+        $response = $this->request(
+            [
+                'headers' => ['X-YAWAF-Config' => json_encode($rule)] + $this->getCommonRequestHeaders(),
+                'http_version' => '1.0',
+                'bindto' => '127.0.0.1:' . self::$clientPort
+            ],
+            'GET',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
+    }
+
+    #[DataProvider('getCommonDataProviderOptions')]
+    public function testClientPortMatcherFail(string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        // skip test cases which are bound to fail with given configs
+        /// @todo use a custom DataProvider
+        if ($proxyScheme === 'unix' || $clientType === 'native') {
+            $this->assertEquals(0, 0);
+            return;
+        }
+
+        // the server port can not be the client port :-D
+        $rule = [['client_port' => $_ENV['HTTPSERVER_PORT']]];
+        $response = $this->request(
+            [
+                'headers' => ['X-YAWAF-Config' => json_encode($rule)] + $this->getCommonRequestHeaders(),
+            ],
+            'GET',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            $this->assertSame($response->toArray(false), TestProxy::ACCESS_DENIED_RESPONSE, $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
+    }
+
     #[DataProvider('passingHeadRulesDataProvider')]
     public function testPassingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
@@ -348,8 +414,6 @@ class CA_MatchingTest extends ProxyTestCase
         if ($proxyScheme === 'unix' && in_array(basename($configFileName), [
                 '001_client_address_fixed.json', '003_client_address_many.json',
             ])) {
-            // avoid the line noise from the skipped test
-            //$this->markTestSkipped('Can not test a client_address match when running the proxy on a unix socket');
             $this->assertEquals(0, 0);
             return;
         }
