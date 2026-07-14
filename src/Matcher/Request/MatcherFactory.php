@@ -19,8 +19,8 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
     use LoggerAwareTrait;
 
     protected array $supportedMatcherTypes = [
-        'body', 'client_address', 'client_port', 'content_type', 'host', 'http_header', 'http_method', 'port', 'scheme',
-        'query_string', 'url_path', 'user_agent'
+        'body', 'client_address', 'client_port', 'content_type', 'host', 'http_header', 'http_method', 'port',
+        'protocol_version', 'scheme', 'query_string', 'url_path', 'user_agent'
     ];
 
     public function __construct(LoggerInterface|null $logger = null)
@@ -72,6 +72,9 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
             /// @todo accept 'method' as an alias?
             case 'http_method':
                 $matcher = new MethodMatcher($values);
+                break;
+            case 'protocol_version':
+                $matcher = new ProtocolVersionMatcher($values);
                 break;
             case 'port':
                 $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);
