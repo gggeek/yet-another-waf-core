@@ -62,23 +62,31 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
      */
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
+        if (!$request->hasHeader('Accept-Encoding') && extension_loaded('zlib')) {
+            // Prevent the Symfony http client from sneakily asking for gzipped responses on our behalf.
+            // 'Accept-Encoding: *' is, per the spec, the same as not sending an Accept-Encoding header
+            $request = $request->withHeader('Accept-Encoding', '*');
+        }
+
         try {
             if ($this->maxExecutionTime > 0 || !$request->hasHeader('Accept-Encoding')) {
                 $start = microtime(true);
                 $response = $this->psr18Client->sendRequest($request);
                 // We have to force reading the whole resp. body to make sure that we trigger timeouts.
-                // Also, the SF Http Client requests for gzip responses and auto-inflates responses when the original
-                // request has no accept-encoding header. But it does not strip the 'Content-Encoding' resp. header...
-                // @see https://github.com/symfony/symfony/issues/64869
+
 
                 $stream = $response->getBody();
                 $stream->getContents();
                 $stream->rewind();
 
+                /* This is now fixed above.
+                // Also, the SF Http Client requests for gzip responses and auto-inflates responses when the original
+                // request has no accept-encoding header. But it does not strip the 'Content-Encoding' resp. header...
+                // @see https://github.com/symfony/symfony/issues/64869
                 if (!$request->hasHeader('Accept-Encoding') && $response->hasHeader('Content-Encoding') &&
-                    $response->getHeaderLine('Content-Encoding') === 'gzip' /*&& $body !== ''*/) {
+                    $response->getHeaderLine('Content-Encoding') === 'gzip') {
                     $response = $response->withoutHeader('Content-Encoding');
-                }
+                }*/
                 return $response;
             } else {
                 $response = $this->psr18Client->sendRequest($request);
