@@ -12,6 +12,6 @@ class JsonFileLogger extends FileLogger
             'timestamp' => microtime(true),
             'message' => $message,
             'context' => $context,
-        ]);
+        ], JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION);
     }
 }

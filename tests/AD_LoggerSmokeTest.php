@@ -1,0 +1,49 @@
+<?php
+declare(strict_types=1);
+
+namespace YAWAF\Core\Tests;
+
+use YAWAF\Core\Logger\FileLogger;
+use YAWAF\Core\Logger\JsonFileLogger;
+use YAWAF\Core\Logger\LoggerChain;
+use Yoast\PHPUnitPolyfills\TestCases\TestCase;
+
+class AD_LoggerSmokeTest extends TestCase
+{
+    public function testFileLoggers()
+    {
+        if (file_exists(sys_get_temp_dir() . '/test.log')) {
+            unlink(sys_get_temp_dir() . '/test.log');
+        }
+        if (file_exists(sys_get_temp_dir() . '/test.json.log')) {
+            unlink(sys_get_temp_dir() . '/test.json.log');
+        }
+
+        $logger = new LoggerChain([
+            new FileLogger(sys_get_temp_dir() . '/test.log'),
+            new JsonFileLogger(sys_get_temp_dir() . '/test.json.log'),
+        ]);
+
+        $logger->debug('This should not be logged');
+        $logger->info('This should not be logged either');
+        $logger->warning('This should be logged as warning');
+        $logger->error('This should be logged as error');
+
+        $data = file_get_contents(sys_get_temp_dir() . '/test.log');
+        $jsonData = file_get_contents(sys_get_temp_dir() . '/test.json.log');
+        if (file_exists(sys_get_temp_dir() . '/test.log')) {
+            unlink(sys_get_temp_dir() . '/test.log');
+        }
+        if (file_exists(sys_get_temp_dir() . '/test.json.log')) {
+            unlink(sys_get_temp_dir() . '/test.json.log');
+        }
+
+        $this->assertStringNotContainsString('This should not be logged', $data);
+        $this->assertStringContainsString('This should be logged as warning', $data);
+        $this->assertStringContainsString('This should be logged as error', $data);
+
+        $this->assertStringNotContainsString('This should not be logged', $jsonData);
+        $this->assertStringContainsString('"This should be logged as warning"', $jsonData);
+        $this->assertStringContainsString('"This should be logged as error"', $jsonData);
+    }
+}
