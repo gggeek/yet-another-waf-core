@@ -42,8 +42,12 @@ class AD_LoggerSmokeTest extends TestCase
         $this->assertStringContainsString('This should be logged as warning', $data);
         $this->assertStringContainsString('This should be logged as error', $data);
 
+        /// @todo split the json log on "\n", check that each line is valid json, and it has the expected members
+
         $this->assertStringNotContainsString('This should not be logged', $jsonData);
         $this->assertStringContainsString('"This should be logged as warning"', $jsonData);
         $this->assertStringContainsString('"This should be logged as error"', $jsonData);
     }
+
+    /// @todo... add tests for ApacheLogger, ErrorLogger, FrankenPHPLogger
 }
