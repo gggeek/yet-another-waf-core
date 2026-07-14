@@ -93,7 +93,7 @@ class TestServer
     /**
      * Displays a redirection response
      */
-    protected function displayRedirectResponse($statusCode = 301, string $location = '/server.php'): void
+    protected function displayRedirectResponse(int|string $statusCode = 301, string $location = '/server.php'): void
     {
         switch ((int)$statusCode) {
             case 301:
@@ -101,7 +101,7 @@ class TestServer
             case 303:
             case 307:
             case 308:
-                http_response_code($statusCode);
+                http_response_code((int)$statusCode);
                 header("Location: $location");
                 break;
             default:

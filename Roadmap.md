@@ -13,7 +13,7 @@
       - a `valid_json` matcher for both body, headers and query string elements
       - eg. ssl on
   - implement filtering support
-      - check: can we make filters add "tags" to requests/responses, to ease later processing? See psr 'attributes'
+      - check: can we make filters add "tags" to both requests and responses, to ease later processing? See psr 'attributes'
   - allow 'restart' as action for (Request) rules
     - allow setting a maxRestarts limit
     - q: should we remove from the current rule chain a rule, after it did trigger a restart? (possibly use 2 `restart` types?)
@@ -25,17 +25,13 @@
     - check: could we use the firewall filters to implement something like https://github.com/terrylinooo/shieldon instead
       of a waf to remote apps, or would it need some api changes?
     - do we need to keep *Filter as an alternative to Middleware?
+    - make it easy to install a tracer as 1st middleware in the chain that does not get bypassed in case other MWs throw
 
 - Proxy
   - add by default (or via a filter?) the http headers telling upstream about real-ip and x-forwarded-protocol, patch hop-by-hop headers
     see fe. https://docs.google.com/document/d/1rJRV3s_Kto9_nx-ROjwG0ncA8JNeKz8xaaJXdrbJx7s/edit?pli=1&tab=t.0
   - finish support for setting timeouts (connect, read? and total)
     - also, other options? see the ones present both in Symfony\Contracts\HttpClient\HttpClientInterface and GuzzleHttp\requestOptions
-  - if a matcher of filter touching the resp. body has been set, and the received response has a content-encoding
-    header, we should make sure the filter works on the decompressed version
-  - the same is true for requests that come in with a content-encoding header
-  - middleware: if a forced accept-encoding is set, and the original request had one, we should transcode the response to
-    a format supported by the original caller
   - finish support for `tcp://` upstreams
   - tls & https support
   - figure out if we can make it easy to allow using the existing "client middlewares" from other libraries, to allow
@@ -48,7 +44,7 @@
     -> could we implement adapters that do the opposite, with our filters?
     -> how does our code fare in the context of async clients?
   - make it easy to implement a reverse proxy too + add tests + give examples on how to do that
-  - add a dedicated middleware that does not force an accept-encoding upstream, but adds compression downstream?
+  - add a dedicated middleware that does not force an accept-encoding upstream, but adds compression downstream
   - add http client adapters for php-http/curl-client (see https://docs.php-http.org/en/latest/clients/curl-client.html)
     and other "well known" psr-18 http clients (there are eg. a plethora of them in httplug's client-common package,
     including the PluginClient, which allows to add further processing to the request before it hits upstream, but that
@@ -80,6 +76,8 @@
 - Misc
   - introduce more structured exceptions
   - allow fine-tuning resource usage: max concurrent conns, etc... (here on in downstream projects?)
+  - perf: allow streaming compression/decompression of message bodies
+  - perf: save decompressed version of message bodies for reuse in further filters/matchers
 
 - Maybe?
   - create our own implementation of the psr-compliant http upstream client used by the proxy (based on eg. phpxmlrpc),

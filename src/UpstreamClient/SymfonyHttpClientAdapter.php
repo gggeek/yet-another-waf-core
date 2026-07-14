@@ -132,7 +132,7 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
      */
     protected function mapOptions(array $options): array
     {
-        $mappedOptions = [];
+        $mappedOptions = ['max_redirects' => 0];
         foreach ($options as $name => $value) {
             switch ($name) {
                 case UpstreamClientInterface::OPT_BINDTO:

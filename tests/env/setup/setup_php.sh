@@ -13,7 +13,11 @@ set -e
 echo "Installing PHP version '${1}'..."
 
 PHP_VERSION="$1"
-# @todo add kjdev/brotli, kjdev/zstd
+
+# @todo the installation of extensions via PIE requires the presence of `phpize`, even when a "prebuilt archive" is
+#       available. That in turn is downloaded as an apt package, which brings in gcc and co. as dependencies. Which means
+#       a lot of disk bloat and long build times... can we oviate to that in any way?
+#PIE_EXTENSIONS='kjdev/brotli kjdev/zstd'
 PIE_EXTENSIONS=''
 
 SCRIPT_DIR="$(dirname -- "$(readlink -f "$0")")"
@@ -51,14 +55,17 @@ install_native() {
         PHPSUFFIX=
     fi
     # @todo check for mbstring presence in php5 (jessie) packages
-    apt-get install -y \
-        "php${PHPSUFFIX}" \
-        "php${PHPSUFFIX}-cli" \
-        "php${PHPSUFFIX}-dom" \
-        "php${PHPSUFFIX}-curl" \
-        "php${PHPSUFFIX}-fpm" \
-        "php${PHPSUFFIX}-mbstring" \
-        "php${PHPSUFFIX}-xdebug"
+    PHP_PACKAGES="php${PHPSUFFIX} \
+        php${PHPSUFFIX}-cli \
+        php${PHPSUFFIX}-dom \
+        php${PHPSUFFIX}-curl \
+        php${PHPSUFFIX}-fpm \
+        php${PHPSUFFIX}-mbstring \
+        php${PHPSUFFIX}-xdebug"
+    if [ -n "$PIE_EXTENSIONS" ]; then
+        PHP_PACKAGES="${PHP_PACKAGES} php${PHPSUFFIX}-dev"
+    fi
+    apt-get install -y ${PHP_PACKAGES}
 }
 
 install_ondrej() {
@@ -77,6 +84,9 @@ install_ondrej() {
         php${PHP_VERSION}-fpm \
         php${PHP_VERSION}-mbstring \
         php${PHP_VERSION}-xdebug"
+    if [ -n "$PIE_EXTENSIONS" ]; then
+        PHP_PACKAGES="${PHP_PACKAGES} php${PHP_VERSION}-dev"
+    fi
     apt-get install -y ${PHP_PACKAGES}
 
     update-alternatives --set php "/usr/bin/php${PHP_VERSION}"
@@ -132,8 +142,9 @@ else
     done
 
     # @todo test usage of ondrej packages for php 8.5
-    if [ "${PHP_VERSION}" = 5.3 ] || [ "${PHP_VERSION}" = 5.4 ] || [ "${PHP_VERSION}" = 5.5 ] || \
-        [ "${DEBIAN_VERSION}" = focal ] || [ "${DEBIAN_VERSION}" = bionic ] || [ "${DEBIAN_VERSION}" = xenial ] || [ "${DEBIAN_VERSION}" = trusty ]; then
+    #if [ "${PHP_VERSION}" = 5.3 ] || [ "${PHP_VERSION}" = 5.4 ] || [ "${PHP_VERSION}" = 5.5 ] || \
+    if [ "${DEBIAN_VERSION}" = focal ] || [ "${DEBIAN_VERSION}" = bionic ] || [ "${DEBIAN_VERSION}" = xenial ] || [ "${DEBIAN_VERSION}" = trusty ]; then
+        # @todo... bring this back and test that it works
         install_shivammatur
     else
         install_ondrej
@@ -149,7 +160,7 @@ if [ -n "$PIE_EXTENSIONS" ]; then
       chmod +x /usr/local/bin/pie
 
     for EXTENSION in $PIE_EXTENSIONS; do
-        pie install --auto-install-build-tools --auto-install-system-dependencies --no-interaction "$EXTENSION"
+        pie install --no-build-tools-check --auto-install-system-dependencies --no-interaction "$EXTENSION"
     done
 fi
 
