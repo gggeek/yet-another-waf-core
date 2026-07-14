@@ -1,0 +1,8 @@
+[
+    {
+        "or": {
+            "always": true,
+            "never": true
+        }
+    }
+]

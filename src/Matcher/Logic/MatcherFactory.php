@@ -16,7 +16,7 @@ class MatcherFactory extends SuffixedMatcherFactory implements MatcherFactoryInt
     use LoggerAwareTrait;
     use MatcherFactoryAwareTrait;
 
-    protected array $supportedMatcherTypes = ['always', 'and', 'or', 'ever', 'not'];
+    protected array $supportedMatcherTypes = ['always', 'and', 'or', 'never', 'not'];
 
     public function __construct(LoggerInterface|null $logger = null)
     {
