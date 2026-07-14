@@ -32,10 +32,21 @@ class GuzzleAdapter implements UpstreamClientInterface
 ///          bring any value...
             $this->guzzleClient = new Client($this->mapOptions($options));
         } else {
-            /// @todo... we should validate the existing client options plus add our own on top
             $mappedOptions = $this->mapOptions($options);
             if ($mappedOptions) {
-                throw new \Exception("Starting out with an existing Client is not implemented yet by the Guzzle Adapter, sorry");
+                $allOptionsOk = false;
+                if (is_callable([$guzzleClient, 'getConfig'])) {
+                    $allOptionsOk = true;
+                    foreach ($mappedOptions as $name => $value) {
+                        if ($guzzleClient->getConfig($name) !== $value) {
+                            $allOptionsOk = false;
+                            break;
+                        }
+                    }
+                }
+                if (!$allOptionsOk) {
+                    throw new \Exception("Starting out with an existing Client is not implemented yet by the Guzzle Adapter, sorry");
+                }
             }
             $this->guzzleClient = $guzzleClient;
         }
@@ -93,7 +104,8 @@ class GuzzleAdapter implements UpstreamClientInterface
      */
     protected function mapOptions(array $options): array
     {
-        $mappedOptions = [];
+        // We decode response bodies on our own, iff needed. No need to make this always happen automatically
+        $mappedOptions = ['decode_content' => false];
         foreach ($options as $name => $value) {
             switch ($name) {
                 case UpstreamClientInterface::OPT_BINDTO:

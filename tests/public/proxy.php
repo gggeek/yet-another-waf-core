@@ -130,14 +130,18 @@ class ProxyPage
 
             $middlewareChain = new Dispatcher([]);
 
+            $tracer = null;
             if (array_key_exists('HTTP_X_YAWAF_TRACE_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_TRACE_FILE']) !== '') {
                 $traceFileName = sys_get_temp_dir() . '/' . basename($_SERVER['HTTP_X_YAWAF_TRACE_FILE']);
                 if (file_exists($traceFileName)) {
                     file_put_contents($traceFileName, '');
                 }
 
-                // We put 2 tracers in the chain, one at the very start and one at the very end
-                $middlewareChain->appendMiddleware(new Tracer($traceFileName));
+                // We want to put 2 tracers in the chain, one at the very start and one at the very end.
+                // However, the tracer at the start would get bypassed in case the fw throws an access-denied exception.
+                // So instead of adding it to the middleware chain, we run it here.
+                $tracer = new Tracer($traceFileName);
+                //$middlewareChain->appendMiddleware($tracer);
                 $httpClient = new MiddlewareAwareClient(new Tracer($traceFileName, '>> ', '<< '), $httpClient, $logger);
             }
 
@@ -191,12 +195,19 @@ class ProxyPage
             $proxy = new TestProxy($middlewareChain, $upstreamConnector, $logger);
 
             $serverRequest = $this->fromGlobals();
+            $tracer?->filterServerRequest($serverRequest);
             $response = $proxy->handle($serverRequest);
+            $tracer?->filterResponse($response, $serverRequest);
             $emitter->emit($response);
 
         } catch (\Throwable $e) {
             $logger?->critical($e->getMessage() . ', in File: ' . $e->getFile() . ' Line: ' . $e->getLine());
-            $emitter->emit(TestProxy::getErrorResponse($e));
+            $response = TestProxy::getErrorResponse($e);
+            // in case there was an error, we assume that the frontline tracer did not have a chance to log the response
+            if ($tracer) {
+                file_put_contents($traceFileName, $tracer->serializeResponse($response), FILE_APPEND);
+            }
+            $emitter->emit($response);
             exit();
         }
     }

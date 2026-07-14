@@ -24,9 +24,8 @@ class RemoveAcceptEncoding extends RequestHeaderRemover
         if ($response->hasHeader('Content-Encoding') && isset($this->overriddenHeaders['Accept-Encoding'])) {
             $response = $this->transcodeResponseBody($response, $this->overriddenHeaders['Accept-Encoding']);
 
-            /// @todo is 'accept-encoding' always lowercase?
-            if (!$response->hasHeader('Vary') || !in_array('accept-encoding', $response->getHeader('Vary'))) {
-                $response = $response->withAddedHeader('Vary', 'accept-encoding');
+            if (!$response->hasHeader('Vary') || !in_array('Accept-Encoding', $response->getHeader('Vary'))) {
+                $response = $response->withAddedHeader('Vary', 'Accept-Encoding');
             }
         }
 

@@ -6,7 +6,7 @@ use Psr\Http\Message\RequestInterface;
 
 trait RequestTracerTrait
 {
-    protected function serializeRequest(RequestInterface $request): string
+    public function serializeRequest(RequestInterface $request): string
     {
         $out =  $this->requestPrefix . $request->getMethod() . ' ' . $request->getRequestTarget() . ' HTTP/' . $request->getProtocolVersion() . "\n";
         foreach ($request->getHeaders() as $name => $values) {

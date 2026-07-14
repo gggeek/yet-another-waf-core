@@ -59,7 +59,9 @@ abstract class MiddlewareAware implements RequestHandlerInterface, LoggerAwareIn
 
         // We should never send a body back to HEAD requests. Be lenient of upstreams and access denied errors
         // Hopefully this does not modify the content-type header...
-/// @todo... we should move this to a 'drop-body-for-head-responses' middleware / fw rule
+/// @todo... we could/should move this to a 'drop-body-for-head-responses' middleware / fw rule... but what if that middleware
+///          gets short-circuited by another middleware in the chain throwing an exception?
+///          A solution could be to move the try/catch block in its own middleware (inception! :-D)
         /*
         if ($request->getMethod() === 'HEAD') {
             /// @todo we could log a warning if upstream sent a body, but that would force us to read it fully, so

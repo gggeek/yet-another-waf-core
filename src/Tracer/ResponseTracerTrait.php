@@ -6,7 +6,7 @@ use Psr\Http\Message\ResponseInterface;
 
 trait ResponseTracerTrait
 {
-    protected function serializeResponse(ResponseInterface $response): string
+    public function serializeResponse(ResponseInterface $response): string
     {
         $out =  $this->responsePrefix . 'HTTP/' . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' . $response->getReasonPhrase() . "\n";
         foreach ($response->getHeaders() as $name => $values) {
