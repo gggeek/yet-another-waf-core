@@ -11,7 +11,7 @@ class AA_ServerSmokeTest extends ServerTestCase
      * Tests access to the upstream webserver, without going through the proxy
      */
     #[DataProvider('serverTestsDataProvider')]
-    public function testServer(string|null $clientType = null, string $serverScheme = 'http')
+    public function testServer(string|null $clientType = null, string $serverScheme = 'http'): void
     {
         $client = $this->getClient(['base_uri' => static::getServerBaseUri()], ['client_type' => $clientType, 'server_scheme' => $serverScheme]);
         $response = $client->request('GET', static::getServerPath());

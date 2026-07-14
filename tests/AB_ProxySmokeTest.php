@@ -11,7 +11,7 @@ class AB_ProxySmokeTest extends ProxyTestCase
      * Tests direct access to the proxy, without the test id cookie: an HTTP 400 response is expected
      */
     #[DataProvider('proxyTestsDataProvider')]
-    public function testProxyAsUpstreamNoTestCookie(string|null $clientType = null, string $proxyScheme = 'http')
+    public function testProxyAsUpstreamNoTestCookie(string|null $clientType = null, string $proxyScheme = 'http'): void
     {
         $clientOptions = ['base_uri' => static::getProxyBaseUri()];
         if ($proxyScheme === 'unix') {
@@ -28,7 +28,7 @@ class AB_ProxySmokeTest extends ProxyTestCase
      * Tests direct access to the proxy, with the test id cookie: an HTTP 403 response is expected
      */
     #[DataProvider('proxyTestsDataProvider')]
-    public function testProxyAsUpstreamWithTestCookie(string|null $clientType = null, string $proxyScheme = 'http')
+    public function testProxyAsUpstreamWithTestCookie(string|null $clientType = null, string $proxyScheme = 'http'): void
     {
         $clientOptions = ['base_uri' => static::getProxyBaseUri()];
         if ($proxyScheme === 'unix') {
@@ -47,7 +47,7 @@ class AB_ProxySmokeTest extends ProxyTestCase
      * @todo this test could also have an $upstreamClientType arg
      */
     #[DataProvider('proxyTestsDataProvider')]
-    public function testProxyAsProxyWithoutRules(string|null $clientType = null, string $proxyScheme = 'http')
+    public function testProxyAsProxyWithoutRules(string|null $clientType = null, string $proxyScheme = 'http'): void
     {
         $response = $this->request([], 'GET', '', ['client_type' => $clientType, 'proxy_scheme' => $proxyScheme]);
         // Without any config, the firewall should return a DENY response
