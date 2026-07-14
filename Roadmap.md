@@ -48,6 +48,7 @@
     -> could we implement adapters that do the opposite, with our filters?
     -> how does our code fare in the context of async clients?
   - make it easy to implement a reverse proxy too + add tests + give examples on how to do that
+  - add a dedicated middleware that does not force an accept-encoding upstream, but adds compression downstream?
   - add http client adapters for php-http/curl-client (see https://docs.php-http.org/en/latest/clients/curl-client.html)
     and other "well known" psr-18 http clients (there are eg. a plethora of them in httplug's client-common package,
     including the PluginClient, which allows to add further processing to the request before it hits upstream, but that

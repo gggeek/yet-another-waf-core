@@ -29,7 +29,11 @@ class AC_CompressSmokeTest extends TestCase
     {
         $fileName = sys_get_temp_dir() . '/' . md5($data);
         file_put_contents($fileName, $data);
-        exec("compress -k -f -- " . escapeshellarg($fileName), $out, $retCode);
+        exec("compress -f -- " . escapeshellarg($fileName), $out, $retCode);
+
+        if ($retCode !== 0 || !file_exists($fileName . '.Z')) {
+            $this->markTestSkipped("Can not compare compress results: native cli tool failed");
+        }
 
         $unixCompressed = file_get_contents($fileName . '.Z');
 
