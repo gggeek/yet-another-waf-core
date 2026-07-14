@@ -9,6 +9,9 @@ use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
 class AC_CompressSmokeTest extends TestCase
 {
+    /**
+     * Tests round-trip compress/uncompress of random data
+     */
     #[DataProvider('compressTestsDataProvider')]
     public function testCompressRoundtrip(string $data): void
     {
@@ -18,6 +21,9 @@ class AC_CompressSmokeTest extends TestCase
         $this->assertEquals($data, $decompressed);
     }
 
+    /**
+     * Tests round-trip compress/uncompress of random data vs. the native `compress` cli tool
+     */
     #[DataProvider('compressTestsDataProvider')]
     public function testCompressVsNative(string $data): void
     {
@@ -25,9 +31,13 @@ class AC_CompressSmokeTest extends TestCase
         file_put_contents($fileName, $data);
         exec("compress -k -f -- " . escapeshellarg($fileName), $out, $retCode);
 
-        //$compressed = UnixCompressor::compress($data);
         $unixCompressed = file_get_contents($fileName . '.Z');
+
+        unlink($fileName);
+        unlink($fileName . '.Z');
+
 /// @todo... enable this, after we fix the trailing padding bytes issue
+        //$compressed = UnixCompressor::compress($data);
         //$this->assertEquals($unixCompressed, $compressed);
 
         $decompressed = UnixCompressor::uncompress($unixCompressed);
