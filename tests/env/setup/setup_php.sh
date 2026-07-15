@@ -43,12 +43,14 @@ configure_php_fpm() {
 }
 
 enable_pie_exts() {
-    for EXT in /usr/lib/php/pie/*.so; do
-        FILENAME="$(basename "$EXT")"
-        mv "$EXT" /usr/lib/php/20250925
-        echo "extension=$FILENAME" > "/etc/php/$PHPVER/mods-available/$(echo "$FILENAME" | sed "s/\.so/.ini/")"
-        phpenmod "$(echo "$FILENAME" | sed "s/\.so//")"
-    done
+    if [ -d /usr/lib/php/pie/ ]; then
+        for EXT in /usr/lib/php/pie/*.so; do
+            FILENAME="$(basename "$EXT")"
+            mv "$EXT" /usr/lib/php/20250925
+            echo "extension=$FILENAME" > "/etc/php/$PHPVER/mods-available/$(echo "$FILENAME" | sed "s/\.so/.ini/")"
+            phpenmod "$(echo "$FILENAME" | sed "s/\.so//")"
+        done
+    fi
 }
 
 install_native() {
