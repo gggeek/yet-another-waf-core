@@ -312,14 +312,11 @@ trait BodyCompressorTrait
             return $response;
         }
 
-        $tryEncodings = [];
-        $possibleEncodings = $this->supportedCompressionEncodings();
-        foreach ($acceptedEncodings as $acceptedEncoding) {
-            if (in_array($acceptedEncoding, $possibleEncodings)) {
-                $tryEncodings[] = $acceptedEncoding;
-            }
-        }
+        $tryEncodings = $this->tryEncodings($response, $acceptedEncodings);
 
+        /// @todo calling tryEncodings() here allows us to bail out early without decompressing the payload. Otoh it would
+        ///       be nice to also be able to evaluate the choice of which encodings to use for the payload after having
+        ///       decompressed the body (so that eg. its size is known)
         if (!$tryEncodings && $noIdentityEncoding) {
             // throw in a way that allows us to return a 415 response
             throw new UnsupportedMediaType("None of the client's' accepted encodings can be served, and identity encoding has been explicitly forbidden");
@@ -353,6 +350,29 @@ trait BodyCompressorTrait
         }
 
         return $response;
+    }
+
+    /**
+     * Reimplement in subclasses, to eg. avoid compressing bodies below a certain size, of a given type, or if cpu load
+     * is high, etc...
+     *
+     * @param string[] $acceptedEncodings the encodings declared accepted by the request, normalized and sorted by preference.
+     *                 As of 15/7/26, this method is never called with an empty list
+     * @return string[] the list of compression encodings to try to compress responses with, ordered by preference.
+     *                  It should not include 'identity', as that will be tried last anyway, unless forbidden explicitly by the request
+     */
+    protected function tryEncodings(ResponseInterface $response, array $acceptedEncodings): array
+    {
+/// @todo... add a blacklist of mimetypes to never try to encode
+
+        $tryEncodings = [];
+        $possibleEncodings = $this->supportedCompressionEncodings();
+        foreach ($acceptedEncodings as $acceptedEncoding) {
+            if (in_array($acceptedEncoding, $possibleEncodings)) {
+                $tryEncodings[] = $acceptedEncoding;
+            }
+        }
+        return $tryEncodings;
     }
 
 /// @todo... add protected function transcodeRequestBody(RequestInterface $request, ...): RequestInterface
