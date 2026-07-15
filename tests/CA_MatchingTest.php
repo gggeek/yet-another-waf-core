@@ -414,15 +414,6 @@ class CA_MatchingTest extends ProxyTestCase
     public function testPassingHeadRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
-        // skip test cases which are bound to fail with given configs
-        /// @todo this should be more robust/flexible... We should allow the json configs to specify excluded test configs...
-        if ($proxyScheme === 'unix' && in_array(basename($configFileName), [
-                '001_client_address_fixed.json', '003_client_address_many.json',
-            ])) {
-            $this->assertEquals(0, 0);
-            return;
-        }
-
         $response = $this->request(
             ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
             'HEAD',
@@ -437,7 +428,7 @@ class CA_MatchingTest extends ProxyTestCase
             $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
 
-        /// @todo... check that resp. body is empty
+/// @todo... check that resp. body is empty
     }
 
     public static function passingHeadRulesDataProvider(): array
@@ -462,12 +453,63 @@ class CA_MatchingTest extends ProxyTestCase
         } catch (ExceptionInterface $e) {
             $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
-        /// @todo... check that resp. body is empty
+/// @todo... check that resp. body is empty... Should it be? Check the http spec!
     }
 
     public static function failingHeadRulesDataProvider(): array
     {
         return self::getRuleBasedTestDataProviderOptions('head', 'failing');
+    }
+
+    #[DataProvider('passingOptionsRulesDataProvider')]
+    public function testPassingOptionsRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+         string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
+            'OPTIONS',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(204, $response->getStatusCode(), $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(204, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
+
+/// @todo... check that resp. body is empty and we have the Allow header
+    }
+
+    public static function passingOptionsRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('options', 'passing');
+    }
+
+    #[DataProvider('failingOptionsRulesDataProvider')]
+    public function testFailingOptionsRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+         string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
+            'OPTIONS',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
+/// @todo... check that resp. body is empty... Should it be? Check the http spec!
+    }
+
+    public static function failingOptionsRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('options', 'failing');
     }
 
     protected function getCommonRequestHeaders(): array
