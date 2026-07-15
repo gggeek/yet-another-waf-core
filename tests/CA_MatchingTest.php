@@ -341,6 +341,10 @@ class CA_MatchingTest extends ProxyTestCase
     public function testClientPortMatcher(string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
     {
+        if (isset($_SERVER['GITHUB_ACTIONS'])) {
+            $this->markTestSkipped('Client Port Matching testing is unreliable on GitHub. Skipping it...');
+        }
+
         // skip test cases which are bound to fail with given configs
         /// @todo use a custom DataProvider
         if ($proxyScheme === 'unix' || $clientType === 'native') {
