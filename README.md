@@ -45,12 +45,12 @@ Not in scope (yet?):
 
 ## Requirements:
 
-PHP 8.2 and up, with extension: ctype, curl, json and zlib.
+PHP 8.2 and up, with extension: ctype, json and zlib (curl extension recommended).
 
 A webserver to run it.
 
 If you want to have the proxy listening on a unix socket instead of an http port, choose an http server which can do that:
-as of June 2026 Nginx and frankenPHP can, while Apache can't.
+as of June 2026 Nginx and FrankenPHP can, while Apache can't.
 
 Either the `symfony/http-client` or `guzzlehttp/guzzle` php package.
 
