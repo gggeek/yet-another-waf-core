@@ -321,4 +321,15 @@ abstract class ServerTestCase extends TestCase
 
         return $url;
     }
+
+    protected function getResponseHeader(string $headerName, ResponseInterface $response): array
+    {
+        $headers = $response->getHeaders(false);
+        return $headers[strtolower($headerName)] ?? [];
+    }
+
+    protected function hasResponseHeader(string $headerName, ResponseInterface $response): bool
+    {
+        return array_key_exists(strtolower($headerName), $response->getHeaders(false));
+    }
 }

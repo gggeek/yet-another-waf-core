@@ -112,6 +112,7 @@ class ProxyPage
     {
         $emitter = new SapiEmitter();
 
+        $tracer = null;
         try {
 
             // in case these are set, they might interfere with the configuration of the Client that gets built
@@ -130,7 +131,6 @@ class ProxyPage
 
             $middlewareChain = new Dispatcher([]);
 
-            $tracer = null;
             if (array_key_exists('HTTP_X_YAWAF_TRACE_FILE', $_SERVER) && trim($_SERVER['HTTP_X_YAWAF_TRACE_FILE']) !== '') {
                 $traceFileName = sys_get_temp_dir() . '/' . basename($_SERVER['HTTP_X_YAWAF_TRACE_FILE']);
                 if (file_exists($traceFileName)) {

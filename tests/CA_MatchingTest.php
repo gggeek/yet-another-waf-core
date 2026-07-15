@@ -475,11 +475,10 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertEquals(204, $response->getStatusCode(), $failureMessage);
+            $this->assertEquals(true, $this->hasResponseHeader('allow', $response), $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertEquals(204, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
-
-/// @todo... check that resp. body is empty and we have the Allow header
     }
 
     public static function passingOptionsRulesDataProvider(): array
@@ -531,11 +530,12 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            $body = $response->getContent(false);
+            $this->assertStringContainsString('TRACE ', $body);
+            $this->assertStringContainsString(urlencode($this->getCommonQueryString()), $body);
         } catch (ExceptionInterface $e) {
             $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
-
-/// @todo... check the resp. body
     }
 
     public static function passingTraceRulesDataProvider(): array

@@ -34,13 +34,13 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
-            $responseHeaders = $response->getHeaders(false);
-            if (isset($responseHeaders['content-encoding']) && $responseHeaders['content-encoding'][0] != 'identity' &&
+            $ceHeader = $this->getResponseHeader('Content-Encoding', $response);
+            if ($ceHeader && $ceHeader[0] != 'identity' &&
                 // this condition takes into account the Symfony HTTP Client adding on its own an `accept-encoding: gzip`
                 // header, then decoding the response but not removing the response content-encoding header (see issue
                 // https://github.com/symfony/symfony/issues/64869)
-                ($clientAcceptEncoding !== '' || $responseHeaders['content-encoding'][0] !== 'gzip')) {
-                $body = $this->decompressPayload($response->getContent(false), $responseHeaders['content-encoding'], $errorMessage);
+                ($clientAcceptEncoding !== '' || $ceHeader[0] !== 'gzip')) {
+                $body = $this->decompressPayload($response->getContent(false), $ceHeader, $errorMessage);
                 $this->assertIsString($body, (string)$errorMessage);
                 $result = json_decode($body, true);
             } else {
@@ -52,8 +52,8 @@ class CC_HTTPCompressionTest extends ProxyTestCase
             if ($proxyAcceptEncoding === 'gzip' && in_array($clientAcceptEncoding, ['', '*', 'gzip'])) {
 /// @todo... figure out why this does not work with the current nginx setup (funnily enough, 403 responses do get compressed by it...)
                 if ($_ENV['SERVER_TYPE'] !== 'nginx') {
-                    $this->assertArrayHasKey('content-encoding', $responseHeaders, $failureMessage);
-                    $this->assertEquals('gzip', $responseHeaders['content-encoding'][0], $failureMessage);
+                    $this->assertGreaterThan(0, count($ceHeader), $failureMessage);
+                    $this->assertEquals('gzip', $ceHeader[0], $failureMessage);
                 }
             }
         } catch (ExceptionInterface $e) {
