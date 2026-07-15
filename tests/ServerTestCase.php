@@ -258,7 +258,8 @@ abstract class ServerTestCase extends TestCase
      */
     protected function response2Log(ResponseInterface $response): string
     {
-        /// @todo can we improve the fidelity of the response dump?
+        /// @todo can we improve the fidelity of the response dump? The SF responseInterface API does not allow us to grab
+        ///       the protocol version, for example...
         $out = 'HTTP/x.y ' . $response->getStatusCode() . " ...\n";
         foreach ($response->getHeaders(false) as $name => $values) {
             $out .= ucwords($name, " \t\r\n\f\v-") . ': ' . implode(',', $values) . "\n";

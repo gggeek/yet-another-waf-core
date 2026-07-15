@@ -512,6 +512,67 @@ class CA_MatchingTest extends ProxyTestCase
         return self::getRuleBasedTestDataProviderOptions('options', 'failing');
     }
 
+    #[DataProvider('passingTraceRulesDataProvider')]
+    public function testPassingTraceRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        if ($_ENV['SERVER_TYPE'] !== 'frankenphp') {
+            /// @todo... figure out how to allow TRACE requests with Apache and Nginx
+            $this->markTestSkipped("Only frankenphp is currently set up to serve TRACE requests");
+        }
+
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
+            'TRACE',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
+
+/// @todo... check the resp. body
+    }
+
+    public static function passingTraceRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('trace', 'passing');
+    }
+
+    #[DataProvider('failingTraceRulesDataProvider')]
+    public function testFailingTraceRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
+        string|null $upstreamClientType = null, string $serverScheme = 'http')
+    {
+        if ($_ENV['SERVER_TYPE'] !== 'frankenphp') {
+            /// @todo... figure out how to allow TRACE requests with Apache and Nginx
+            $this->markTestSkipped("Only frankenphp is currently set up to serve TRACE requests");
+        }
+
+        $response = $this->request(
+            ['headers' => ['X-YAWAF-Config-File' => $configFileName] + $this->getCommonRequestHeaders()],
+            'TRACE',
+            static::getServerPath() . '?' . $this->getCommonQueryString(),
+            ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
+        );
+
+        try {
+            $failureMessage = $this->getTestDetails($response);
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+        } catch (ExceptionInterface $e) {
+            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+        }
+/// @todo... check that resp. body is empty... Should it be? Check the http spec!
+    }
+
+    public static function failingTraceRulesDataProvider(): array
+    {
+        return self::getRuleBasedTestDataProviderOptions('trace', 'failing');
+    }
+
     protected function getCommonRequestHeaders(): array
     {
         return [
