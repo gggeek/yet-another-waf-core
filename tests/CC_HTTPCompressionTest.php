@@ -33,7 +33,7 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         );
         try {
             $failureMessage = $this->getTestDetails($response);
-            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            $this->assertResponseHasStatusCode(200, $response, $failureMessage);
             $ceHeader = $this->getResponseHeader('Content-Encoding', $response);
             if ($ceHeader && $ceHeader[0] != 'identity' &&
                 // this condition takes into account the Symfony HTTP Client adding on its own an `accept-encoding: gzip`
@@ -47,17 +47,17 @@ class CC_HTTPCompressionTest extends ProxyTestCase
                 $result = $response->toArray(false);
             }
             $this->assertIsArray($result, $failureMessage);
-            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $result['result'], $failureMessage);
+            $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $result['result'], $failureMessage);
             // NB: for this to work, the target webserver has to be set up to serve gzip-compressed responses
             if ($proxyAcceptEncoding === 'gzip' && in_array($clientAcceptEncoding, ['', '*', 'gzip'])) {
 /// @todo... figure out why this does not work with the current nginx setup (funnily enough, 403 responses do get compressed by it...)
                 if ($_ENV['SERVER_TYPE'] !== 'nginx') {
                     $this->assertGreaterThan(0, count($ceHeader), $failureMessage);
-                    $this->assertEquals('gzip', $ceHeader[0], $failureMessage);
+                    $this->assertSame('gzip', $ceHeader[0], $failureMessage);
                 }
             }
         } catch (ExceptionInterface $e) {
-            $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+            $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
     }
 
@@ -96,7 +96,7 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         );
         try {
             $failureMessage = $this->getTestDetails($response);
-            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
+            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
             $responseHeaders = $response->getHeaders(false);
             if (isset($responseHeaders['content-encoding']) && $responseHeaders['content-encoding'][0] != 'identity' &&
                 // this condition takes into account the Symfony HTTP Client adding on its own an `accept-encoding: gzip`
@@ -112,7 +112,7 @@ class CC_HTTPCompressionTest extends ProxyTestCase
             $this->assertIsArray($result, $failureMessage);
             $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, $result, $failureMessage);
         } catch (ExceptionInterface $e) {
-            $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+            $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
     }
 
@@ -153,12 +153,12 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         );
         try {
             $failureMessage = $this->getTestDetails($response);
-            $this->assertEquals(200, $response->getStatusCode(), $failureMessage);
+            $this->assertResponseHasStatusCode(200, $response, $failureMessage);
             $data = $response->toArray(false);
-            $this->assertEquals(TestServer::DEFAULT_RESPONSE['result'], $data['result'], $failureMessage);
-            $this->assertEquals(['test' => 'localhost'], $data['requestBody'], $failureMessage);
+            $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $data['result'], $failureMessage);
+            $this->assertSame(['test' => 'localhost'], $data['requestBody'], $failureMessage);
         } catch (ExceptionInterface $e) {
-            $this->assertEquals(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
+            $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
     }
 
@@ -198,8 +198,8 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         );
         try {
             $failureMessage = $this->getTestDetails($response);
-            $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $failureMessage);
-            $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, $response->toArray(false), $failureMessage);
+            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
+            $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -226,7 +226,7 @@ class CC_HTTPCompressionTest extends ProxyTestCase
             case 'deflate':
             case 'gzip':
                 $out = $this->compressPayload($out, [$requestCompressionScheme], $actualScheme);
-                $this->assertEquals($requestCompressionScheme, $actualScheme, "Failed to compress the request to desired scheme '$requestCompressionScheme'");
+                $this->assertSame($requestCompressionScheme, $actualScheme, "Failed to compress the request to desired scheme '$requestCompressionScheme'");
                 break;
             case '':
             case 'identity':

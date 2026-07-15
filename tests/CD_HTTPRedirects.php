@@ -29,10 +29,11 @@ class CD_HTTPRedirects extends ProxyTestCase
         );
         try {
             $failureMessage = $this->getTestDetails($response);
-            $this->assertEquals($redirectCode, $response->getStatusCode(), $failureMessage);
-            //$this->assertEquals($response->toArray(false)['result'], TestServer::DEFAULT_RESPONSE['result'], $failureMessage);
+            $this->assertResponseHasStatusCode($redirectCode, $response, $failureMessage);
+            /// @todo check for presence of a `Location` header
+            //$this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
         } catch (ExceptionInterface $e) {
-            $this->assertEquals(Proxy::UPSTREAM_TIMEOUT_STATUS_CODE, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
+            $this->assertSame($redirectCode, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
         }
     }
 }

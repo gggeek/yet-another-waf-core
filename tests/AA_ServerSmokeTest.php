@@ -16,7 +16,7 @@ class AA_ServerSmokeTest extends ServerTestCase
         $client = $this->getClient(['base_uri' => static::getServerBaseUri()], ['client_type' => $clientType, 'server_scheme' => $serverScheme]);
         $response = $client->request('GET', static::getServerPath());
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
-        $this->assertEquals(200, $response->getStatusCode(), $response->getContent(false));
+        $this->assertResponseHasStatusCode(200, $response, $response->getContent(false));
         $this->assertArrayIsEqualToArrayIgnoringListOfKeys(TestServer::DEFAULT_RESPONSE, $response->toArray(false), ['getallheaders', 'getHeadersFromServer', 'serverRequest']);
     }
 

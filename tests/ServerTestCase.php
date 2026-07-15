@@ -332,4 +332,19 @@ abstract class ServerTestCase extends TestCase
     {
         return array_key_exists(strtolower($headerName), $response->getHeaders(false));
     }
+
+    protected function assertResponseHasStatusCode(int $expectedStatusCode, ResponseInterface $response, string $message = ''): void
+    {
+        $this->assertSame($expectedStatusCode, $response->getStatusCode(), $message);
+    }
+
+    protected function assertResponseHasHeader(string $headerName, ResponseInterface $response, string $message = ''): void
+    {
+        $this->assertArrayHasKey(strtolower($headerName), $response->getHeaders(false), $message);
+    }
+
+    protected function assertResponseHasJsonBody($body, ResponseInterface $response, string $message = ''): void
+    {
+        $this->assertSame($body, $response->toArray(false), $message);
+    }
 }

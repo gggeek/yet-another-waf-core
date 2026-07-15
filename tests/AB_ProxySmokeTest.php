@@ -20,8 +20,8 @@ class AB_ProxySmokeTest extends ProxyTestCase
         $client = $this->getClient($clientOptions, ['client_type' => $clientType]);
         $response = $client->request('GET', static::getProxyPath());
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
-        $this->assertEquals(400, $response->getStatusCode(), $response->getContent(false));
-        $this->assertEquals('This url can only be accessed by the test suite', $response->getContent(false));
+        $this->assertResponseHasStatusCode(400, $response, $response->getContent(false));
+        $this->assertSame('This url can only be accessed by the test suite', $response->getContent(false));
     }
 
     /**
@@ -38,8 +38,8 @@ class AB_ProxySmokeTest extends ProxyTestCase
         $client = ServerTestCase::getTestClient($clientOptions, ['client_type' => $clientType]);
         $response = $client->request('GET', static::getProxyPath());
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
-        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $response->getContent(false));
-        $this->assertEquals(TestProxy::ACCESS_DENIED_RESPONSE, $response->toArray(false), $response->getContent(false));
+        $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $response->getContent(false));
+        $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $response->getContent(false));
     }
 
     /**
@@ -52,8 +52,8 @@ class AB_ProxySmokeTest extends ProxyTestCase
         $response = $this->request([], 'GET', '', ['client_type' => $clientType, 'proxy_scheme' => $proxyScheme]);
         // Without any config, the firewall should return a DENY response
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
-        $this->assertEquals(TestProxy::ACCESS_DENIED_STATUS_CODE, $response->getStatusCode(), $response->getContent(false));
-        $this->assertEquals(TestProxy::ACCESS_DENIED_RESPONSE, $response->toArray(false), $response->getContent(false));
+        $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $response->getContent(false));
+        $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $response->getContent(false));
     }
 
     public static function proxyTestsDataProvider(): array

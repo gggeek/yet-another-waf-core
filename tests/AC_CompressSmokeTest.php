@@ -18,7 +18,7 @@ class AC_CompressSmokeTest extends TestCase
         $compressed = UnixCompressor::compress($data);
         $decompressed = UnixCompressor::uncompress($compressed);
 
-        $this->assertEquals($data, $decompressed);
+        $this->assertSame($data, $decompressed);
     }
 
     /**
@@ -46,10 +46,10 @@ class AC_CompressSmokeTest extends TestCase
 
 /// @todo... enable this, after we fix the trailing padding bytes issue
         //$compressed = UnixCompressor::compress($data);
-        //$this->assertEquals($unixCompressed, $compressed);
+        //$this->assertSame($unixCompressed, $compressed);
 
         $decompressed = UnixCompressor::uncompress($unixCompressed);
-        $this->assertEquals($data, $decompressed);
+        $this->assertSame($data, $decompressed);
     }
 
 
