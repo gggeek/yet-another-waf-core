@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# @todo make the GID & UID of the user variable (we picked 2000 as it is the one used by default by Travis)
+# Uses env vars: PHP_VERSION, UBUNTU_VERSION, WEBSERVER_TYPE
 
 set -e
 
@@ -33,8 +33,8 @@ fi
 
 ./setup_composer.sh
 
-apt-get -y autoremove && apt-get -y autoclean && apt-get -y clean && \
+apt-get -y autoremove && apt-get -y autoclean && apt-get -y clean
 
-echo "PHP_VERSION=${PHP_VERSION}" > /etc/build-info && \
+echo "PHP_VERSION=${PHP_VERSION}" > /etc/build-info
 echo "UBUNTU_VERSION=${UBUNTU_VERSION}" >> /etc/build-info
 echo "WEBSERVER_TYPE=${WEBSERVER_TYPE}" >> /etc/build-info

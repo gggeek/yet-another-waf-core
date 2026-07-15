@@ -10,15 +10,11 @@
 
 set -e
 
-echo "Installing PHP version '${1}'..."
-
+# @todo move to getopts
 PHP_VERSION="$1"
+PIE_EXTENSIONS="$2"
 
-# @todo the installation of extensions via PIE requires the presence of `phpize`, even when a "prebuilt archive" is
-#       available. That in turn is downloaded as an apt package, which brings in gcc and co. as dependencies. Which means
-#       a lot of disk bloat and long build times... can we oviate to that in any way?
-#PIE_EXTENSIONS='kjdev/brotli kjdev/zstd'
-PIE_EXTENSIONS=''
+echo "Installing PHP version '${PHP_VERSION}'..."
 
 SCRIPT_DIR="$(dirname -- "$(readlink -f "$0")")"
 
@@ -46,6 +42,15 @@ configure_php_fpm() {
     sed -e "s|^pm.max_children .*|pm.max_children = 30|g" --in-place "$1"
 }
 
+enable_pie_exts() {
+    for EXT in /usr/lib/php/pie/*.so; do
+        FILENAME="$(basename "$EXT")"
+        mv "$EXT" /usr/lib/php/20250925
+        echo "extension=$FILENAME" > "/etc/php/$PHPVER/mods-available/$(echo "$FILENAME" | sed "s/\.so/.ini/")"
+        phpenmod "$(echo "$FILENAME" | sed "s/\.so//")"
+    done
+}
+
 install_native() {
     echo "Using native PHP packages..."
 
@@ -54,16 +59,18 @@ install_native() {
     else
         PHPSUFFIX=
     fi
-    # @todo check for mbstring presence in php5 (jessie) packages
-    PHP_PACKAGES="php${PHPSUFFIX} \
-        php${PHPSUFFIX}-cli \
-        php${PHPSUFFIX}-dom \
-        php${PHPSUFFIX}-curl \
-        php${PHPSUFFIX}-fpm \
-        php${PHPSUFFIX}-mbstring \
-        php${PHPSUFFIX}-xdebug"
     if [ -n "$PIE_EXTENSIONS" ]; then
-        PHP_PACKAGES="${PHP_PACKAGES} php${PHPSUFFIX}-dev"
+        PHP_PACKAGES="php${PHPSUFFIX}-cli php${PHPSUFFIX}-dev"
+    else
+        # @todo check for mbstring presence in php5 (jessie) packages
+        PHP_PACKAGES="php${PHPSUFFIX} \
+            php${PHPSUFFIX}-cli \
+            php${PHPSUFFIX}-dom \
+            php${PHPSUFFIX}-curl \
+            php${PHPSUFFIX}-fpm \
+            php${PHPSUFFIX}-mbstring \
+            php${PHPSUFFIX}-xdebug"
+
     fi
     apt-get install -y ${PHP_PACKAGES}
 }
@@ -77,15 +84,16 @@ install_ondrej() {
     LC_ALL=en_US.UTF-8 add-apt-repository ppa:ondrej/php
     apt-get update
 
-    PHP_PACKAGES="php${PHP_VERSION} \
-        php${PHP_VERSION}-cli \
-        php${PHP_VERSION}-dom \
-        php${PHP_VERSION}-curl \
-        php${PHP_VERSION}-fpm \
-        php${PHP_VERSION}-mbstring \
-        php${PHP_VERSION}-xdebug"
     if [ -n "$PIE_EXTENSIONS" ]; then
-        PHP_PACKAGES="${PHP_PACKAGES} php${PHP_VERSION}-dev"
+        PHP_PACKAGES="php${PHP_VERSION}-cli php${PHP_VERSION}-dev"
+    else
+        PHP_PACKAGES="php${PHP_VERSION} \
+            php${PHP_VERSION}-cli \
+            php${PHP_VERSION}-dom \
+            php${PHP_VERSION}-curl \
+            php${PHP_VERSION}-fpm \
+            php${PHP_VERSION}-mbstring \
+            php${PHP_VERSION}-xdebug"
     fi
     apt-get install -y ${PHP_PACKAGES}
 
@@ -152,12 +160,15 @@ else
 fi
 
 # non-native php extensions
+# @todo the installation of extensions via PIE requires the presence of `phpize`, even when a "prebuilt archive" is
+#       available. phpize in turn is downloaded as an apt package, which brings in gcc and co. as dependencies. Which means
+#       a lot of disk bloat and long build times... can we obviate to that in any way (apart from the 2-stage build we currently use)?
 if [ -n "$PIE_EXTENSIONS" ]; then
     # @todo install the github cli to verify the pie download (see f.e. https://linuxcapable.com/how-to-install-github-cli-on-ubuntu-linux/)
     #  && gh attestation verify --owner php /tmp/pie.phar \
     curl -fL --output /tmp/pie.phar https://github.com/php/pie/releases/latest/download/pie.phar && \
-      mv /tmp/pie.phar /usr/local/bin/pie && \
-      chmod +x /usr/local/bin/pie
+        mv /tmp/pie.phar /usr/local/bin/pie && \
+        chmod +x /usr/local/bin/pie
 
     for EXTENSION in $PIE_EXTENSIONS; do
         pie install --no-build-tools-check --auto-install-system-dependencies --no-interaction "$EXTENSION"
@@ -166,46 +177,52 @@ fi
 
 PHPVER=$(php -r 'echo implode(".",array_slice(explode(".",PHP_VERSION),0,2));' 2>/dev/null)
 
-service "php${PHPVER}-fpm" stop || true
+if [ -z "$PIE_EXTENSIONS" ]; then
 
-if [ -d "/etc/php/${PHPVER}/fpm" ]; then
-    configure_php_ini "/etc/php/${PHPVER}/fpm/php.ini"
-elif [ -f "/usr/local/php/${PHPVER}/etc/php.ini" ]; then
-    configure_php_ini "/usr/local/php/${PHPVER}/etc/php.ini"
-fi
+    service "php${PHPVER}-fpm" stop || true
 
-# @todo is the default pool always named www.conf?
-if [ -f "/etc/php/${PHPVER}/fpm/pool.d/www.conf" ]; then
-    configure_php_fpm "/etc/php/${PHPVER}/fpm/pool.d/www.conf"
-fi
-
-# use a nice name for the php-fpm service, so that it does not depend on php version running. Try to make that work
-# both for docker and VMs
-if [ -f "/etc/init.d/php${PHPVER}-fpm" ]; then
-    ln -s "/etc/init.d/php${PHPVER}-fpm" /etc/init.d/php-fpm
-fi
-if [ -f "/lib/systemd/system/php${PHPVER}-fpm.service" ]; then
-    ln -s "/lib/systemd/system/php${PHPVER}-fpm.service" /lib/systemd/system/php-fpm.service
-    if [ ! -f /.dockerenv ]; then
-        systemctl daemon-reload
+    if [ -d "/etc/php/${PHPVER}/fpm" ]; then
+        configure_php_ini "/etc/php/${PHPVER}/fpm/php.ini"
+    elif [ -f "/usr/local/php/${PHPVER}/etc/php.ini" ]; then
+        configure_php_ini "/usr/local/php/${PHPVER}/etc/php.ini"
     fi
-fi
 
-service php-fpm start
+    # we enable pie exts when we don't build them - as the build process leaves them on, and we use a 2 stage build
+    enable_pie_exts
 
-# reconfigure apache (if installed). Sadly, php will switch on mod-php and mpm_prefork at install time...
-if [ -n "$(dpkg --list | grep apache)" ]; then
-    echo "Reconfiguring Apache..."
-    if [ -n "$(ls /etc/apache2/mods-enabled/php* 2>/dev/null)" ]; then
-        rm /etc/apache2/mods-enabled/php*
+    # @todo is the default pool always named www.conf?
+    if [ -f "/etc/php/${PHPVER}/fpm/pool.d/www.conf" ]; then
+        configure_php_fpm "/etc/php/${PHPVER}/fpm/pool.d/www.conf"
     fi
-    a2dismod mpm_prefork
-    a2enmod mpm_event
-    a2enconf php${PHPVER}-fpm
-    #service apache2 restart
+
+    # use a nice name for the php-fpm service, so that it does not depend on php version running. Try to make that work
+    # both for docker and VMs
+    if [ -f "/etc/init.d/php${PHPVER}-fpm" ]; then
+        ln -s "/etc/init.d/php${PHPVER}-fpm" /etc/init.d/php-fpm
+    fi
+    if [ -f "/lib/systemd/system/php${PHPVER}-fpm.service" ]; then
+        ln -s "/lib/systemd/system/php${PHPVER}-fpm.service" /lib/systemd/system/php-fpm.service
+        if [ ! -f /.dockerenv ]; then
+            systemctl daemon-reload
+        fi
+    fi
+
+    service php-fpm start
+
+    # reconfigure apache (if installed). Sadly, php will switch on mod-php and mpm_prefork at install time...
+    if [ -n "$(dpkg --list | grep apache)" ]; then
+        echo "Reconfiguring Apache..."
+        if [ -n "$(ls /etc/apache2/mods-enabled/php* 2>/dev/null)" ]; then
+            rm /etc/apache2/mods-enabled/php*
+        fi
+        a2dismod mpm_prefork
+        a2enmod mpm_event
+        a2enconf php${PHPVER}-fpm
+        #service apache2 restart
+    fi
+
+    php -v
+    echo
+    echo "Done installing PHP"
+
 fi
-
-php -v
-echo
-
-echo "Done installing PHP"
