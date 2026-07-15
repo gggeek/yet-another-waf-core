@@ -34,8 +34,9 @@
     },
     "suggest": {
         "ext-curl": "Required (atm at least) for connecting to unix-socket based upstreams and some other nice http features",
-        "ext-brotli": "Necessary to be able to inspect received brotli-compressed message bodies",
-        "ext-zstd": "Necessary to be able to inspect received zstd-compressed message bodies",
+        "ext-brotli": "Necessary to be able to inspect and modify received brotli-compressed message bodies",
+        "ext-mbstring": "Recommended for juggling between charsets in case not every request and response is utf8",
+        "ext-zstd": "Necessary to be able to inspect and modify received zstd-compressed message bodies",
         "symfony/http-client": "Either this or guzzlehttp/guzzle are required",
         "guzzlehttp/guzzle": "Either this or symfony/http-client are required"
     },
