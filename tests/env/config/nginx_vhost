@@ -26,6 +26,7 @@ server {
     fastcgi_buffering off;
 
     access_log /var/log/nginx/access.log extended;
+    error_log /var/log/nginx/error.log info;
 
     root $tests_root_dir;
 
@@ -75,6 +76,7 @@ server {
     fastcgi_buffering off;
 
     access_log /var/log/nginx/access.log extended;
+    error_log /var/log/nginx/error.log info;
 
     root $tests_root_dir;
 
@@ -126,6 +128,7 @@ server {
     include snippets/snakeoil.conf;
 
     access_log /var/log/nginx/access.log extended;
+    error_log /var/log/nginx/error.log info;
 
     root $tests_root_dir;
 
@@ -178,6 +181,7 @@ server {
     include snippets/snakeoil.conf;
 
     access_log /var/log/nginx/access.log extended;
+    error_log /var/log/nginx/error.log info;
 
     root $tests_root_dir;
 
@@ -223,6 +227,7 @@ server {
     listen unix:/run/nginx.server.sock default_server;
 
     access_log /var/log/nginx/access.log extended;
+    error_log /var/log/nginx/error.log info;
 
     root $tests_root_dir;
 
@@ -269,6 +274,7 @@ server {
     listen unix:/run/nginx.proxy.sock default_server;
 
     access_log /var/log/nginx/access.log extended;
+    error_log /var/log/nginx/error.log info;
 
     root $tests_root_dir;
 
