@@ -124,6 +124,9 @@ class FixedUpstreamProxy extends Proxy
         $client = $this->client;
 
         $request = $this->filterRequest($request);
+        if ($request instanceof ResponseInterface) {
+            return $request;
+        }
 
         switch ($this->upstream['scheme']) {
             case 'http':

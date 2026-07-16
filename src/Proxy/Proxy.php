@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Proxy;
 
+use Nyholm\Psr7\Response;
+use Nyholm\Psr7\Stream;
 use Psr\Http\Client\NetworkExceptionInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerAwareInterface;
@@ -13,6 +16,7 @@ use YAWAF\Core\Exception\RequestDenied;
 use YAWAF\Core\Exception\UpstreamRequestError;
 use YAWAF\Core\Exception\UpstreamRequestTimeout;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
+use YAWAF\Core\Tracer\RequestTracerTrait;
 use YAWAF\Core\UpstreamClient\UpstreamClientFactory;
 use YAWAF\Core\UpstreamClient\UpstreamClientInterface;
 
@@ -23,11 +27,19 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
 
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
+    use RequestTracerTrait;
 
     protected UpstreamClientInterface $client;
     protected array $overrideHeaders = [];
     protected array $overriddenHeaders = [];
     protected string $viaHeaderPseudonym = 'YAWAF';
+    /// enable this to let the proxy answer to TRACE requests with Max-Forwards=0 if asked to
+    protected bool $answerTraceRequests = false;
+    /// NB: only used in answers to OPTIONS requests. This is not a list used to drop incoming requests! TRACE gets added dynamically
+    /// @todo add CONNECT after we add support for it
+    protected array $allowedMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT'];
+    /// used by the RequestTracerTrait
+    private string $requestPrefix = '';
 
     /**
      * @todo fold the $logger arg into the options?
@@ -56,6 +68,9 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $request = $this->filterRequest($request);
+        if ($request instanceof ResponseInterface) {
+            return $request;
+        }
 
 /// @todo... we should follow the rules set out in https://httpwg.org/specs/rfc9112.html#rfc.section.3.2.2: use the
 ///          host/port from the absolute form of the uri to replace the value from Host header
@@ -76,27 +91,7 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
      */
     protected function sendRequest(UpstreamClientInterface $client, ServerRequestInterface $request): ResponseInterface
     {
-/// @todo... make sure we avoid infinite loops by sending requests to self (either here or?)
         try {
-
-            // honour the Connection header
-            if ($request->hasHeader('Connection')) {
-                foreach($request->getHeader('Connection') as $header) {
-                    if ($request->hasHeader($header)) {
-                        $request = $request->withoutHeader($header);
-                    }
-                }
-                $request = $request->withoutHeader('Connection');
-            }
-            // and remove as well headers that are known to only pertain to the connection between the client and us
-            foreach($this->clientHeadersNotForUpstream() as $header) {
-                if ($request->hasHeader($header)) {
-                    $request = $request->withoutHeader($header);
-                }
-            }
-
-            $request = $request->withAddedHeader('Via', $this->getViaHeader($request));
-
             $response = $client->sendRequest($request);
 
             $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
@@ -122,9 +117,44 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
         return $response;
     }
 
-    protected function filterRequest(ServerRequestInterface $request): ServerRequestInterface
+    /**
+     * @throws RequestDenied
+     */
+    protected function filterRequest(ServerRequestInterface $request): ServerRequestInterface|ResponseInterface
     {
-/// @todo... add x-forwarded headers and co., strip/massage hop-by-hop headers
+/// @todo... make sure we avoid infinite loops by sending requests to self (either here or?)
+
+        // handle 'Max-Forwards'
+        $requestMethod = $request->getMethod();
+        if (($requestMethod === 'OPTIONS' || $requestMethod === 'TRACE') && $request->hasHeader('Max-Forwards')) {
+            $mc = $request->getHeader('Max-Forwards')[0];
+            /// @todo should we relax the constraint on 'only 1 digit'?
+            if (ctype_digit($mc) && strlen($mc) === 1) {
+                if ($mc === '0') {
+                    return $this->answerRequestDirectly($request);
+                } else {
+                    $request = $request->withHeader('Max-Forwards', intval($mc) - 1);
+                }
+            }
+        }
+
+/// @todo... add x-forwarded headers and co., strip/massage _all_ hop-by-hop headers
+
+        // honour the Connection header
+        if ($request->hasHeader('Connection')) {
+            foreach($request->getHeader('Connection') as $header) {
+                if ($request->hasHeader($header)) {
+                    $request = $request->withoutHeader($header);
+                }
+            }
+            $request = $request->withoutHeader('Connection');
+        }
+        // and remove as well headers that are known to only pertain to the connection between the client and us
+        foreach($this->clientHeadersNotForUpstream() as $header) {
+            if ($request->hasHeader($header)) {
+                $request = $request->withoutHeader($header);
+            }
+        }
 
         $this->overriddenHeaders = [];
         foreach ($this->overrideHeaders as $name => $value) {
@@ -133,6 +163,8 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
             }
             $request = $request->withHeader($name, $value);
         }
+
+        $request = $request->withAddedHeader('Via', $this->getViaHeader($request));
 
         return $request;
     }
@@ -143,12 +175,55 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
     }
 
     /**
+     * @throws RequestDenied
+     */
+    protected function answerRequestDirectly(RequestInterface $request): ResponseInterface
+    {
+        switch ($request->getMethod()) {
+            case 'OPTIONS':
+                return new Response(
+                    204,
+                    ['Allow' => $this->getAllowedmethods()],
+                    '',
+                    $request->getProtocolVersion()
+                );
+                break;
+            case 'TRACE':
+                if ($this->answerTraceRequests) {
+                    return new Response(
+                        200,
+                        ['Content-Type' => 'message/http'],
+                        // as per the spec, TRACE reqs should not have a body. But, in case they do, we drop it
+                        $this->serializeRequest($request->withBody(Stream::create(''))),
+                        $request->getProtocolVersion()
+                    );
+                }
+                throw new RequestDenied("TRACE requests are not supported by the proxy");
+            default:
+                // Throw, let the middleware catch this and send an appropriate response (this should e a 500 error, really)
+                throw new \InvalidArgumentException("Unexpected call to answer directly to a " . $request->getMethod() . " request");
+        }
+    }
+
+    /**
      * Override this if you prefer to have host:port, a version nr. in the pseudonym,  or any other compliant string.
      * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Via
      */
     public function getViaHeader(ServerRequestInterface $request): string
     {
         return $request->getProtocolVersion() . ' ' . $this->viaHeaderPseudonym;
+    }
+
+    /**
+     * @return string[]
+     */
+    protected function getAllowedmethods(): array
+    {
+        $methods = $this->allowedMethods;
+        if ($this->answerTraceRequests) {
+            $methods[] = 'TRACE';
+        }
+        return array_unique($methods);
     }
 
     protected function clientHeadersNotForUpstream(): array
