@@ -343,16 +343,32 @@ abstract class ServerTestCase extends TestCase
         $this->assertArrayHasKey(strtolower($headerName), $response->getHeaders(false), $message);
     }
 
+    protected function assertResponseHeaderSame(string $headerName, $value, ResponseInterface $response, string $message = ''): void
+    {
+        $headers = $response->getHeaders(false);
+        $this->assertArrayHasKey(strtolower($headerName), $headers, $message);
+        $this->assertSame($value, $headers[strtolower($headerName)][0], $message);
+    }
+
+    protected function assertResponseHeaderContains(string $headerName, $value, ResponseInterface $response, string $message = ''): void
+    {
+        $headers = $response->getHeaders(false);
+        $this->assertArrayHasKey(strtolower($headerName), $headers, $message);
+        $this->assertStringContainsString($value, $headers[strtolower($headerName)][0], $message);
+    }
+
+
     protected function assertResponseHasGivenJsonBody($body, ResponseInterface $response, string $message = ''): void
     {
         $this->assertSame($body, $response->toArray(false), $message);
     }
 
-    protected function assertResponseHasKnownJsonBody(ResponseInterface $response, string $message = ''): void
+    protected function assertResponseHasKnownJsonBody(ResponseInterface $response, string $message = ''): array
     {
         $body = $response->toArray(false);
         $this->assertIsArray($body, $message);
         /// @todo check more of the data in the response
         $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], @$body['result'], $message);
+        return $body;
     }
 }

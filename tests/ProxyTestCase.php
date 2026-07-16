@@ -5,6 +5,7 @@ namespace YAWAF\Core\Tests;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
+use YAWAF\Core\Proxy\Proxy;
 
 abstract class ProxyTestCase extends ServerTestCase
 {
@@ -148,6 +149,30 @@ abstract class ProxyTestCase extends ServerTestCase
             }
         }
         return $out;
+    }
+
+    protected function assertResponseHasKnownJsonBody(ResponseInterface $response, string $message = ''): array
+    {
+        $body = parent::assertResponseHasKnownJsonBody($response, $message);
+
+        $this->assertResponseHeaderContains('Via', 'YAWAF', $response, $message);
+        $this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['via']);
+        $this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['user-agent']);
+
+        return $body;
+    }
+
+    protected function assertResponseIsProxyDenial(ResponseInterface $response, string $message = ''): void
+    {
+        // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
+        $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $message);
+        $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $message);
+        $this->assertResponseHeaderContains('Via', 'YAWAF', $response, $message);
+
+        //$body = parent::assertResponseHasKnownJsonBody($response, $message);
+        //$this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['via']);
+        //$this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['user-agent']);
+        //return $body;
     }
 
     /**

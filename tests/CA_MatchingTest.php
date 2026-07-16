@@ -141,9 +141,7 @@ class CA_MatchingTest extends ProxyTestCase
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseIsProxyDenial($response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -210,9 +208,7 @@ class CA_MatchingTest extends ProxyTestCase
             ['client_type' => $clientType, 'upstream_client_type' => $upstreamClientType, 'proxy_scheme' => $proxyScheme, 'server_scheme' => $serverScheme]
         );
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseIsProxyDenial($response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -271,9 +267,7 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseIsProxyDenial($response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -308,9 +302,7 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseIsProxyDenial($response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -329,9 +321,7 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseIsProxyDenial($response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -409,9 +399,7 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseIsProxyDenial($response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -456,12 +444,11 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
+            // NB: the SF HTTP Client strips the body from responses to HEAD requests, even if the proxy sends it
+            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
-/// @todo... check that resp. body is empty... Should it be? Check the http spec!
     }
 
     public static function failingHeadRulesDataProvider(): array
@@ -506,8 +493,7 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
+            $this->assertResponseIsProxyDenial($response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -568,8 +554,7 @@ class CA_MatchingTest extends ProxyTestCase
         );
 
         try {
-            $failureMessage = $this->getTestDetails($response);
-            $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
+            $this->assertResponseIsProxyDenial($response, $this->getTestDetails($response));
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
