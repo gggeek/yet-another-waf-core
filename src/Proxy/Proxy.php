@@ -76,8 +76,27 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
      */
     protected function sendRequest(UpstreamClientInterface $client, ServerRequestInterface $request): ResponseInterface
     {
+/// @todo... make sure we avoid infinite loops by sending requests to self (either here or?)
         try {
+
+            // honour the Connection header
+            if ($request->hasHeader('Connection')) {
+                foreach($request->getHeader('Connection') as $header) {
+                    if ($request->hasHeader($header)) {
+                        $request = $request->withoutHeader($header);
+                    }
+                }
+                $request = $request->withoutHeader('Connection');
+            }
+            // and remove as well headers that are known to only pertain to the connection between the client and us
+            foreach($this->clientHeadersNotForUpstream() as $header) {
+                if ($request->hasHeader($header)) {
+                    $request = $request->withoutHeader($header);
+                }
+            }
+
             $request = $request->withAddedHeader('Via', $this->getViaHeader($request));
+
             $response = $client->sendRequest($request);
 
             $this->debug("Upstream returned HTTP/" . $response->getProtocolVersion() . ' ' . $response->getStatusCode() . ' ' .
@@ -130,5 +149,10 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
     public function getViaHeader(ServerRequestInterface $request): string
     {
         return $request->getProtocolVersion() . ' ' . $this->viaHeaderPseudonym;
+    }
+
+    protected function clientHeadersNotForUpstream(): array
+    {
+        return ['Keep-Alive', 'Proxy-Connection', 'TE', 'Transfer-Encoding', 'Upgrade'];
     }
 }

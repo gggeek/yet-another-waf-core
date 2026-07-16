@@ -353,16 +353,23 @@ class CA_MatchingTest extends ProxyTestCase
         }
 
         // NB: we try to make sure that the port is not use, by increasing it on every pass of the test.
-        // Atm this kind "generally" works, helped by the fact that we tell curl to use http 1.0 for this test, which
-        // means connections getting closed immediately after use instead of being kept open for reuse.
+        // Atm this kind "generally" works, helped by the fact that we tell curl to use `Connection: close` for this test,
+        // which means connections getting closed immediately after use instead of being kept open for reuse.
         // Nonetheless, there is no real guarantee that self::$clientPort + 1 is available at this very moment...
         self::$clientPort += 1;
+
+/// @todo... using http 1.0 makes the tests fail with nginx, which returns a 400 response and complains that
+///              `client sent HTTP/1.0 request with "Transfer-Encoding" header`.
+///          This "might be happening" only when the underlying http client in use is curl (as used by both Guzzle and Symfony),
+///          and seems hard to trace - as far as the php script of the upstream server is concerned, there is no
+///          Transfer-Encoding in the headers it receives from the webserver... We should use a proper sniffer such
+///          as Wireshark to figure out if the issue lies in the proxy client code, in curl, between the proxy php code and
+///          nginx, within nginx, or between nginx and fpm
 
         $rule = [['client_port' => self::$clientPort]];
         $response = $this->request(
             [
-                'headers' => ['X-YAWAF-Config' => json_encode($rule)] + $this->getCommonRequestHeaders(),
-                'http_version' => '1.0',
+                'headers' => ['X-YAWAF-Config' => json_encode($rule), 'Connection' => 'close'] + $this->getCommonRequestHeaders(),
                 'bindto' => '127.0.0.1:' . self::$clientPort
             ],
             'GET',
