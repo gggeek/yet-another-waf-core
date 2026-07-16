@@ -343,8 +343,16 @@ abstract class ServerTestCase extends TestCase
         $this->assertArrayHasKey(strtolower($headerName), $response->getHeaders(false), $message);
     }
 
-    protected function assertResponseHasJsonBody($body, ResponseInterface $response, string $message = ''): void
+    protected function assertResponseHasGivenJsonBody($body, ResponseInterface $response, string $message = ''): void
     {
         $this->assertSame($body, $response->toArray(false), $message);
+    }
+
+    protected function assertResponseHasKnownJsonBody(ResponseInterface $response, string $message = ''): void
+    {
+        $body = $response->toArray(false);
+        $this->assertIsArray($body, $message);
+        /// @todo check more of the data in the response
+        $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], @$body['result'], $message);
     }
 }

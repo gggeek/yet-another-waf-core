@@ -39,7 +39,7 @@ class AB_ProxySmokeTest extends ProxyTestCase
         $response = $client->request('GET', static::getProxyPath());
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $response->getContent(false));
-        $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $response->getContent(false));
+        $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $response->getContent(false));
     }
 
     /**
@@ -53,7 +53,7 @@ class AB_ProxySmokeTest extends ProxyTestCase
         // Without any config, the firewall should return a DENY response
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $response->getContent(false));
-        $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $response->getContent(false));
+        $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $response->getContent(false));
     }
 
     public static function proxyTestsDataProvider(): array

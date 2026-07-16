@@ -119,7 +119,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+            $this->assertResponseHasKnownJsonBody($response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -143,7 +143,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -154,8 +154,8 @@ class CA_MatchingTest extends ProxyTestCase
         return self::getRuleBasedTestDataProviderOptions('get', 'failing');
     }
 
-/// @todo... add a test arg allowing sending compressed requests
 /// @todo... add test cases sending requests which populate $_POST, and check for that in the returned data
+/// @todo... add test cases sending requests which populate file uploads, and check for that in the returned data
     #[DataProvider('passingPostRulesDataProvider')]
     public function testPassingPostRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
@@ -177,8 +177,9 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            /// @todo... check that we get back the json we sent
-            $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+            $data = $response->toArray(false);
+            $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $data['result'], $failureMessage);
+            $this->assertSame(['test' => 'localhost'], $data['requestBody'], $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -189,8 +190,7 @@ class CA_MatchingTest extends ProxyTestCase
         return self::getRuleBasedTestDataProviderOptions('post', 'passing');
     }
 
-/// @todo... add a test arg allowing sending compressed requests
-/// @todo... add test cases sending requests which populate $_POST
+/// @todo... add test cases sending requests which populate $_POST, $_FILES
     #[DataProvider('failingPostRulesDataProvider')]
     public function testFailingPostRules(string $configFileName, string|null $clientType = null, string $proxyScheme = 'http',
         string|null $upstreamClientType = null, string $serverScheme = 'http')
@@ -212,7 +212,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -245,7 +245,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+            $this->assertResponseHasKnownJsonBody($response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -273,7 +273,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -294,7 +294,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+            $this->assertResponseHasKnownJsonBody($response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -310,7 +310,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -331,7 +331,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -373,7 +373,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+            $this->assertResponseHasKnownJsonBody($response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -404,7 +404,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -424,11 +424,12 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
+            // NB: responses to HEAD requests _can_ (and presumably should) have a content-length and content-type header,
+            // but they should carry no body
+            $this->assertEquals('', $response->getContent(false));
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
-
-/// @todo... check that resp. body is empty
     }
 
     public static function passingHeadRulesDataProvider(): array
@@ -590,6 +591,6 @@ class CA_MatchingTest extends ProxyTestCase
 
     protected function getCommonQueryString(): string
     {
-        return 'y=yes&n=no&true=true&false=false&1=1&0=0&0.1=0.1&array[]=one&array[]=two&surprise';
+        return 'testId=' .$this->testId . '&y=yes&n=no&true=true&false=false&1=1&0=0&0.1=0.1&array[]=one&array[]=two&surprise';
     }
 }

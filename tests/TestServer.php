@@ -217,6 +217,7 @@ class TestServer
                     case 'gzip':
                         $body = @gzinflate(substr($body, 10, -8));
                         break;
+                    /// @todo handle default case with at least a warning
                 }
             }
 
@@ -224,6 +225,7 @@ class TestServer
                 switch ($requestHeaders['content-type']) {
                     case 'application/json':
                         return @json_decode($body);
+                    /// @todo handle default case with at least a warning
                 }
             }
         }

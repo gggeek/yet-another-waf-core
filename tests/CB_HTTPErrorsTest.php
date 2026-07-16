@@ -31,7 +31,6 @@ class CB_HTTPErrorsTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(Proxy::UPSTREAM_TIMEOUT_STATUS_CODE, $response, $failureMessage);
-            //$this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(Proxy::UPSTREAM_TIMEOUT_STATUS_CODE, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -54,7 +53,6 @@ class CB_HTTPErrorsTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(404, $response, $failureMessage);
-            //$this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(404, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -83,7 +81,6 @@ class CB_HTTPErrorsTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(Proxy::UPSTREAM_ERROR_STATUS_CODE, $response, $failureMessage);
-            //$this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(Proxy::UPSTREAM_ERROR_STATUS_CODE, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
         }

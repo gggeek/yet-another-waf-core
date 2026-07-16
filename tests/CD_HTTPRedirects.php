@@ -31,7 +31,7 @@ class CD_HTTPRedirects extends ProxyTestCase
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode($redirectCode, $response, $failureMessage);
             /// @todo check for presence of a `Location` header
-            //$this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $response->toArray(false)['result'], $failureMessage);
+
         } catch (ExceptionInterface $e) {
             $this->assertSame($redirectCode, null, 'Exception thrown by client while communicating to the proxy: ' . $e->getMessage());
         }

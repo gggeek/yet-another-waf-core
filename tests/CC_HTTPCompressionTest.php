@@ -199,7 +199,7 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
