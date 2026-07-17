@@ -165,6 +165,7 @@ fi
 # @todo the installation of extensions via PIE requires the presence of `phpize`, even when a "prebuilt archive" is
 #       available. phpize in turn is downloaded as an apt package, which brings in gcc and co. as dependencies. Which means
 #       a lot of disk bloat and long build times... can we obviate to that in any way (apart from the 2-stage build we currently use)?
+#       Take a look f.e. at https://github.com/mlocati/docker-php-extension-installer
 if [ -n "$PIE_EXTENSIONS" ]; then
     # @todo install the github cli to verify the pie download (see f.e. https://linuxcapable.com/how-to-install-github-cli-on-ubuntu-linux/)
     #  && gh attestation verify --owner php /tmp/pie.phar \

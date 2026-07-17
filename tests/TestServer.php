@@ -36,6 +36,9 @@ class TestServer
             die('This url can only be accessed by the test suite');
         }
 */
+        // Make errors always visible
+        ini_set('display_errors', true);
+        error_reporting(E_ALL);
     }
 
     public function respond(string $requestMethod = 'GET', string $action = 'info', array $actionArgs = []): void
@@ -209,20 +212,26 @@ class TestServer
     protected function decodeRequestBody(string $body, array $requestHeaders): mixed
     {
         if ($body !== '') {
-            if (isset($requestHeaders['content-encoding'])) {
-                switch ($requestHeaders['content-encoding']) {
+            if (isset($requestHeaders['Content-Encoding'])) {
+                switch ($requestHeaders['Content-Encoding']) {
+                    case 'br':
+                        $body = @brotli_uncompress($body);
+                        break;
                     case 'deflate':
                         $body = @gzuncompress($body);
                         break;
                     case 'gzip':
                         $body = @gzinflate(substr($body, 10, -8));
                         break;
+                    case 'zstd':
+                        $body = @zstd_uncompress($body);
+                        break;
                     /// @todo handle default case with at least a warning
                 }
             }
 
-            if (isset($requestHeaders['content-type'])) {
-                switch ($requestHeaders['content-type']) {
+            if (isset($requestHeaders['Content-Type'])) {
+                switch ($requestHeaders['Content-Type']) {
                     case 'application/json':
                         return @json_decode($body);
                     /// @todo handle default case with at least a warning

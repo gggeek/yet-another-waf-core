@@ -223,8 +223,10 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         $out = json_encode(['test' => 'localhost']);
 
         switch ($requestCompressionScheme) {
+            case 'br':
             case 'deflate':
             case 'gzip':
+            case 'zstd':
                 $out = $this->compressPayload($out, [$requestCompressionScheme], $actualScheme);
                 $this->assertSame($requestCompressionScheme, $actualScheme, "Failed to compress the request to desired scheme '$requestCompressionScheme'");
                 break;
@@ -249,10 +251,20 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         // @see https://www.iana.org/assignments/http-parameters/http-parameters.xhtml
         // We might as well drop 'deflate', as that is not supported by Apache, because of flaky support by browsers
         // and most likely also neither by Nginx nor FrankenPHP (see https://zlib.net/zlib_faq.html#faq39)
-        /// @todo add br, dcb, dcz (brotli), zstd if the relevant php extensions are available (ideally check both
-        ///       proxy-side for decoding it, and upstream-server-side for serving it (or do the server-side encoding in php))
-        return ['', 'none', 'identity', '*', 'compress', 'gzip', 'deflate'];
+        /// @todo add support for dcb, dcz (brotli) if the relevant php extensions are available
+        $schemes = ['', 'none', 'identity', '*', 'compress', 'gzip', 'deflate'];
 
+        /// @todo ideally check for function existence proxy-side for decoding it, and upstream-server-side for serving
+        ///       it (or do the server-side encoding in php))
+        if ($_ENV['SERVER_TYPE'] !== 'frankenphp') {
+            if (function_exists('brotli_uncompress')) {
+                $schemes[] = 'br';
+            }
+            if (function_exists('zstd_uncompress')) {
+                $schemes[] = 'zstd';
+            }
+        }
+        return $schemes;
     }
 
     /**
@@ -275,8 +287,18 @@ class CC_HTTPCompressionTest extends ProxyTestCase
      */
     protected static function getAllowedRequestCompressionSchemes(): array
     {
-        /// @todo... add tests for 'compress' support, brotli, zstd
-        return ['', 'identity', 'gzip', 'deflate'];
+        /// @todo... add tests for 'compress'
+        $schemes = ['', 'identity', 'gzip', 'deflate'];
+        /// @todo either find a way to have brotli, zstd enabled on frankenphp, or ask the proxy server for their availability
+        if ($_ENV['SERVER_TYPE'] !== 'frankenphp') {
+            if (function_exists('brotli_uncompress')) {
+                $schemes[] = 'br';
+            }
+            if (function_exists('zstd_uncompress')) {
+                $schemes[] = 'zstd';
+            }
+        }
+        return $schemes;
     }
 
     /**

@@ -5,7 +5,6 @@ namespace YAWAF\Core\Tests;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
-use YAWAF\Core\Proxy\Proxy;
 
 abstract class ProxyTestCase extends ServerTestCase
 {
@@ -156,8 +155,8 @@ abstract class ProxyTestCase extends ServerTestCase
         $body = parent::assertResponseHasKnownJsonBody($response, $message);
 
         $this->assertResponseHeaderContains('Via', 'YAWAF', $response, $message);
-        $this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['via']);
-        $this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['user-agent']);
+        $this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['Via']);
+        $this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['User-Agent']);
 
         return $body;
     }
@@ -168,11 +167,6 @@ abstract class ProxyTestCase extends ServerTestCase
         $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $message);
         $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $message);
         $this->assertResponseHeaderContains('Via', 'YAWAF', $response, $message);
-
-        //$body = parent::assertResponseHasKnownJsonBody($response, $message);
-        //$this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['via']);
-        //$this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['user-agent']);
-        //return $body;
     }
 
     /**

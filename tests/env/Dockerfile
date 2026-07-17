@@ -9,6 +9,12 @@ ARG PHP_VERSION=default
 COPY --chmod=755 setup/build_pie_extensions.sh setup/setup_php.sh /root/setup/
 RUN /root/setup/build_pie_extensions.sh 'kjdev/brotli kjdev/zstd'
 
+# @todo the FP_VERSION variable should be calculated automatically from UBUNTU_VERSION+PHP_VERSION, both in the script
+#       making use of this dockerfile (container.sh) and in build.sh
+##ARG FP_VERSION=php8.5
+##FROM dunglas/frankenphp:${FP_VERSION} AS frankenphp_build
+##RUN install-php-extensions brotli zstd
+
 ARG UBUNTU_VERSION=resolute
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -17,8 +23,9 @@ ARG PHP_VERSION=default
 ARG UBUNTU_VERSION=resolute
 ARG WEBSERVER_TYPE=all
 
-# @todo are we sure that all php versions we support use `/usr/lib/php/20250925/` for .so files?
+# @todo are we sure that all php versions we support use `/usr/lib/php/20250925/` for .so files? If not, we need an ARG
 COPY --from=pie_build --chmod=644 /usr/lib/php/20250925/brotli.so /usr/lib/php/20250925/zstd.so /usr/lib/php/pie/
+##COPY --from=frankenphp_build --chmod=644 /usr/local/lib/php/extensions/no-debug-zts-20250925/brotli.so /usr/local/lib/php/extensions/no-debug-zts-20250925/zstd.so /usr/lib/php/frankenphp/
 
 COPY --chmod=755 setup/*.sh /root/setup/
 COPY config /root/config/
