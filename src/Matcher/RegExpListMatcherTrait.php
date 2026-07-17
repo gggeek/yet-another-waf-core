@@ -64,10 +64,10 @@ trait RegExpListMatcherTrait
     /**
      * A helper method dedicated to transforming a string such as 'hello there' or 'hello *' into a regexp
      */
-    protected function wildcardStringToRegexp(string $value): string
+    protected function wildcardStringToRegexp(string $value, bool $forceWildcardExpansion = false): string
     {
         $regexp = preg_quote($value, $this->regexpDelimiter);
-        if ($this->expandWildcards) {
+        if ($this->expandWildcards || $forceWildcardExpansion) {
             $regexp = str_replace(['\\*'], ['.*'], $regexp);
         }
         return '^' . $regexp . '$';

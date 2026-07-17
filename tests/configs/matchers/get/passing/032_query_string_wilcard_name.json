@@ -1,0 +1,5 @@
+[
+    {
+        "query_string/wildcards_in_name": {"ar*ay": "one"}
+    }
+]

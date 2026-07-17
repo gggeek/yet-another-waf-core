@@ -66,8 +66,8 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
                 if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
                     throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
-                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
-                $matcher = new HeaderMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards']);
+                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true, 'wildcards_in_name' => false]);
+                $matcher = new HeaderMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], $opts['wildcards_in_name']);
                 break;
             /// @todo accept 'method' as an alias?
             case 'http_method':
@@ -89,8 +89,8 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
                 if (!is_string($qsn) || !(is_string($qsv) || is_array($qsv))) {
                     throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
-                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
-                $matcher = new QueryStringMatcher($qsn, $qsv, $opts['case_insensitive'], $opts['no_wildcards']);
+                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true, 'wildcards_in_name' => false]);
+                $matcher = new QueryStringMatcher($qsn, $qsv, $opts['case_insensitive'], $opts['no_wildcards'], $opts['wildcards_in_name']);
                 break;
             case 'scheme':
                 $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);

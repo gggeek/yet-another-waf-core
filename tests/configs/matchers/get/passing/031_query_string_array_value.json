@@ -1,0 +1,5 @@
+[
+    {
+        "query_string/case_insensitive": {"array": "one"}
+    }
+]

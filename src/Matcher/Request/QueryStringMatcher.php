@@ -18,12 +18,14 @@ class QueryStringMatcher extends BaseMatcher
      * @param string|string[] $filter
      * @throws \Exception
      */
-    public function __construct(string $parameterName, string|array $filter, bool $caseInsensitive = false, bool $expandWildcards = true)
+    public function __construct(string $parameterName, string|array $filter, bool $caseInsensitive = false, bool $expandWildcards = true,
+        bool $expandWildcardsInName = false)
     {
         $this->caseInsensitive = $caseInsensitive;
         $this->expandWildcards = $expandWildcards;
+        $this->parameterNameIsRegex = $expandWildcardsInName;
         if ($this->parameterNameIsRegex) {
-            $this->parameterName = $this->regexpDelimiter . $this->wildcardStringToRegexp($parameterName) . $this->regexpDelimiter;
+            $this->parameterName = $this->regexpDelimiter . $this->wildcardStringToRegexp($parameterName, true) . $this->regexpDelimiter;
         } else {
             $this->parameterName = $parameterName;
         }
@@ -38,8 +40,17 @@ class QueryStringMatcher extends BaseMatcher
         //parse_str($qs, $pieces);
         if ($this->parameterNameIsRegex) {
             foreach ($pieces as $name => $value) {
-                if (preg_match($this->parameterName, $name)) {
-                    return $this->matchesRegexp($value);
+                if (preg_match($this->parameterName, (string)$name)) {
+                    if (is_array($value)) {
+                        foreach ($value as $val) {
+                            if ($this->matchesRegexp($val)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    } else {
+                        return $this->matchesRegexp($value);
+                    }
                 }
             }
             return false;
@@ -47,7 +58,17 @@ class QueryStringMatcher extends BaseMatcher
             if (!array_key_exists($this->parameterName, $pieces)) {
                 return false;
             }
-            return $this->matchesRegexp($pieces[$this->parameterName]);
+            $value = $pieces[$this->parameterName];
+            if (is_array($value)) {
+                foreach ($value as $val) {
+                    if ($this->matchesRegexp($val)) {
+                        return true;
+                    }
+                }
+                return false;
+            } else {
+                return $this->matchesRegexp($value);
+            }
         }
     }
 
