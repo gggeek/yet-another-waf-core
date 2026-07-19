@@ -5,7 +5,7 @@ namespace YAWAF\Core\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
-use YAWAF\Core\Filter\Bidirectional\BodyCompressorTrait;
+use YAWAF\Core\Http\BodyCompressorTrait;
 
 class CC_HTTPCompressionTest extends ProxyTestCase
 {

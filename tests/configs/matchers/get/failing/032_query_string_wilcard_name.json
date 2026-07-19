@@ -1,5 +1,5 @@
 [
     {
-        "query_string/wildcards_in_name": {"ar*a": "one"}
+        "wildcard_query_string": {"ar*a": "one"}
     }
 ]
