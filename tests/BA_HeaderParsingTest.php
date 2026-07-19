@@ -37,7 +37,17 @@ class BA_HeaderParsingTest extends TestCase
 
             [['hello"world'], 0, ['']],
             [['"hello world"'], 0, ['']],
+            [['hello world"'], 0, ['']],
+            [['"hello world'], 0, ['']],
 
+            [['hello', 'world'], 0, ['hello', 'world']],
+            [[',hello, ,', 'world'], 0, ['hello', 'world']],
+            [['hello', ', ,world,'], 0, ['hello', 'world']],
+            [['', 'hello,world', ''], 0, ['hello', 'world']],
+            [['hello,world', 'again'], 0, ['hello', 'world', 'again']],
+            [[',,hello,,world,,' ,'again'], 0, ['hello', 'world', 'again']],
+
+            // 1 = singleton
         ];
     }
 }
