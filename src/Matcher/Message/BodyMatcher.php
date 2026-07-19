@@ -3,10 +3,8 @@
 namespace YAWAF\Core\Matcher\Message;
 
 use Psr\Http\Message\MessageInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use YAWAF\Core\Filter\Bidirectional\BodyCompressorTrait;
+use YAWAF\Core\Http\BodyCompressorTrait;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
-use YAWAF\Core\ServerRequest\Psr7\Attributes;
 
 class BodyMatcher extends BaseMatcher
 {

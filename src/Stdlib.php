@@ -26,7 +26,7 @@ class Stdlib
     }
 
     /**
-     * Implementation from Nyholm\Psr7Server\ServerRequestCreator::getHeadersFromServer(), originally from
+     * Improved version of code from Nyholm\Psr7Server\ServerRequestCreator::getHeadersFromServer(), originally from
      * Laminas\Diactoros\marshalHeadersFromSapi().
      * @todo... test differences with https://github.com/ralouphie/getallheaders/blob/develop/src/getallheaders.php for hackish cases
      *          (see also the comments in https://www.php.net/manual/en/function.apache-request-headers.php)

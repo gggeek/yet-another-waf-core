@@ -187,7 +187,6 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
                     '',
                     $request->getProtocolVersion()
                 );
-                break;
             case 'TRACE':
                 if ($this->answerTraceRequests) {
                     return new Response(

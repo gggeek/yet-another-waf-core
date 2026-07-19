@@ -5,6 +5,7 @@ namespace YAWAF\Core\Filter\Bidirectional;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use YAWAF\Core\Http\BodyCompressorTrait;
 
 /**
  * Used to force  to enable/disable accepting encoded (compressed) responses.

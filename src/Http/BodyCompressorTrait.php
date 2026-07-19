@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace YAWAF\Core\Filter\Bidirectional;
+namespace YAWAF\Core\Http;
 
 use Nyholm\Psr7\Stream;
 use Psr\Http\Message\MessageInterface;

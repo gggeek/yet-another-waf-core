@@ -18,7 +18,7 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
 {
     use LoggerAwareTrait;
 
-    protected array $supportedMatcherTypes = ['body', 'content_type', 'http_header', 'status_code'];
+    protected array $supportedMatcherTypes = ['body', 'content_type', 'http_header', 'status_code', 'wildcard_http_header'];
 
     public function __construct(LoggerInterface|null $logger = null)
     {
@@ -33,7 +33,8 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
      */
     public function fromConfiguration(string $type, mixed $values): MatcherInterface
     {
-        switch ($this->getMatcherType($type)) {
+        $matcherType = $this->getMatcherType($type);
+        switch ($matcherType) {
             /// @todo accept 'response_body' as an alias?
             case 'body':
                 $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
@@ -46,6 +47,7 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
                 break;
             /// @todo accept 'response_http_header' as an alias?
             case 'http_header':
+            case 'wildcard_http_header':
                 if (!is_array($values) || count($values) !== 1) {
                     throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with 1 element only");
                 }
@@ -54,8 +56,8 @@ class MatcherFactory extends OptionAwareMatcherFactory implements MatcherFactory
                 if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
                     throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
                 }
-                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true, 'wildcards_in_name' => false]);
-                $matcher = new HeaderMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], $opts['wildcards_in_name']);
+                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
+                $matcher = new HeaderMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], ($matcherType === 'wildcard_http_header'));
                 break;
             case 'status_code':
                 $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);

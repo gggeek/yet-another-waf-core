@@ -127,7 +127,7 @@ class SymfonyHttpClientAdapter implements UpstreamClientInterface
     }
 
     /**
-     * @see Symfony\Contracts\HttpClient\HttpClientInterface
+     * @see HttpClientInterface
      * @todo is it worth moving to Symfony option resolver?
      */
     protected function mapOptions(array $options): array
