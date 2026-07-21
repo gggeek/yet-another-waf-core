@@ -10,67 +10,161 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * @todo... more tests: - custom http methods
  *                      - anomalies in the start line
  *                      - unexpected values for Host header (incl. double Host)
- *                      - a header without ':', with spaces before the ':', etc...
+ *                      - a header without ':', etc...
  */
 class BA_ServerRequestCreatorTest extends ServerTestCase
 {
-    #[DataProvider('singletonHTPPHeaderDataProvider')]
-    public function testSingletonHTPPHeader(string $headers, string $expectedHeaderName, $expectedHeaderValue,
+    #[DataProvider('singletonHttpHeaderDataProvider')]
+    public function testSingletonHttpHeader(string $headers, string $expectedHeaderName, $expectedHeaderValue,
         string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
-        $data = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
-        $data = $this->getDecodedBody($data);
+        $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $failureMessage = $this->getRespDetails($response);
+        $data = $this->getDecodedBody($response);
         $headers = $data['serverRequest']['headers'];
-        $this->assertArrayHasKey($expectedHeaderName, $headers);
-        $this->assertSame($expectedHeaderValue, $headers[$expectedHeaderName][0]);
+        $this->assertArrayHasKey($expectedHeaderName, $headers, $failureMessage);
+        $this->assertSame($expectedHeaderValue, $headers[$expectedHeaderName][0], $failureMessage);
     }
 
-    public static function singletonHTPPHeaderDataProvider(): array
+    /**
+     * @see https://developers.cloudflare.com/rules/transform/request-header-modification/reference/header-format/
+     * @see https://community.f5.com/kb/security-insights/f5-nginx-http-request-header-rules-what%E2%80%99s-permitted-and-what%E2%80%99s-not/334564
+     */
+    public static function singletonHttpHeaderDataProvider(): array
     {
         $cases = [
+            ['C: 0', 'C', '0'],
+            ['0: 1', '0', '1'],
             ['Custom: hey', 'Custom', 'hey'],
-            //['Custom : hey', 'Custom', 'hey'],
+            // OWS around value
             ["Custom: \t \t hey\t \t \t", 'Custom', 'hey'],
+            // casing of rebuilt header name
             ['custom: hey hey', 'Custom', 'hey hey'],
+            // no interpretation of quoted-string by default
             ['CuStOm: "hey hey"', 'Custom', '"hey hey"'],
+            // "token" production - for value
+            ['Custom: !#$%&\'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 'Custom', '!#$%&\'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'],
+            // chars not allowed in "token" - for value
+            ['Custom: (),/:;<=>?@[\\]{}', 'Custom', '(),/:;<=>?@[\\]{}'],
+            ['0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-: hey', '0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz-', 'hey'],
 
-            // This one leads to no header being created on the server
-            //['Custom:', 'Custom', ''],
-
-/// @todo... test: all supported/unsupported chars in header name, header value
+/// @todo... test: chars above 127 in header name, header value
         ];
 
         $out = [];
         foreach ($cases as $line) {
-            foreach (self::getSupportedServerSchemes() as $serverScheme) {
-                foreach (['1.0', '1.1'] as $protocolversion) {
-                    $out[] = $line + [$protocolversion, $serverScheme];
-                }
+            foreach (self::getCommonDataProviderOptions() as $options) {
+                $out[] = $line + $options;
             }
         }
         return $out;
     }
 
-    #[DataProvider('rejectedHTPPHeaderDataProvider')]
-    public function testRejectedHTPPHeader(string $headers, string $httpVersion = '1.0', string $serverScheme = 'http'): void
+    #[DataProvider('droppedHttpHeaderDataProvider')]
+    public function testDroppedHttpHeader(string $headers, bool $allow404s = true, string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
         $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $failureMessage = $this->getRespDetails($response);
+        // Different webservers react differently to this test - some drop the header, some reject the request.
+        // Allow the test data to specify if 404s should be acceptable
+        if ($allow404s && preg_match('#^HTTP/1.(0|1) 400 #', $response)) {
+            $this->assertEquals(1, 1);
+            return;
+        }
+        $data = $this->getDecodedBody($response);
+        $headers = $data['serverRequest']['headers'];
+        $this->assertArrayHasKey('Host', $headers, $failureMessage);
+        $this->assertCount(1, $headers, $failureMessage);
+    }
+
+    public static function droppedHttpHeaderDataProvider(): array
+    {
+        $cases = [
+            ['Custom:', false],
+            ['Cus_tom: hey', false],
+
+            // (),/:;<=>?@[\\]{}
+            ['Cus(tom: hey', true],
+            ['Cus)tom: hey', true],
+            ['Cus,tom: hey', true],
+            ['Cus/tom: hey', true],
+/// @todo... add a different test for this
+            //['Cus:tom: hey', true],
+            ['Cus;tom: hey', true],
+            ['Cus<tom: hey', true],
+            ['Cus=tom: hey', true],
+            ['Cus>tom: hey', true],
+            ['Cus?tom: hey', true],
+            ['Cus@tom: hey', true],
+            ['Cus[tom: hey', true],
+            ['Cus]tom: hey', true],
+            ['Cus\\tom: hey', true],
+            ['Cus{tom: hey', true],
+            ['Cus}tom: hey', true],
+        ];
+
+        if ($_ENV['SERVER_TYPE'] !== 'frankenphp') {
+            // NB: FrankenPHP, as of 2026/7/21, _does_ allow these chars in header names !!
+            $cases = $cases + [
+                // !#$%&\'*+-.^_`|~
+                ['Cus!tom: hey', true],
+                ['Cus#tom: hey', true],
+                ['Cus$tom: hey', true],
+                ['Cus%tom: hey', true],
+                ['Cus&tom: hey', true],
+                ['Cus\'tom: hey', true],
+                ['Cus*tom: hey', true],
+                ['Cus+tom: hey', true],
+                ['Cus.tom: hey', true],
+                ['Cus^tom: hey', true],
+                ['Cus`tom: hey', true],
+                ['Cus|tom: hey', true],
+                ['Cus~tom: hey', true],
+            ];
+        }
+
+        $out = [];
+        foreach ($cases as $line) {
+            foreach (self::getCommonDataProviderOptions() as $options) {
+                $out[] = $line + $options;
+            }
+        }
+        return $out;
+    }
+
+    #[DataProvider('rejectedHttpHeaderDataProvider')]
+    public function testRejectedHttpHeader(string $headers, string $httpVersion = '1.0', string $serverScheme = 'http'): void
+    {
+        $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $failureMessage = $this->getRespDetails($response);
         $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 400 #', $response);
     }
 
-    public static function rejectedHTPPHeaderDataProvider(): array
+    public static function rejectedHttpHeaderDataProvider(): array
     {
         $cases = [
             ['Custom : hey'],
-/// @todo... test: all unsupported chars in header name, header value
+            [' Custom: hey'],
+            ["Custom\t: hey"],
+            ["\tCustom: hey"],
+/// @todo... are there more known _always unsupported_ chars (ie. triggering a 404) in header name, header value?
         ];
 
         $out = [];
         foreach ($cases as $line) {
-            foreach (self::getSupportedServerSchemes() as $serverScheme) {
-                foreach (['1.0', '1.1'] as $protocolversion) {
-                    $out[] = $line + [$protocolversion, $serverScheme];
-                }
+            foreach (self::getCommonDataProviderOptions() as $options) {
+                $out[] = $line + $options;
+            }
+        }
+        return $out;
+    }
+
+    protected static function getCommonDataProviderOptions(): array
+    {
+        $out = [];
+        foreach (self::getSupportedServerSchemes() as $serverScheme) {
+            foreach (['1.0', '1.1'] as $protocolVersion) {
+                $out[] = [$protocolVersion, $serverScheme];
             }
         }
         return $out;
@@ -149,5 +243,10 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             return substr($response, $pos + 4);
         }
         return '';
+    }
+
+    protected function getRespDetails(string $response): string
+    {
+        return "Server response:\n$response\n";
     }
 }

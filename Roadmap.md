@@ -63,7 +63,7 @@
 
 - Testing
   - add tests which try to exploit issues in http parsers, see f.e. https://hostoftroubles.com/
-    (will need an http client based on fsockopen rather than psr stuff)
+  - see all the tests run by https://www.http-probe.com/
   - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions
     - add one test using frankenphp worker mode
     - test also against: apache+mod_php, php-http-server, lighttpd, openlitespeed, roadrunner, swoole
