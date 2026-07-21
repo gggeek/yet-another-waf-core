@@ -29,6 +29,9 @@ class RequestBodyRemover extends MiddlewareFilter implements ClientBidirectional
                 $request = $request->withoutHeader($name);
             }
         }
+        /// @todo... is there a better way than this to remove the body?
+        ///          Should we clone the request - but not its body?
+        ///          Should we use a bespoke null-stream implementation?
         return $request->withBody(Stream::create());
     }
 

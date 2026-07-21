@@ -47,7 +47,11 @@ class BA_HeaderParsingTest extends TestCase
             [['hello,world', 'again'], 0, ['hello', 'world', 'again']],
             [[',,hello,,world,,' ,'again'], 0, ['hello', 'world', 'again']],
 
-            // 1 = singleton
+            // 1 = singleton, no double-quotes
+
+            // 2 = multi-valued, double-quotes
+
+            // 3 = singleton, double-quotes
         ];
     }
 }
