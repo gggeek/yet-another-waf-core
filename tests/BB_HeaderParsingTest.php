@@ -7,7 +7,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use YAWAF\Core\Http\HeaderParser;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
-class BA_HeaderParsingTest extends TestCase
+class BB_HeaderParsingTest extends TestCase
 {
     #[DataProvider('parsingCustomHeadersDataProvider')]
     public function testParsingCustomHeaders($values, $options, $expectedResults)
