@@ -192,8 +192,11 @@ class Proxy implements ProxyInterface, LoggerAwareInterface
                     return new Response(
                         200,
                         ['Content-Type' => 'message/http'],
-                        // as per the spec, TRACE reqs should not have a body. But, in case they do, we drop it
-                        $this->serializeRequest($request->withBody(Stream::create(''))),
+                        // as per the spec, TRACE reqs should not have a body. But, in case they do, we reset it
+                        /// @todo... is there a better way than this to remove the body?
+                        ///          Should we clone the request - but not its body?
+                        ///          Should we use a bespoke null-stream implementation?
+                        $this->serializeRequest($request->withBody(Stream::create())),
                         $request->getProtocolVersion()
                     );
                 }
