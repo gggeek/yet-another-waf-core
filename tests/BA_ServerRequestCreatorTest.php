@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * @todo... more tests: - custom http methods
  *                      - anomalies in the start line
  *                      - unexpected values for Host header (incl. double Host)
- *                      - a header without ':', and with spaces before the ':'
+ *                      - a header without ':', with spaces before the ':', etc...
  */
 class BA_ServerRequestCreatorTest extends ServerTestCase
 {
@@ -19,6 +19,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
         $data = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $data = $this->getDecodedBody($data);
         $headers = $data['serverRequest']['headers'];
         $this->assertArrayHasKey($expectedHeaderName, $headers);
         $this->assertSame($expectedHeaderValue, $headers[$expectedHeaderName][0]);
@@ -50,8 +51,33 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         return $out;
     }
 
+    #[DataProvider('rejectedHTPPHeaderDataProvider')]
+    public function testRejectedHTPPHeader(string $headers, string $httpVersion = '1.0', string $serverScheme = 'http'): void
+    {
+        $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 400 #', $response);
+    }
+
+    public static function rejectedHTPPHeaderDataProvider(): array
+    {
+        $cases = [
+            ['Custom : hey'],
+/// @todo... test: all unsupported chars in header name, header value
+        ];
+
+        $out = [];
+        foreach ($cases as $line) {
+            foreach (self::getSupportedServerSchemes() as $serverScheme) {
+                foreach (['1.0', '1.1'] as $protocolversion) {
+                    $out[] = $line + [$protocolversion, $serverScheme];
+                }
+            }
+        }
+        return $out;
+    }
+
     protected function customHeadersRequest(string $headers, string $method = 'GET', string $httpVersion = '1.0',
-        string $serverScheme = 'http'): array
+        string $serverScheme = 'http'): string
     {
         $client = $this->getSimpleClient([], ['server_scheme' => $serverScheme]);
 
@@ -66,8 +92,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         }
         $payload .= "\r\n";
 
-        $response = $client->sendPayload($targetAddress, $payload);
-        return $this->getDecodedBody($response);
+        return $client->sendPayload($targetAddress, $payload);
     }
 
     protected function getServerAddress(): string
