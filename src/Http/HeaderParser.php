@@ -12,6 +12,7 @@ class HeaderParser
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
+/// @todo... allow other productions than token, quoted-string
     const SINGLETON = 1;
     const ALLOWS_QUOTED_STRINGS = 2;
     const ALLOWS_TRAILING_COMMENT = 4;
@@ -19,7 +20,6 @@ class HeaderParser
     //const IS_DATE = 8;
 
     /// @todo... complete list of known headers: singletons, non-csv-lists, double-quoted, dates, cookies, ...
-
     /** @var int[] */
     protected static $knownHeaders = [
         'cookie' => 0,
@@ -46,7 +46,7 @@ class HeaderParser
                 throw new InvalidHeaderValue("Error parsing header '$name': " . $e->getMessage());
             }
         } else {
-/// @todo... throw? Or define a default, such as 2?
+/// @todo... throw!
             //return $this->normalizeCustomHeaderValue($values, )
             throw new \Exception("ToBeDone");
         }
@@ -89,6 +89,7 @@ class HeaderParser
                 if ($allowsQuotedStrings && ($len = strlen($value)) >= 2 && $value[0] === '"' && $value[$len-1] === '"') {
                     $out[] = $this->parseQuotedStingContents($value, $len, $throwOnErrors);
                 } else {
+/// @todo... this is wrong: it assumes a 'token' production, which is not obligatory. Also, in token strings other chars are forbidden: (),/:;<=>?@[\]{}
                     if (str_contains($value, '"')) {
                         if ($throwOnErrors) {
                             throw new InvalidHeaderValue("Non-quoted string contains double-quote character");
@@ -188,6 +189,7 @@ class HeaderParser
                 } else {
                     // non-singleton, no quoted strings
                     $pieces = preg_split("/[ \\t]*,[ \\t]*/", $value, -1, PREG_SPLIT_NO_EMPTY);
+/// @todo... this is wrong: it assumes a 'token' production, which is not obligatory. Also, in token strings other chars are forbidden: (),/:;<=>?@[\]{}
                     foreach ($pieces as $i => $piece) {
                         if (str_contains($piece, '"')) {
                             if ($throwOnErrors) {
@@ -253,6 +255,6 @@ class HeaderParser
 
     public function registerCustomHeader(string $headerName, int $headerSpec): void
     {
-        self::$KNOWN_HEADERS[$headerName] = $headerName;
+        self::$knownHeaders[$headerName] = $headerName;
     }
 }
