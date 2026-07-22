@@ -33,23 +33,36 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     public static function singletonHttpHeaderDataProvider(): array
     {
         $cases = [
-            ['C: 0', 'C', '0'],
-            ['0: 1', '0', '1'],
+            // vanilla
             ['Custom: hey', 'Custom', 'hey'],
+            // making sure 0, null and false do not gt dropped/interpreted
+            ['C: 0', 'C', '0'],
+            ['Custom: null', 'Custom', 'null'],
+            ['Custom: false', 'Custom', 'false'],
+            // a header with the shortest possible purely numeric name
+            ['0: 1', '0', '1'],
             // OWS around value
             ["Custom: \t \t hey\t \t \t", 'Custom', 'hey'],
-            // casing of rebuilt header name
-            ['custom: hey hey', 'Custom', 'hey hey'],
+            // casing of rebuilt header name, whitespace inside value
+            ["custom: hey hey\they", 'Custom', "hey hey\they"],
             // no interpretation of quoted-string by default
             ['CuStOm: "hey hey"', 'Custom', '"hey hey"'],
-            // "token" production - for value
+            // rfc9110 "token" production - for value
             ['Custom: !#$%&\'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 'Custom', '!#$%&\'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'],
-            // chars not allowed in "token" - for value
+            // the chars not allowed in rfc9110 "token" - for value
             ['Custom: (),/:;<=>?@[\\]{}', 'Custom', '(),/:;<=>?@[\\]{}'],
-            ['0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-: hey', '0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz-', 'hey'],
 
-/// @todo... test: chars above 127 in header name, header value
+            // DIGIT / ALPHA / "-" - for name
+            ['0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-: hey', '0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz-', 'hey'],
         ];
+
+/// @todo... test: chars above 127 (aka. 'obs-text') in header value. Atm this test fails because of json-encode server-side
+///          expecting valid utf8
+        //$obsText = '';
+        //for ($i = 128; $i < 256; $i++) {
+        //    $obsText .= chr($i);
+        //}
+        //$cases[] = ['Custom: ' . $obsText, 'Custom', $obsText];
 
         $out = [];
         foreach ($cases as $line) {
@@ -81,6 +94,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     {
         $cases = [
             ['Custom:', false],
+
+            /// @todo figure out why this one does get dropped or refused by all servers
             ['Cus_tom: hey', false],
 
             // (),/:;<=>?@[\\]{}
@@ -103,8 +118,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ['Cus}tom: hey', true],
         ];
 
+        // NB: FrankenPHP, as of 2026/7/21 at least, _does_ allow these chars in header names !!
         if ($_ENV['SERVER_TYPE'] !== 'frankenphp') {
-            // NB: FrankenPHP, as of 2026/7/21, _does_ allow these chars in header names !!
             $cases = $cases + [
                 // !#$%&\'*+-.^_`|~
                 ['Cus!tom: hey', true],
@@ -143,10 +158,47 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     public static function rejectedHttpHeaderDataProvider(): array
     {
         $cases = [
+            [':'],
+            // whitespace in header name
+            ['Cus tom : hey'],
             ['Custom : hey'],
             [' Custom: hey'],
             ["Custom\t: hey"],
             ["\tCustom: hey"],
+            // non-ascii char in header name
+            ["Cüstom: hey"],
+            // ctrl chars in header name
+            ["Custom" . chr(0) . ": hey"],
+            ["Custom" . chr(1) . ": hey"],
+            ["Custom" . chr(2) . ": hey"],
+            ["Custom" . chr(3) . ": hey"],
+            ["Custom" . chr(4) . ": hey"],
+            ["Custom" . chr(5) . ": hey"],
+            ["Custom" . chr(6) . ": hey"],
+            ["Custom" . chr(7) . ": hey"],
+            ["Custom" . chr(8) . ": hey"],
+            ["Custom" . chr(11) . ": hey"],
+            ["Custom" . chr(12) . ": hey"],
+            ["Custom" . chr(14) . ": hey"],
+            ["Custom" . chr(15) . ": hey"],
+            ["Custom" . chr(16) . ": hey"],
+            ["Custom" . chr(17) . ": hey"],
+            ["Custom" . chr(18) . ": hey"],
+            ["Custom" . chr(19) . ": hey"],
+            ["Custom" . chr(20) . ": hey"],
+            ["Custom" . chr(21) . ": hey"],
+            ["Custom" . chr(22) . ": hey"],
+            ["Custom" . chr(23) . ": hey"],
+            ["Custom" . chr(24) . ": hey"],
+            ["Custom" . chr(25) . ": hey"],
+            ["Custom" . chr(26) . ": hey"],
+            ["Custom" . chr(27) . ": hey"],
+            ["Custom" . chr(28) . ": hey"],
+            ["Custom" . chr(29) . ": hey"],
+            ["Custom" . chr(30) . ": hey"],
+            ["Custom" . chr(31) . ": hey"],
+            ["Custom" . chr(127) . ": hey"], // DEL
+
 /// @todo... are there more known _always unsupported_ chars (ie. triggering a 404) in header name, header value?
         ];
 
@@ -226,6 +278,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
 
     protected function getDecodedBody(string $response, $retCode = '200'): array
     {
+        /// @todo "In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD ignore at least one empty line (CRLF) received prior to the request-line"
         $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) ' . preg_quote($retCode, '#') . ' #', $response);
         $body = $this->extractBody($response);
         $data = json_decode($body, true);
@@ -238,6 +291,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
      */
     protected function extractBody(string $response): string
     {
+        /// @todo accept single \n as line terminators: "Although the line terminator for the start-line and fields is
+        ///        the sequence CRLF, a recipient MAY recognize a single LF as a line terminator and ignore any preceding CR"
         $pos = strpos($response, "\r\n\r\n");
         if ($pos !== false) {
             return substr($response, $pos + 4);
