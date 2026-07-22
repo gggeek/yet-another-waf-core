@@ -173,9 +173,17 @@ class TestServer
             $response['getallheaders'] = apache_response_headers();
         }
 
+/// @todo... the request's headers, and possibly also other values, might not be valid utf8, and as such will fail
+///          to be encoded as json. Figure out the best way to return the data to the caller in that case
+
         $response = json_encode($response);
 
-        header('Content-type: application/json');
+        if ($response === false) {
+            $response = json_last_error_msg();
+        } else {
+            header('Content-type: application/json');
+        }
+
         if (@$_SERVER['REQUEST_METHOD'] === 'HEAD') {
             // (note that this is allowed as per RFC 9110)
             header("Content-Length: " . strlen($response));
