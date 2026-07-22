@@ -7,10 +7,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Tests the ServerRequestCreator class for all kind of weird http input
- * @todo... more tests: - custom http methods
+ * @todo... more tests: - custom http methods (incl. full "token" production)
  *                      - anomalies in the start line
  *                      - unexpected values for Host header (incl. double Host)
- *                      - a header without ':', etc...
  */
 class BA_ServerRequestCreatorTest extends ServerTestCase
 {
@@ -159,6 +158,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     {
         $cases = [
             [':'],
+            ['Custom'],
             // whitespace in header name
             ['Cus tom : hey'],
             ['Custom : hey'],
@@ -198,8 +198,39 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ["Custom" . chr(30) . ": hey"],
             ["Custom" . chr(31) . ": hey"],
             ["Custom" . chr(127) . ": hey"], // DEL
+            // ctrl chars in header value
+            ["Custom: " . chr(0)],
+            ["Custom: " . chr(1)],
+            ["Custom: " . chr(2)],
+            ["Custom: " . chr(3)],
+            ["Custom: " . chr(4)],
+            ["Custom: " . chr(5)],
+            ["Custom: " . chr(6)],
+            ["Custom: " . chr(7)],
+            ["Custom: " . chr(8)],
+            ["Custom: " . chr(11)],
+            ["Custom: " . chr(12)],
+            ["Custom: " . chr(14)],
+            ["Custom: " . chr(15)],
+            ["Custom: " . chr(16)],
+            ["Custom: " . chr(17)],
+            ["Custom: " . chr(18)],
+            ["Custom: " . chr(19)],
+            ["Custom: " . chr(20)],
+            ["Custom: " . chr(21)],
+            ["Custom: " . chr(22)],
+            ["Custom: " . chr(23)],
+            ["Custom: " . chr(24)],
+            ["Custom: " . chr(25)],
+            ["Custom: " . chr(26)],
+            ["Custom: " . chr(27)],
+            ["Custom: " . chr(28)],
+            ["Custom: " . chr(29)],
+            ["Custom: " . chr(30)],
+            ["Custom: " . chr(31)],
+            ["Custom: " . chr(127)], // DEL
 
-/// @todo... are there more known _always unsupported_ chars (ie. triggering a 404) in header name, header value?
+            /// @todo are there more known _always unsupported_ chars (ie. triggering a 4xx/5xx) in header name, header value?
         ];
 
         $out = [];
