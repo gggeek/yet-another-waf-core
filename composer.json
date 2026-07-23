@@ -1,6 +1,6 @@
 {
     "name": "gggeek/yet-another-waf-core",
-    "description": "A php library for building web api firewalls",
+    "description": "A php library for building Web Application Firewalls",
     "license": "GPL-2.0",
     "keywords": [ "waf", "http", "api", "firewall", "proxy", "security", "middleware", "psr-7", "psr-15", "psr-18" ],
     "require": {
@@ -28,12 +28,12 @@
         "yoast/phpunit-polyfills": "^4.0"
     },
     "conflict": {
-        "guzzlehttp/guzzle": "<7.13.2",
+        "guzzlehttp/guzzle": "<8.0.0",
         "psr/http-factory": "<1.1.0",
         "symfony/http-client": "<7.0"
     },
     "suggest": {
-        "ext-curl": "Required (atm at least) for connecting to unix-socket based upstreams and some other nice http features",
+        "ext-curl": "Required (atm at least) for connecting to unix-socket based upstreams and many other nice http features",
         "ext-brotli": "Necessary to be able to inspect and modify received brotli-compressed message bodies",
         "ext-mbstring": "Recommended for juggling between charsets in case not every request and response is utf8",
         "ext-zstd": "Necessary to be able to inspect and modify received zstd-compressed message bodies",
