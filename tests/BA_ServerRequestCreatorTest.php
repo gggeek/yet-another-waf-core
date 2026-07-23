@@ -6,13 +6,20 @@ namespace YAWAF\Core\Tests;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * Tests the ServerRequestCreator class for all kind of weird http input
+ * Tests the ServerRequestCreator class for all kind of weird http input.
+ * In fact these tests are more of a smoke-test for the webserver used to run PHP, how it handles malformed http requests,
+ * and what it lets through to the application.
+ *
  * @todo... more tests: - custom http methods (incl. full "token" production)
  *                      - anomalies in the start line
  *                      - unexpected values for Host header (incl. double Host)
+ *                      - header with a value continued on the next line (check rfc9110: are those still supported or should they be dropped?)
  */
 class BA_ServerRequestCreatorTest extends ServerTestCase
 {
+    /**
+     * Test http headers which cause all (tested) servers to pass them on to PHP - single header
+     */
     #[DataProvider('singletonHttpHeaderDataProvider')]
     public function testSingletonHttpHeader(string $headers, string $expectedHeaderName, $expectedHeaderValue,
         string $httpVersion = '1.0', string $serverScheme = 'http'): void
@@ -72,6 +79,49 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         return $out;
     }
 
+    /**
+     * Test http headers which cause all (tested) servers to pass them on to PHP - duplicate header
+     */
+    #[DataProvider('duplicateHttpHeaderDataProvider')]
+    public function testDuplicateHttpHeader(string $headers, string $expectedHeaderName, $expectedHeaderValue,
+        string $httpVersion = '1.0', string $serverScheme = 'http'): void
+    {
+        $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $failureMessage = $this->getRespDetails($response);
+        $data = $this->getDecodedBody($response);
+        $headers = $data['serverRequest']['headers'];
+        $this->assertArrayHasKey($expectedHeaderName, $headers, $failureMessage);
+        $this->assertSame($expectedHeaderValue, $headers[$expectedHeaderName][0], $failureMessage);
+    }
+
+    public static function duplicateHttpHeaderDataProvider(): array
+    {
+        $cases = [
+            // vanilla
+            ["Custom: hey\r\nCustom: there", 'Custom', 'hey, there'],
+            // OWS
+            ["Custom: 1 \r\nCustom:2\r\nCustom: 3 ", 'Custom', '1, 2, 3'],
+/// @todo... add a mix of double-quoted strings
+        ];
+
+        if ($_ENV['SERVER_TYPE'] !== 'nginx') {
+            /// @todo... this test is fun: frankenphp and apache agree on it, whereas nginx does not strip the tabs from whitespace !!
+            ///          See https://github.com/nginx/nginx/issues/1597 -> https://github.com/nginx/nginx/issues/187
+            $cases[] = ["Custom: \t1\t\r\nCustom: 2 \r\nCustom: \t3\t", 'Custom', '1, 2, 3'];
+        }
+
+        $out = [];
+        foreach ($cases as $line) {
+            foreach (self::getCommonDataProviderOptions() as $options) {
+                $out[] = $line + $options;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Test http headers which cause all (tested) servers to either drop them or return a 400 error
+     */
     #[DataProvider('droppedHttpHeaderDataProvider')]
     public function testDroppedHttpHeader(string $headers, bool $allow404s = true, string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
@@ -146,12 +196,15 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         return $out;
     }
 
+    /**
+     * Test http headers which cause all (tested) servers to return a 400 error
+     */
     #[DataProvider('rejectedHttpHeaderDataProvider')]
     public function testRejectedHttpHeader(string $headers, string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
         $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
         $failureMessage = $this->getRespDetails($response);
-        $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 400 #', $response);
+        $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 400 #', $response, $failureMessage);
     }
 
     public static function rejectedHttpHeaderDataProvider(): array
@@ -312,7 +365,14 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         /// @todo "In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD ignore at least one empty line (CRLF) received prior to the request-line"
         $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) ' . preg_quote($retCode, '#') . ' #', $response);
         $body = $this->extractBody($response);
-        $data = json_decode($body, true);
+        $data = @json_decode($body, true);
+        // support application/php-serialized+base64
+        if (json_last_error() !== 0) {
+            $data = @base64_decode($data);
+            if ($data !== false) {
+                $data = unserialize($data, ['allowed_classes' => false]);
+            }
+        }
         $this->assertIsArray($data);
         return $data;
     }

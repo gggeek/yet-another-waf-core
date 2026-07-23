@@ -26,7 +26,7 @@ class RemoteCoverageCollector
             $buffer = @file_get_contents($url);
 
             if ($buffer !== false) {
-                $coverageData = unserialize($buffer);
+                $coverageData = unserialize($buffer, ['allowed_classes' => false]);
                 if (is_array($coverageData)) {
                     return $this->matchLocalAndRemotePaths($coverageData);
                 } else {

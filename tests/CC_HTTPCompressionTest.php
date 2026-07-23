@@ -42,9 +42,10 @@ class CC_HTTPCompressionTest extends ProxyTestCase
                 ($clientAcceptEncoding !== '' || $ceHeader[0] !== 'gzip')) {
                 $body = $this->decompressPayload($response->getContent(false), $ceHeader, $errorMessage);
                 $this->assertIsString($body, (string)$errorMessage);
+                /// @todo add support for application/php-serialized+base64
                 $result = json_decode($body, true);
             } else {
-                $result = $response->toArray(false);
+                $result = $this->responseBodyToArray($response);
             }
             $this->assertIsArray($result, $failureMessage);
             $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $result['result'], $failureMessage);
@@ -105,9 +106,10 @@ class CC_HTTPCompressionTest extends ProxyTestCase
                 ($clientAcceptEncoding !== '' || $responseHeaders['content-encoding'][0] !== 'gzip')) {
                 $body = $this->decompressPayload($response->getContent(false), $responseHeaders['content-encoding'], $errorMessage);
                 $this->assertIsString($body, (string)$errorMessage);
+                /// @todo add support for application/php-serialized+base64
                 $result = json_decode($body, true);
             } else {
-                $result = $response->toArray(false);
+                $result = $this->responseBodyToArray($response);
             }
             $this->assertIsArray($result, $failureMessage);
             $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, $result, $failureMessage);
@@ -154,7 +156,7 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $data = $response->toArray(false);
+            $data = $this->responseBodyToArray($response);
             $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $data['result'], $failureMessage);
             $this->assertSame(['test' => 'localhost'], $data['requestBody'], $failureMessage);
         } catch (ExceptionInterface $e) {
@@ -199,7 +201,7 @@ class CC_HTTPCompressionTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $failureMessage);
-            $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
+            $this->assertResponseHasGivenArrayBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ACCESS_DENIED_RESPONSE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }

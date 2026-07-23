@@ -173,22 +173,24 @@ class TestServer
             $response['getallheaders'] = apache_response_headers();
         }
 
-/// @todo... the request's headers, and possibly also other values, might not be valid utf8, and as such will fail
-///          to be encoded as json. Figure out the best way to return the data to the caller in that case
+        // The request's headers, and possibly also other values, might not be valid utf8, and as such will fail
+        // to be encoded as json. So we rely on php serialization, base64-encoded as an alternative.
+        // NB: TAK CARE WHEN UNSERIALIZING IT, TO DISALLOW CLASS-LOADING!
 
-        $response = json_encode($response);
-
-        if ($response === false) {
-            $response = json_last_error_msg();
-        } else {
+        $payload = json_encode($response);
+        if ($payload !== false) {
+            //$response = json_last_error_msg();
             header('Content-type: application/json');
+        } else {
+            $payload = base64_encode(serialize($response));
+            header('Content-type: application/php-serialized+base64');
         }
 
         if (@$_SERVER['REQUEST_METHOD'] === 'HEAD') {
             // (note that this is allowed as per RFC 9110)
-            header("Content-Length: " . strlen($response));
+            header("Content-Length: " . strlen($payload));
         } else {
-            echo $response;
+            echo $payload;
         }
     }
 

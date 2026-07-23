@@ -25,7 +25,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(TestProxy::ERROR_STATUS_CODE, $response, $failureMessage);
-            $this->assertArrayIsEqualToArrayIgnoringListOfKeys(TestProxy::ERROR_RESPONSE, $response->toArray(false), ['message', 'file', 'line'], $failureMessage);
+            $this->assertArrayIsEqualToArrayIgnoringListOfKeys(TestProxy::ERROR_RESPONSE, $this->responseBodyToArray($response), ['message', 'file', 'line'], $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(TestProxy::ERROR_STATUS_CODE, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -119,7 +119,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $this->assertResponseHasKnownJsonBody($response, $failureMessage);
+            $this->assertResponseHasKnownArrayBody($response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -175,7 +175,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $data = $response->toArray(false);
+            $data = $this->responseBodyToArray($response);
             $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], $data['result'], $failureMessage);
             $this->assertSame(['test' => 'localhost'], $data['requestBody'], $failureMessage);
         } catch (ExceptionInterface $e) {
@@ -241,7 +241,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $this->assertResponseHasKnownJsonBody($response, $failureMessage);
+            $this->assertResponseHasKnownArrayBody($response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -288,7 +288,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $this->assertResponseHasKnownJsonBody($response, $failureMessage);
+            $this->assertResponseHasKnownArrayBody($response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -370,7 +370,7 @@ class CA_MatchingTest extends ProxyTestCase
         try {
             $failureMessage = $this->getTestDetails($response);
             $this->assertResponseHasStatusCode(200, $response, $failureMessage);
-            $this->assertResponseHasKnownJsonBody($response, $failureMessage);
+            $this->assertResponseHasKnownArrayBody($response, $failureMessage);
         } catch (ExceptionInterface $e) {
             $this->assertSame(200, null, 'Exception thrown by the test client while communicating to the proxy: ' . $e->getMessage());
         }
@@ -568,21 +568,23 @@ class CA_MatchingTest extends ProxyTestCase
 
     protected function getCommonRequestHeaders(): array
     {
+        // note: the commented-out headers are never used by any test case (rules in tests/config)
         return [
             'X-Test-1' => 'Hello',
-            'X-Test-2' => 1,
+            //'X-Test-2' => 1,
             'X-Test-3' => 0,
-            'X-Test-4' => 0.5,
-            'X-Test-5' => true,
+            //'X-Test-4' => 0.5,
+            //'X-Test-5' => true,
             'X-Test-6' => false, // serialized as empty string
             'X-Test-7' => null,  // serialized as empty string
-            'X-Test-8' => ['hi', 'there'],
+            //'X-Test-8' => ['hi', 'there'],
             'X-Test-9' => '_ :;.,\/"\'?!(){}[]@<>=-+*#$&`|~^%',
         ];
     }
 
     protected function getCommonQueryString(): string
     {
+        /// @todo add a test case for `surprise` (and others?) then remove from this qs all params which are not used by any test case
         return 'testId=' .$this->testId . '&y=yes&n=no&true=true&false=false&1=1&0=0&0.1=0.1&array[]=one&array[]=two&surprise';
     }
 }

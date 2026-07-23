@@ -150,9 +150,9 @@ abstract class ProxyTestCase extends ServerTestCase
         return $out;
     }
 
-    protected function assertResponseHasKnownJsonBody(ResponseInterface $response, string $message = ''): array
+    protected function assertResponseHasKnownArrayBody(ResponseInterface $response, string $message = ''): array
     {
-        $body = parent::assertResponseHasKnownJsonBody($response, $message);
+        $body = parent::assertResponseHasKnownArrayBody($response, $message);
 
         $this->assertResponseHeaderContains('Via', 'YAWAF', $response, $message);
         $this->assertStringContainsString('YAWAF', $body['getHeadersFromServer']['Via']);
@@ -165,7 +165,7 @@ abstract class ProxyTestCase extends ServerTestCase
     {
         // Note that in case of php errors, the status code will be 200 when display_errors in php.ini is on, and 500 when it is off
         $this->assertResponseHasStatusCode(TestProxy::ACCESS_DENIED_STATUS_CODE, $response, $message);
-        $this->assertResponseHasGivenJsonBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $message);
+        $this->assertResponseHasGivenArrayBody(TestProxy::ACCESS_DENIED_RESPONSE, $response, $message);
         $this->assertResponseHeaderContains('Via', 'YAWAF', $response, $message);
     }
 

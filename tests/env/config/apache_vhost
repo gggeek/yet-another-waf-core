@@ -10,6 +10,7 @@
 <IfModule mod_filter.c>
     # enable compression for application/json
     AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/php-serialized+base64
 </IfModule>
 
 Listen 81

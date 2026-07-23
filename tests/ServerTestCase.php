@@ -358,17 +358,45 @@ abstract class ServerTestCase extends TestCase
     }
 
 
-    protected function assertResponseHasGivenJsonBody($body, ResponseInterface $response, string $message = ''): void
+    protected function assertResponseHasGivenArrayBody($body, ResponseInterface $response, string $message = ''): void
     {
-        $this->assertSame($body, $response->toArray(false), $message);
+        $this->assertSame($body, $this->responseBodyToArray($response), $message);
     }
 
-    protected function assertResponseHasKnownJsonBody(ResponseInterface $response, string $message = ''): array
+    protected function assertResponseHasKnownArrayBody(ResponseInterface $response, string $message = ''): array
     {
-        $body = $response->toArray(false);
+        $body = $this->responseBodyToArray($response);
         $this->assertIsArray($body, $message);
         /// @todo check more of the data in the response
         $this->assertSame(TestServer::DEFAULT_RESPONSE['result'], @$body['result'], $message);
         return $body;
+    }
+
+    protected function responseBodyToArray(ResponseInterface $response): mixed
+    {
+        $headers = $response->getHeaders(false);
+        if (!array_key_exists('content-type', $headers)) {
+            throw new \RuntimeException("Response has no content-type");
+        }
+        switch ($headers['content-type'][0]) {
+            case 'application/json':
+                $out = @json_decode($response->getContent(false), true);
+                if (json_last_error()) {
+                    throw new \RuntimeException("Error decoding json response: " . json_last_error_msg());
+                }
+                return $out;
+            case 'application/php-serialized+base64':
+                $out = base64_decode($response->getContent(false), true);
+                if ($out === false) {
+                    throw new \RuntimeException("Error decoding base64 response");
+                }
+                $out = @unserialize($out, ['allowed_classes' => false]);
+                if ($out === false) {
+                    throw new \RuntimeException("Error decoding serialized response");
+                }
+                return $out;
+            default:
+                throw new \RuntimeException("Cannot decode response body: unsupported content type: {$headers['content-type'][0]}");
+        }
     }
 }

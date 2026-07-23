@@ -70,7 +70,7 @@ if (isset($_GET['PHPUNIT_SELENIUM_TEST_ID'])) {
     $coverage = array();
 
     foreach ($files as $file) {
-        $data = unserialize(file_get_contents($file));
+        $data = unserialize(file_get_contents($file), ['allowed_classes' => false]);
         unlink($file);
         unset($file);
         $filter = new \SebastianBergmann\CodeCoverage\Filter();
