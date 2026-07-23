@@ -14,7 +14,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *                      - anomalies in the start line
  *                      - unexpected values for Host header (incl. double Host)
  *                      - header with a value continued on the next line (check rfc9110: are those still supported or should they be dropped?)
- *                      - one or more CRLF at start of request
  */
 class BA_ServerRequestCreatorTest extends ServerTestCase
 {
@@ -25,7 +24,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     public function testSingletonHttpHeader(string $headers, string $expectedHeaderName, $expectedHeaderValue,
         string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
-        $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $response = $this->customRequest('GET', $headers, '', $httpVersion, $serverScheme);
         $failureMessage = $this->getRespDetails($response);
         $data = $this->getDecodedBody($response);
         $headers = $data['serverRequest']['headers'];
@@ -85,7 +84,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     public function testDuplicateHttpHeader(string $headers, string $expectedHeaderName, $expectedHeaderValue,
         string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
-        $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $response = $this->customRequest('GET', $headers, '', $httpVersion, $serverScheme);
         $failureMessage = $this->getRespDetails($response);
         $data = $this->getDecodedBody($response);
         $headers = $data['serverRequest']['headers'];
@@ -124,7 +123,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     #[DataProvider('droppedHttpHeaderDataProvider')]
     public function testDroppedHttpHeader(string $headers, bool $allow404s = true, string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
-        $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $response = $this->customRequest('GET', $headers, '', $httpVersion, $serverScheme);
         $failureMessage = $this->getRespDetails($response);
         // Different webservers react differently to this test - some drop the header, some reject the request.
         // Allow the test data to specify if 404s should be acceptable
@@ -201,7 +200,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     #[DataProvider('rejectedHttpHeaderDataProvider')]
     public function testRejectedHttpHeader(string $headers, string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
-        $response = $this->customHeadersRequest($headers, 'GET', $httpVersion, $serverScheme);
+        $response = $this->customRequest('GET', $headers, '', $httpVersion, $serverScheme);
         $failureMessage = $this->getRespDetails($response);
         $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 400 #', $response, $failureMessage);
     }
@@ -294,7 +293,57 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         return $out;
     }
 
-    protected static function getCommonDataProviderOptions(): array
+    #[DataProvider('requestPrefixDataProvider')]
+    public function testRequestPrefix(string $prefix, string $httpVersion = '1.0', string $serverScheme = 'http'): void
+    {
+        $response = $this->customRequest($prefix . 'GET', '', '', $httpVersion, $serverScheme);
+        $failureMessage = $this->getRespDetails($response);
+        // another fun test: no server respects the following suggestion from the rfc:
+        // "In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD ignore at least one empty line (CRLF) received prior to the request-line"
+        //$this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 200 #', $response, $failureMessage);
+        $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 400 #', $response, $failureMessage);
+    }
+
+    public static function requestPrefixDataProvider(): array
+    {
+        $cases = [
+            ["\r\n"],
+            ["\r\n\r\n"],
+        ];
+
+        $out = [];
+        foreach ($cases as $line) {
+            foreach (self::getCommonDataProviderOptions() as $options) {
+                $out[] = $line + $options;
+            }
+        }
+        return $out;
+    }
+
+    #[DataProvider('funkyHttpMethodsDataProvider')]
+    public function testFunkyHttpMethodsPrefix(string $method, string $httpVersion = '1.0', string $serverScheme = 'http'): void
+    {
+        $response = $this->customRequest($method, '', '', $httpVersion, $serverScheme);
+        $failureMessage = $this->getRespDetails($response);
+        $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 400 #', $response, $failureMessage);
+    }
+
+    public static function funkyHttpMethodsDataProvider(): array
+    {
+        $cases = [
+            ["WHAT"],
+        ];
+
+        $out = [];
+        foreach ($cases as $line) {
+            foreach (self::getCommonDataProviderOptions() as $options) {
+                $out[] = $line + $options;
+            }
+        }
+        return $out;
+    }
+
+    public static function getCommonDataProviderOptions(): array
     {
         $out = [];
         foreach (self::getSupportedServerSchemes() as $serverScheme) {
@@ -305,22 +354,27 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         return $out;
     }
 
-    protected function customHeadersRequest(string $headers, string $method = 'GET', string $httpVersion = '1.0',
-        string $serverScheme = 'http'): string
+    protected function customRequest(string $method = 'GET', string $headers = '', string $body = '',
+        string $httpVersion = '1.0', string $serverScheme = 'http'): string
     {
-        $client = $this->getSimpleClient([], ['server_scheme' => $serverScheme]);
-
         $baseUri = $this->getServerBaseUri();
         $targetAddress = $this->getServerAddress();
 
-        $payload = "$method " . $this->getServerPath() . " HTTP/$httpVersion\r\n" .
-            'Host: ' . preg_replace('#^https?://#', '', $baseUri) . "\r\n" . $headers . "\r\n";
+        $payload = "$method " . $this->getServerPath() . " HTTP/$httpVersion\r\n";
+
+        $payload .= 'Host: ' . preg_replace('#^https?://#', '', $baseUri) . "\r\n";
+        $headers = rtrim($headers, "\r\n");
+        if ($headers !== '') {
+            $payload .= $headers . "\r\n";
+        }
         if ($httpVersion === '1.1') {
             // avoid timeouts
             $payload .= "Connection: close\r\n";
         }
-        $payload .= "\r\n";
 
+        $payload .= "\r\n" . $body;
+
+        $client = $this->getSimpleClient([], ['server_scheme' => $serverScheme]);
         return $client->sendPayload($targetAddress, $payload);
     }
 
