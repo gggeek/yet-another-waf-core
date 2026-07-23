@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *                      - anomalies in the start line
  *                      - unexpected values for Host header (incl. double Host)
  *                      - header with a value continued on the next line (check rfc9110: are those still supported or should they be dropped?)
+ *                      - one or more CRLF at start of request
  */
 class BA_ServerRequestCreatorTest extends ServerTestCase
 {
@@ -62,13 +63,11 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ['0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-: hey', '0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz-', 'hey'],
         ];
 
-/// @todo... test: chars above 127 (aka. 'obs-text') in header value. Atm this test fails because of json-encode server-side
-///          expecting valid utf8
-        //$obsText = '';
-        //for ($i = 128; $i < 256; $i++) {
-        //    $obsText .= chr($i);
-        //}
-        //$cases[] = ['Custom: ' . $obsText, 'Custom', $obsText];
+        $obsText = '';
+        for ($i = 128; $i < 256; $i++) {
+            $obsText .= chr($i);
+        }
+        $cases[] = ['Custom: ' . $obsText, 'Custom', $obsText];
 
         $out = [];
         foreach ($cases as $line) {
@@ -368,7 +367,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         $data = @json_decode($body, true);
         // support application/php-serialized+base64
         if (json_last_error() !== 0) {
-            $data = @base64_decode($data);
+            $data = @base64_decode($body);
             if ($data !== false) {
                 $data = unserialize($data, ['allowed_classes' => false]);
             }
