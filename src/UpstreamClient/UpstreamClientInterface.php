@@ -7,7 +7,7 @@ use Psr\Http\Client\ClientInterface;
 
 interface UpstreamClientInterface extends ClientInterface
 {
-    // Used to send requests to a unix socket
+    // Used to send requests to a unix socket. String
     const OPT_BINDTO = 'bindto';
     // Used to force dns resolution of a host to an IP. Array of hostname => IP mappings
     const OPT_RESOLVE = 'resolve';

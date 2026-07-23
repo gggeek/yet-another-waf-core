@@ -63,9 +63,9 @@ class GuzzleAdapter implements UpstreamClientInterface
             // NB: guzzle does transparently decompress the responses, and it gives us back the plain body, stripping the
             // Content-Encoding header
             if ($this->maxExecutionTime > 0) {
-                $start = microtime(true);
+                //$start = microtime(true);
                 $response = $this->guzzleClient->sendRequest($request);
-                /// @todo (starting w. guzzle 8) we have to force reading the whole resp. body to make sure that we trigger timeouts
+/// @todo... (starting w. guzzle 8) we have to force reading the whole resp. body to make sure that we trigger timeouts
                 //$stream = $response->getBody();
                 //$stream->rewind();
                 //$body = $stream->getContents();

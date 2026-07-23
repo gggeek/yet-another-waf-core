@@ -18,6 +18,11 @@
     - allow setting a maxRestarts limit
     - q: should we remove from the current rule chain a rule, after it did trigger a restart? (possibly use 2 `restart` types?)
   - review: can we do the same (but better) as all the haproxy rules in NC-AIO haproxy.cfg?
+  - review: can we implement all rules from OWASP Top 10?
+    Also, take a look at OWASP Coraza:
+    - can we transform YAWAF rules into Coraza ones?
+    - take hints from features supported by Coraza, eg. setting resource limits (eg. on resp body size etc),
+      have 'log' as rule actions, have a do-not-deny mode, etc...
   - xml req./resp. body with xpath/css matchers
   - allow failures of the MethodMatcher to generate a 501 response instead of the default 403?
   - API reworking:
