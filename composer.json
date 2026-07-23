@@ -19,7 +19,7 @@
     "require-dev": {
         "ext-curl": "*",
         "ext-mbstring": "*",
-        "guzzlehttp/guzzle": "^7.13.2",
+        "guzzlehttp/guzzle": "^8.0.0",
         "laminas/laminas-httphandlerrunner": "^2.13.0",
         "phpunit/phpunit": "^11.5.55|^12.5.29|^13.2.1",
         "symfony/dotenv": "^v7.4.11|^8.0.11",
