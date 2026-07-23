@@ -7,6 +7,7 @@ class JsonFileLogger extends FileLogger
 {
     protected function formatMessage($level, string|\Stringable $message, array $context = []): string
     {
+        // Q: should we suppress php warnings when failing to encode?
         return json_encode([
             'level' => $level,
             'timestamp' => microtime(true),

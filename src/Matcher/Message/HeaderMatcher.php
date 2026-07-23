@@ -43,7 +43,7 @@ class HeaderMatcher extends BaseMatcher
                 if (preg_match($this->headerName, $headerName)) {
                     foreach ($headerValues as $headerValue) {
 /// @todo... depending on the header, values can be concatenated with commas - but also double-quoted!!!
-var_dump($headerValue);
+//var_dump($headerValue);
                         if ($this->matchesRegexp($headerValue)) {
                             return true;
                         }
