@@ -1,6 +1,6 @@
 # Yet Another Web API Firewall - core
 
-A php library for building Web API Firewalls - and other assorted http proxies.
+A PHP library for building Web API Firewalls - and other assorted HTTP Proxies.
 
 Primary finished-product targets are forward proxies for filtering the requests and responses of calls to HTTP APIs to
 only let through what you want to expose.
@@ -13,12 +13,15 @@ Example use-cases:
 - rate limiting (not implemented, but should be implementable with existing components from other packages)
 - caching (not implemented, but should be implementable with existing components from other packages)
 
+Similar software:
+- OWASP Coraza (written in Go, can be run as Caddy/Nginx/HAProxy module; uses less-readable configuration)
+
 ## Work In Progress
 
 ### Working
 
 - Support for Listening on http and on unix sockets
-- Matching requests and responses based on htp headers, request/response body and most other HTTP fields
+- Matching requests and responses based on HTTP headers, request/response body and most other HTTP fields
 - End-to-end testing of all implemented features using Apache, FrankenPHP, Nginx: locally via a container-based
   test environment and Continuous Integration on every push to GitHub
 
@@ -47,12 +50,15 @@ Not in scope (yet?):
 
 PHP 8.2 and up, with extension: ctype, json and zlib (curl extension recommended).
 
-A webserver to run it.
+A webserver to run it. If running Nginx, please use the very latest version available, ideally > 1.29.0, as it comes
+with improvements in parsing of HTTP headers to better conform to RFC9110.
 
 If you want to have the proxy listening on a unix socket instead of an http port, choose an http server which can do that:
 as of June 2026 Nginx and FrankenPHP can, while Apache can't.
 
-Either the `symfony/http-client` or `guzzlehttp/guzzle` php package.
+Note that this library is tested only with Apache, Nginx and FrankenPHP, at least for the moment.
+
+Either the `symfony/http-client` or `guzzlehttp/guzzle` php package (version 8.0 or later).
 
 The php `curl` extension is recommended, as it is required for most of the complex http stuff when making requests to
 the upstream server.

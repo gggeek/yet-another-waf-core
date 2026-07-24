@@ -72,7 +72,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         $cases[] = ['Custom: ' . $obsText, 'Custom', $obsText];
 
         // obs-fold, ie. continuing a header on the next line
-        // NB: Nginx, as of 2026/7/21 at least, does not allow it, whereas apache and frankenphp do...
+        // NB: Nginx, as of 1.28.3 at least, does not allow it, whereas apache and frankenphp do...
         if ($_ENV['SERVER_TYPE'] !== 'nginx') {
             $cases[] = ["Custom: hey\r\n  you", 'Custom', 'hey you'];
             $cases[] = ["Custom: hey\r\n\tyou", 'Custom', 'hey you'];
@@ -98,7 +98,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
 
     public static function duplicateHttpHeaderDataProvider(): array
     {
-/// @todo... these tests are known to fail with nginx 1.18 (and possibly later versions < 1.24)
+/// @todo... these tests are known to fail with nginx 1.18 (and possibly later versions < 1.24).
+///          We should interrogate the server ($_SERVER['SERVER_SOFTWARE']) and build the list of tests accordingly
         $cases = [
             // vanilla
             ["Custom: hey\r\nCustom: there", 'Custom', 'hey, there'],
@@ -368,6 +369,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         $payload = "$method " . $this->getServerPath() . " HTTP/$httpVersion\r\n";
 
         $payload .= 'Host: ' . preg_replace('#^https?://#', '', $baseUri) . "\r\n";
+
+/// @todo... inject a cookie header with values for PHPUNIT_RANDOM_TEST_ID, PHPUNIT_SELENIUM_TEST_IDq
         $headers = rtrim($headers, "\r\n");
         if ($headers !== '') {
             $payload .= $headers . "\r\n";

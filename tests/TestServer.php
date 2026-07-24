@@ -152,6 +152,7 @@ class TestServer
                 /// @todo add other bits of $_SERVER and $_ENV that we know are used by ServerRequestCreator::fromGlobals
                 /// @todo what about $_FILES?
                 'getHeadersFromServer' => $requestHeaders,
+                /// @todo limit the length of the body / throw if too big
                 'requestBody' => $this->decodeRequestBody(file_get_contents('php://input'), $requestHeaders),
                 'serverRequest' => [
                     'method' => $serverRequest->getMethod(),
@@ -164,7 +165,10 @@ class TestServer
                     'queryParams' => $serverRequest->getQueryParams(),
                     'uploadedFiles' => $serverRequest->getUploadedFiles(),
                     'parsedBody' => $serverRequest->getParsedBody(),
-                ]
+                ],
+                /// @todo uncomment this (and add info about versions of curl, brotli, zlib) after having enabled the
+                ///       safety check for the testsuite cookie
+                //'serverSoftware' => $_SERVER['SERVER_SOFTWARE'] ?? '',
             ]
         );
 

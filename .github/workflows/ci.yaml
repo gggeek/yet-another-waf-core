@@ -24,6 +24,7 @@ jobs:
                         webserver: apache
                     -   php: '8.2'
                         operating-system: ubuntu-22.04
+                        # NB: the test suite is known to fail with the nginx version from ubuntu 22
                         webserver: apache
 
         steps:
