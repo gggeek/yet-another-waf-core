@@ -10,10 +10,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * In fact these tests are more of a smoke-test for the webserver used to run PHP, how it handles malformed http requests,
  * and what it lets through to the application.
  *
- * @todo... more tests: - custom http methods (incl. full "token" production)
- *                      - anomalies in the start line
+ * @todo... more tests: - anomalies in the start line
  *                      - unexpected values for Host header (incl. double Host)
- *                      - header with a value continued on the next line (check rfc9110: are those still supported or should they be dropped?)
  */
 class BA_ServerRequestCreatorTest extends ServerTestCase
 {
@@ -47,6 +45,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ['Custom: false', 'Custom', 'false'],
             // a header with the shortest possible purely numeric name
             ['0: 1', '0', '1'],
+            // No OWS before value
+            ['Custom:hey', 'Custom', 'hey'],
             // OWS around value
             ["Custom: \t \t hey\t \t \t", 'Custom', 'hey'],
             // casing of rebuilt header name, whitespace inside value
@@ -68,13 +68,14 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         }
         $cases[] = ['Custom: ' . $obsText, 'Custom', $obsText];
 
-        $out = [];
-        foreach ($cases as $line) {
-            foreach (self::getCommonDataProviderOptions() as $options) {
-                $out[] = $line + $options;
-            }
+        // obs-fold, ie. continuing a header on the next line
+        // NB: Nginx, as of 2026/7/21 at least, does not allow it, whereas frankenphp and nginx do...
+        if ($_ENV['SERVER_TYPE'] !== 'nginx') {
+            $cases[] = ["Custom: hey\r\n  you", 'Custom', 'hey you'];
+            $cases[] = ["Custom: hey\r\n\tyou", 'Custom', 'hey you'];
         }
-        return $out;
+
+        return self::mergeCommonDataProviderOptions($cases);
     }
 
     /**
@@ -98,8 +99,15 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             // vanilla
             ["Custom: hey\r\nCustom: there", 'Custom', 'hey, there'],
             // OWS
-            ["Custom: 1 \r\nCustom:2\r\nCustom: 3 ", 'Custom', '1, 2, 3'],
-/// @todo... add a mix of double-quoted strings
+            ["Custom: 1 \r\nNotCustom: 2 \r\nCustom: 3 ", 'Custom', '1, 3'],
+            // No OWS
+            ["Custom:1\r\nNotCustom:2\r\nCustom:3", 'Custom', '1, 3'],
+            // Quotes
+            ["Custom: '1'\r\nNotCustom: '2'\r\nCustom: '3'", 'Custom', "'1', '3'"],
+            ["Custom: \"1,\"\r\nNotCustom: \"2\"\r\nCustom: \"3,\"", 'Custom', '"1,", "3,"'],
+            ["Custom: \"1\r\nNotCustom: \"2\r\nCustom: \"3", 'Custom', '"1, "3'],
+            ["Custom: '1\r\nNotCustom: '2\r\nCustom: '3", 'Custom', "'1, '3"],
+            ["Custom: '1\"\r\nNotCustom: '2\"\r\nCustom: '3\"", 'Custom', "'1\", '3\""],
         ];
 
         if ($_ENV['SERVER_TYPE'] !== 'nginx') {
@@ -108,13 +116,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             $cases[] = ["Custom: \t1\t\r\nCustom: 2 \r\nCustom: \t3\t", 'Custom', '1, 2, 3'];
         }
 
-        $out = [];
-        foreach ($cases as $line) {
-            foreach (self::getCommonDataProviderOptions() as $options) {
-                $out[] = $line + $options;
-            }
-        }
-        return $out;
+        return self::mergeCommonDataProviderOptions($cases);
     }
 
     /**
@@ -185,13 +187,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ];
         }
 
-        $out = [];
-        foreach ($cases as $line) {
-            foreach (self::getCommonDataProviderOptions() as $options) {
-                $out[] = $line + $options;
-            }
-        }
-        return $out;
+        return self::mergeCommonDataProviderOptions($cases);
     }
 
     /**
@@ -284,13 +280,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             /// @todo are there more known _always unsupported_ chars (ie. triggering a 4xx/5xx) in header name, header value?
         ];
 
-        $out = [];
-        foreach ($cases as $line) {
-            foreach (self::getCommonDataProviderOptions() as $options) {
-                $out[] = $line + $options;
-            }
-        }
-        return $out;
+        return self::mergeCommonDataProviderOptions($cases);
     }
 
     #[DataProvider('requestPrefixDataProvider')]
@@ -311,13 +301,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ["\r\n\r\n"],
         ];
 
-        $out = [];
-        foreach ($cases as $line) {
-            foreach (self::getCommonDataProviderOptions() as $options) {
-                $out[] = $line + $options;
-            }
-        }
-        return $out;
+        return self::mergeCommonDataProviderOptions($cases);
     }
 
     #[DataProvider('funkyHttpMethodsDataProvider')]
@@ -334,6 +318,15 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ["WHAT"],
         ];
 
+        return self::mergeCommonDataProviderOptions($cases);
+    }
+
+    /**
+     * @param array[] $cases
+     * @return array[]
+     */
+    public static function mergeCommonDataProviderOptions(array $cases): array
+    {
         $out = [];
         foreach ($cases as $line) {
             foreach (self::getCommonDataProviderOptions() as $options) {
