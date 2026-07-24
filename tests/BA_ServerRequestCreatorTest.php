@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * and what it lets through to the application.
  *
  * @todo... more tests: - anomalies in the start line
+ *                      - headers which have a known syntax, to check if the webservers strip the double quotes and comments
  *                      - unexpected values for Host header (incl. double Host)
  */
 class BA_ServerRequestCreatorTest extends ServerTestCase
@@ -57,6 +58,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ['Custom: !#$%&\'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 'Custom', '!#$%&\'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'],
             // the chars not allowed in rfc9110 "token" - for value
             ['Custom: (),/:;<=>?@[\\]{}', 'Custom', '(),/:;<=>?@[\\]{}'],
+            // trying to sneak a : in a header name results in a different header name and value
+            ['Cus:tom: hey', 'Cus', 'tom: hey'],
 
             // DIGIT / ALPHA / "-" - for name
             ['0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-: hey', '0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz-', 'hey'],
@@ -69,7 +72,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         $cases[] = ['Custom: ' . $obsText, 'Custom', $obsText];
 
         // obs-fold, ie. continuing a header on the next line
-        // NB: Nginx, as of 2026/7/21 at least, does not allow it, whereas frankenphp and nginx do...
+        // NB: Nginx, as of 2026/7/21 at least, does not allow it, whereas apache and frankenphp do...
         if ($_ENV['SERVER_TYPE'] !== 'nginx') {
             $cases[] = ["Custom: hey\r\n  you", 'Custom', 'hey you'];
             $cases[] = ["Custom: hey\r\n\tyou", 'Custom', 'hey you'];
@@ -95,6 +98,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
 
     public static function duplicateHttpHeaderDataProvider(): array
     {
+/// @todo... these tests are known to fail with nginx 1.18 (and possibly later versions < 1.24)
         $cases = [
             // vanilla
             ["Custom: hey\r\nCustom: there", 'Custom', 'hey, there'],
@@ -110,9 +114,16 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ["Custom: '1\"\r\nNotCustom: '2\"\r\nCustom: '3\"", 'Custom', "'1\", '3\""],
         ];
 
+        // LF without CR
+        // NB: Apache, as of 2026/7/21 at least, does not allow it, whereas frankenphp and nginx do...
+        if ($_ENV['SERVER_TYPE'] !== 'apache') {
+            $cases[] = ["Custom: hey\nCustom: there", 'Custom', 'hey, there'];
+        }
+
+        // tabs as OWS surrounding header vale
+        /// @todo... as of 2026/7/21, frankenphp and apache agree on it, whereas nginx does not strip the tabs from whitespace
+        ///          See https://github.com/nginx/nginx/issues/1597 -> https://github.com/nginx/nginx/issues/187
         if ($_ENV['SERVER_TYPE'] !== 'nginx') {
-            /// @todo... this test is fun: frankenphp and apache agree on it, whereas nginx does not strip the tabs from whitespace !!
-            ///          See https://github.com/nginx/nginx/issues/1597 -> https://github.com/nginx/nginx/issues/187
             $cases[] = ["Custom: \t1\t\r\nCustom: 2 \r\nCustom: \t3\t", 'Custom', '1, 2, 3'];
         }
 
@@ -144,7 +155,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         $cases = [
             ['Custom:', false],
 
-            /// @todo figure out why this one does get dropped or refused by all servers
+            /// @todo figure out why this one does get dropped or refused by all servers (educated guess: to avoid confusion
+            ///       with security-related headers with a dash in their name?)
             ['Cus_tom: hey', false],
 
             // (),/:;<=>?@[\\]{}
@@ -152,7 +164,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ['Cus)tom: hey', true],
             ['Cus,tom: hey', true],
             ['Cus/tom: hey', true],
-/// @todo... add a different test for this
+            // this one results not in a dropped header but in a different header name and value (tested above)
             //['Cus:tom: hey', true],
             ['Cus;tom: hey', true],
             ['Cus<tom: hey', true],
@@ -408,7 +420,9 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
 
     protected function getDecodedBody(string $response, $retCode = '200'): array
     {
-        /// @todo "In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD ignore at least one empty line (CRLF) received prior to the request-line"
+        /// @todo "In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD
+        ///       ignore at least one empty line (CRLF) received prior to the request-line" - not that any webserver
+        ///       we are testing does support that...
         $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) ' . preg_quote($retCode, '#') . ' #', $response);
         $body = $this->extractBody($response);
         $data = @json_decode($body, true);
