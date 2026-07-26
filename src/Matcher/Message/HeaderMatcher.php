@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace YAWAF\Core\Matcher\Message;
 
 use Psr\Http\Message\MessageInterface;
+use YAWAF\Core\Http\HeaderParser;
+use YAWAF\Core\Http\HeaderParserOnError;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
 
 class HeaderMatcher extends BaseMatcher
@@ -12,38 +14,39 @@ class HeaderMatcher extends BaseMatcher
 
     protected string $headerName;
     protected bool $headerNameIsRegex = false;
+    protected HeaderParser $headerParser;
+    protected HeaderParserOnError $headerValueParsingMode;
 
     /**
      * @param string|string[] $filter
      * @throws \Exception
      */
     public function __construct(string $headerName, string|array $filter, bool $caseInsensitive = false, bool $expandWildcards = true,
-        bool $expandWildcardsInName = false)
+        bool $expandWildcardsInName = false, $matchInvalidHeaderValues = false)
     {
         $this->caseInsensitive = $caseInsensitive;
         $this->expandWildcards = $expandWildcards;
         $this->headerNameIsRegex = $expandWildcardsInName;
+        $this->headerValueParsingMode = $matchInvalidHeaderValues ? HeaderParserOnError::Ignore : HeaderParserOnError::ReplaceWithSpace;
 
         if ($expandWildcardsInName) {
             $this->headerName = $this->regexpDelimiter . $this->wildcardStringToRegexp($headerName, true) . $this->regexpDelimiter . 'i';
         } else {
-/// @todo... give a warning if there are uppercase chars in the header name, as we always match against lower cased names
             $this->headerName = strtolower($headerName);
         }
 
         $this->setMatchingValues($filter);
+
+        $this->headerParser = new HeaderParser();
     }
 
     public function matchesMessage(MessageInterface $message): bool
     {
-/// @todo... if headerName matches set-cookie, we should probably use different matching logic, as that header has different usage of commans
-
         if ($this->headerNameIsRegex) {
             foreach ($message->getHeaders() as $headerName => $headerValues) {
                 if (preg_match($this->headerName, $headerName)) {
-                    foreach ($headerValues as $headerValue) {
-/// @todo... depending on the header, values can be concatenated with commas - but also double-quoted!!!
-//var_dump($headerValue);
+                    $parsedValues = $this->headerParser->normalizeHeaderValue(strtolower($headerName), $headerValues, $this->headerValueParsingMode);
+                    foreach ($parsedValues as $headerValue) {
                         if ($this->matchesRegexp($headerValue)) {
                             return true;
                         }
@@ -55,7 +58,9 @@ class HeaderMatcher extends BaseMatcher
             if (!$message->hasHeader($this->headerName)) {
                 return false;
             }
-            foreach ($message->getHeader($this->headerName) as $headerValue) {
+            $headerValues = $message->getHeader($this->headerName);
+            $parsedValues = $this->headerParser->normalizeHeaderValue($this->headerName, $headerValues, $this->headerValueParsingMode);
+            foreach ($parsedValues as $headerValue) {
                 if ($this->matchesRegexp($headerValue)) {
                     return true;
                 }

@@ -121,4 +121,5 @@ class BB_HeaderParsingTest extends TestCase
     // singleton, double-quotes
     // dates
     // cookies
+    // different ways of dealing with errors
 }

@@ -45,14 +45,14 @@ class HeaderParser
         'alt-used' => 0,
         'authorization' => 0, // singleton?
         'cache-control' => 0,
-        'connection' => 0,
+        'connection' => self::IS_TOKEN,
         'content-digest' => 0,
-        'content-encoding' => 0,
+        'content-encoding' => self::IS_TOKEN,
         'content-length' => 0, // singleton
         'content-md5' => 0, // singleton
-        'content-type' => 0, // not a csv list?
+        'content-type' => self::IS_SINGLETON, /// @todo token + '/' + ';' + '='
         'cookie' => self::IS_COOKIE, // not a csv list
-        'date' => 0, // singleton
+        'date' => self::IS_DATE | self::IS_SINGLETON, // singleton
         'expect' => 0,
         'forwarded' => 0,
         'from' => 0, // singleton
@@ -64,7 +64,7 @@ class HeaderParser
         'if-range' => 0, // singleton?
         'if-unmodified-since' => 0, // singleton?
         'keep-alive' => 0,
-        'max-forwards' => 0, // singleton?
+        'max-forwards' => self::IS_INTEGER | self::IS_SINGLETON, // should be restricted to 1 digit
         'origin' => 0, // singleton?
         'pragma' => 0, // singleton?
         'prefer' => 0, // not a csv list?
@@ -85,13 +85,13 @@ class HeaderParser
         'sec-websocket-protocol' => 0,
         'service-worker' => 0,
         'service-worker-navigation-preload' => 0,
-        'te' => 0,
-        'trailer' => 0,
+        'te' => 0, /// @todo... this one allows QS in a specific part of the value...
+        'trailer' => self::IS_TOKEN,
         'transfer-encoding' => 0,
         'user-agent' => 0, // singleton?
-        'upgrade' => 0,
+        'upgrade' => 0, /// @todo... token+'/'
         'upgrade-insecure-requests' => 0, // non-standard?
-        'via' => 0,
+        'via' => 0, /// @todo... token + '/' + ':' and trailing comment
         'want-content-digest' => 0,
         'want-repr-digest' => 0,
         'x-forwarded-for' => 0,
@@ -258,7 +258,7 @@ class HeaderParser
      * already happened , eg. there are no ctrl characters or \n or \r in its name (we test that this is true for all
      * supported webservers via BA_ServerRequestCreatorTest tests)
      *
-     * @param string $name lowercase
+     * @param string $name has to be lowercase
      * @param string[] $values as obtained by a psr-7 message
      * @return string[]
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
@@ -381,11 +381,11 @@ class HeaderParser
         }
 
         if ($isToken) {
-            $this->validateTokenHeader($out, $onErrors);
+            $out = $this->validateTokenHeader($out, $onErrors);
         }
 
         if ($isSingleton) {
-            $this->validateSingletonHeader($out, $onErrors);
+            $out = $this->validateSingletonHeader($out, $onErrors);
         }
 
         return $out;
@@ -465,9 +465,19 @@ class HeaderParser
                                 throw new InvalidHeaderValue("Quoted string has backslash before final quote");
                             }
                             $this->debug("Found invalid quoted string: the final double quote is escaped by a backslash");
+                            switch($onErrors) {
+                                case HeaderParserOnError::ReturnNull:
+                                    $pieces[] = '';
+                                    break;
+                                case HeaderParserOnError::ReplaceWithSpace:
+                                    $pieces[] = $piece .' ';
+                                    break;
+/// @todo... should we add the final, spurious backslash to the returned value instead of dropping it?
+                                case HeaderParserOnError::Ignore:
+                                    $pieces[] = $piece;
+                                    break;
+                            }
                             $quoted = false;
-/// @todo... allow whitespace replacement
-                            $pieces[] = '';
                             $piece = '';
                         }
                         break;
@@ -492,11 +502,6 @@ class HeaderParser
                         $pieces[] = rtrim($piece, " \t");
                         $piece = '';
                         // no need to advance, as we set $start
-                        //for ($j = $i+1; $j < $len; $j++) {
-                        //    if ($value[$j] === ',' || $value[$j] === ' ' || $value[$j] === "\t") {
-                        //        $i++;
-                        //    }
-                        //}
                         $start = true;
                         break;
                     case '"':
@@ -504,10 +509,19 @@ class HeaderParser
                             throw new InvalidHeaderValue("Double quote found within non-quoted value");
                         }
                         $this->debug("Found invalid possibly quoted string: double quote found within non-quoted value");
-                        $pieces[] = '';
-                        $piece = '';
-                        $start = true;
-                        break 2;
+                        switch($onErrors) {
+                            case HeaderParserOnError::ReturnNull:
+                                $pieces[] = '';
+                                $piece = '';
+                                $start = true;
+                                break 3;
+                            case HeaderParserOnError::ReplaceWithSpace:
+                                $piece .= ' ';
+                                break;
+                            case HeaderParserOnError::Ignore:
+                                $pieces[] = $value[$i];
+                                break;
+                        }
                     default:
                         $piece .= $value[$i];
                 }
@@ -519,8 +533,16 @@ class HeaderParser
                 throw new InvalidHeaderValue("Quoted string has no final quote");
             }
             $this->debug("Found invalid quoted string: no final quote");
-/// @todo... allow whitespace replacement
-            $pieces[] = '';
+            switch($onErrors) {
+                case HeaderParserOnError::ReturnNull:
+                    $pieces[] = '';
+                    break;
+/// @todo should we do some specific processing in case of ReplaceWithSpace ?
+                case HeaderParserOnError::ReplaceWithSpace:
+                case HeaderParserOnError::Ignore:
+                    $pieces[] = $piece;
+                    break;
+            }
             $piece = '';
             $start = true;
         }
@@ -532,14 +554,25 @@ class HeaderParser
         return $pieces;
     }
 
-    protected function validateSingletonHeader(array &$values, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): void
+    protected function validateSingletonHeader(array $values, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
     {
-        if (count($values) > 1) {
-            if ($onErrors === HeaderParserOnError::Throw) {
-                throw new InvalidHeaderValue(count($values) . " values received but only 1 allowed");
-            } else {
-                $this->debug("Multiple values parsed for singleton header");
-/// @todo... should we nullify the returned value(s)?
+        if (count($values) < 2) {
+            return $values;
+        }
+
+        if ($onErrors === HeaderParserOnError::Throw) {
+            throw new InvalidHeaderValue(count($values) . " values received but only 1 allowed");
+        } else {
+            $this->debug("Multiple values parsed for singleton header");
+            switch($onErrors) {
+                case HeaderParserOnError::ReturnNull:
+                    return [''];
+/// @todo... what to do? This does not make a lot of sense...
+                case HeaderParserOnError::ReplaceWithSpace:
+                    //$out[$i] = str_replace(['...'], ' ', $value);
+                    break;
+                case HeaderParserOnError::Ignore:
+                    return $values;
             }
         }
     }
@@ -548,18 +581,29 @@ class HeaderParser
      * @param string[] $values
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
      */
-    protected function validateTokenHeader(array &$values, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): void
+    protected function validateTokenHeader(array $values, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
     {
 /// @todo...
-        foreach ($values as &$value) {
+        $out = $values;
+        foreach ($values as $i => $value) {
             if (preg_match('...', $value)) {
                 if ($onErrors === HeaderParserOnError::Throw) {
                     throw new InvalidHeaderValue('Non allowed characters for Token');
                 }
                 $this->debug("Found invalid Token: non allowed characters");
-                $value = '';
+                switch($onErrors) {
+                    case HeaderParserOnError::ReturnNull:
+                        $out[$i] = '';
+                        break;
+                    case HeaderParserOnError::ReplaceWithSpace:
+                        $out[$i] = str_replace(['...'], ' ', $value);
+                        break;
+                    case HeaderParserOnError::Ignore:
+                        break;
+                }
             }
         }
+        return $out;
     }
 
     protected static function getDefaultKnownHeaders(): array

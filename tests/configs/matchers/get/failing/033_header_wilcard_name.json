@@ -1,0 +1,5 @@
+[
+    {
+        "wildcard_http_header": {"*-Test-1": "hello"}
+    }
+]

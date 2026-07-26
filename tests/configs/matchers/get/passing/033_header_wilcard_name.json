@@ -1,0 +1,5 @@
+[
+    {
+        "wildcard_http_header": {"x-t*t-1": "Hello"}
+    }
+]

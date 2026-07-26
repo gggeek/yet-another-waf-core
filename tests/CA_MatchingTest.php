@@ -578,7 +578,7 @@ class CA_MatchingTest extends ProxyTestCase
             'X-Test-6' => false, // serialized as empty string
             'X-Test-7' => null,  // serialized as empty string
             //'X-Test-8' => ['hi', 'there'],
-            'X-Test-9' => '_ :;.,\/"\'?!(){}[]@<>=-+*#$&`|~^%',
+            'X-Test-9' => '_ :;.\/"\'?!(){}[]@<>=-+*#$&`|~^%',
         ];
     }
 
