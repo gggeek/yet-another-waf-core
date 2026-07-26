@@ -7,7 +7,7 @@ only let through what you want to expose.
 
 Example use-cases:
 - reducing the surface of an API, eg. only allowing READ requests or access to specific URLs
-- removing sensitive data from an API responses
+- removing sensitive data from an API's responses
 - adding/modifying/removing http headers
 - tracing of requests and responses
 - rate limiting (not implemented, but should be implementable with existing components from other packages)
@@ -20,9 +20,9 @@ Similar software:
 
 ### Working
 
-- Support for Listening on http and on unix sockets
+- Support for listening on http and on unix sockets, forwarding to http and unix sockets
 - Matching requests and responses based on HTTP headers, request/response body and most other HTTP fields
-- End-to-end testing of all implemented features using Apache, FrankenPHP, Nginx: locally via a container-based
+- End-to-end testing of all implemented features using Apache, FrankenPHP and Nginx: locally via a container-based
   test environment and Continuous Integration on every push to GitHub
 
 ### In scope (to be implemented)
@@ -45,23 +45,26 @@ Not in scope (yet?):
 - feature parity with Varnish or performance parity with HAProxy
 - using async requests to connect to upstream servers
 - implementing rate-limiting, caching with own code (we should allow usage of PSR compliant external code for that)
+- rules/filters targeted at protecting the client from rogue servers' responses
 
 ## Requirements:
 
-PHP 8.2 and up, with extension: ctype, json and zlib (curl extension recommended).
+* PHP 8.2 and up, with extensions: ctype, json and zlib.
 
-A webserver to run it. If running Nginx, please use the very latest version available, ideally > 1.29.0, as it comes
-with improvements in parsing of HTTP headers to better conform to RFC9110.
+  The php `curl` extension is recommended, as it is required for most of the complex http stuff when making requests to
+  the upstream server.
 
-If you want to have the proxy listening on a unix socket instead of an http port, choose an http server which can do that:
-as of June 2026 Nginx and FrankenPHP can, while Apache can't.
+* A webserver to run it.
 
-Note that this library is tested only with Apache, Nginx and FrankenPHP, at least for the moment.
+  If running Nginx, please use the very latest version available, ideally > 1.29.0, as it comes with improvements in parsing
+  of HTTP headers to better conform to RFC9110.
 
-Either the `symfony/http-client` or `guzzlehttp/guzzle` php package (version 8.0 or later).
+  If you want to have the proxy listening on a unix socket instead of an http port, choose an http server which can do that:
+  as of June 2026 Nginx and FrankenPHP can, while Apache can't.
 
-The php `curl` extension is recommended, as it is required for most of the complex http stuff when making requests to
-the upstream server.
+  Note that this library is tested only with the following webservers, at least for the moment: Apache, FrankenPHP and Nginx.
+
+* Either the `symfony/http-client` or `guzzlehttp/guzzle` (version 8.0 or later) php packages.
 
 ## Installation
 
