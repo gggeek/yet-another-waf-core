@@ -65,6 +65,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ['0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-: hey', '0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz-', 'hey'],
         ];
 
+        // non-ascii chars in header value, aka. obs-text (note that these header values are not valid utf8)
         $obsText = '';
         for ($i = 128; $i < 256; $i++) {
             $obsText .= chr($i);
@@ -291,6 +292,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             ["Custom: " . chr(127)], // DEL
 
             /// @todo are there more known _always unsupported_ chars (ie. triggering a 4xx/5xx) in header name, header value?
+            ///       we should probably add single \r and \n
         ];
 
         return self::mergeCommonDataProviderOptions($cases);
@@ -370,7 +372,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
 
         $payload .= 'Host: ' . preg_replace('#^https?://#', '', $baseUri) . "\r\n";
 
-/// @todo... inject a cookie header with values for PHPUNIT_RANDOM_TEST_ID, PHPUNIT_SELENIUM_TEST_IDq
+/// @todo... inject a cookie header with values for PHPUNIT_RANDOM_TEST_ID, PHPUNIT_SELENIUM_TEST_ID
         $headers = rtrim($headers, "\r\n");
         if ($headers !== '') {
             $payload .= $headers . "\r\n";
