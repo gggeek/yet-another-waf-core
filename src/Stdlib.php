@@ -25,6 +25,16 @@ class Stdlib
         return true;
     }
 
+    public static function array_of_int(array $array): bool
+    {
+        foreach ($array as $item) {
+            if (!is_int($item)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Improved version of code from Nyholm\Psr7Server\ServerRequestCreator::getHeadersFromServer(), originally from
      * Laminas\Diactoros\marshalHeadersFromSapi().
