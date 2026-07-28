@@ -63,6 +63,10 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
 
             // DIGIT / ALPHA / "-" - for name
             ['0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-: hey', '0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz-', 'hey'],
+
+            // A single http header does _not_ get split into an array and whitespace normalized because of the unquoted
+            // commas (this is not a test for HeaderParser functionality)
+            ["Custom: hey , hey\t,\they", 'Custom', "hey , hey\t,\they"],
         ];
 
         // non-ascii chars in header value, aka. obs-text (note that these header values are not valid utf8)
@@ -298,13 +302,17 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         return self::mergeCommonDataProviderOptions($cases);
     }
 
+    /**
+     * Test CRLF at start of request.
+     * Another fun discovery: no server respects the following suggestion from the rfc:
+     * "In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD ignore at
+     * least one empty line (CRLF) received prior to the request-line"
+     */
     #[DataProvider('requestPrefixDataProvider')]
     public function testRequestPrefix(string $prefix, string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
         $response = $this->customRequest($prefix . 'GET', '', '', $httpVersion, $serverScheme);
         $failureMessage = $this->getRespDetails($response);
-        // another fun test: no server respects the following suggestion from the rfc:
-        // "In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD ignore at least one empty line (CRLF) received prior to the request-line"
         //$this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 200 #', $response, $failureMessage);
         $this->assertMatchesRegularExpression('#^HTTP/1.(0|1) 400 #', $response, $failureMessage);
     }
@@ -319,6 +327,9 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         return self::mergeCommonDataProviderOptions($cases);
     }
 
+    /**
+     * Test if non-standard HTTP methods reach php (hint: they shouldn't)
+     */
     #[DataProvider('funkyHttpMethodsDataProvider')]
     public function testFunkyHttpMethodsPrefix(string $method, string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {

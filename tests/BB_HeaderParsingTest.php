@@ -17,7 +17,7 @@ class BB_HeaderParsingTest extends TestCase
         $this->assertSame($expectedResults, $hp->normalizeHeaderValue('Custom', $values));
     }
 
-    // 1. multi-valued, no double-quotes header
+    // 1. multi-valued, no double-quoted-strings header
     public static function parsingCustomHeadersDataProvider()
     {
         return [
@@ -39,6 +39,7 @@ class BB_HeaderParsingTest extends TestCase
             [['"'], ['"']],
             [['""'], ['""']],
             [['"""'], ['"""']],
+            [[' " " "'], ['" " "']],
             [['hello"world'], ['hello"world']],
             [['hello world"'], ['hello world"']],
             [['"hello world'], ['"hello world']],
@@ -62,7 +63,7 @@ class BB_HeaderParsingTest extends TestCase
         $this->assertSame($expectedResults, $hp->normalizeHeaderValue('Custom', $values, HeaderParserOnError::ReturnNull));
     }
 
-    // 2. multi-valued, allows double-quotes header
+    // 2. multi-valued, allows double-quoted-strings header
     public static function parsingDQHeadersDataProvider()
     {
         return [
@@ -100,6 +101,13 @@ class BB_HeaderParsingTest extends TestCase
             [['', 'hello,world', ''], ['hello', 'world']],
             [['hello,world', 'again'], ['hello', 'world', 'again']],
             [[',,hello,,world,,', 'again'], ['hello', 'world', 'again']],
+
+            [[' "hello world" '], ['hello world']],
+            [['hello "hello,world" world'], ['hello hello,world world']],
+            [[' hello  "hello,world"  world'], ['hello  hello,world  world']],
+            [['hello "hello,world" world '], ['hello hello,world world']],
+            [['hello " hello,world " world '], ['hello  hello,world  world']],
+            [['" hello,world "'], [' hello,world ']],
 
             [['""', 'again'], ['', 'again']],
             [['"\\""', 'again'], ['"', 'again']],

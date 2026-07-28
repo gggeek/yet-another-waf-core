@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace YAWAF\Core\Http;
 
@@ -14,231 +15,18 @@ class HeaderParser
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
-/// @todo... allow other productions than token, quoted-string
     const IS_SINGLETON = 1;
-    const ALLOWS_QUOTED_STRINGS = 2;
 
-    const IS_TOKEN = 4;
-    const ALLOWS_TRAILING_COMMENT = 8;
+    /// @todo... allow other productions than token, quoted-string
+    const ALLOWS_QUOTED_STRINGS = 2;
+    const ALLOWS_TRAILING_COMMENT = 4;
+    /// @todo is it useful to add a constant for the common 'parameter' abnf definition?
+    const IS_TOKEN = 8;
     const IS_COOKIE = 16;
     const IS_DATE = 32;
     const IS_INTEGER = 64;
 
-    /**
-     * @var int[] keys should be lowercase, and values be a bitmask of the class constants
-     *
-     * Info taken from: https://en.wikipedia.org/wiki/List_of_HTTP_header_fields,
-     * https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
-     *
-     * @todo... complete list of known headers: singletons, non-csv-lists, double-quoted, dates, cookies, other formats...
-     */
-    protected static array $defaultKnownHeaders = [
-        // req
-        'a-im' => 0,
-        'accept' => 0,
-        'accept-charset' => 0,
-        'accept-datetime' => 0, // singleton?
-        'accept-encoding' => 0,
-        'accept-language' => 0,
-        'access-control-request-headers' => 0,
-        'access-control-request-method' => 0, // singleton?
-        'alt-used' => 0,
-        'authorization' => 0, // singleton?
-        'cache-control' => 0,
-        'connection' => self::IS_TOKEN,
-        'content-digest' => 0,
-        'content-encoding' => self::IS_TOKEN,
-        'content-length' => 0, // singleton
-        'content-md5' => 0, // singleton
-        'content-type' => self::IS_SINGLETON, /// @todo token + '/' + ';' + '='
-        'cookie' => self::IS_COOKIE, // not a csv list
-        'date' => self::IS_DATE | self::IS_SINGLETON, // singleton
-        'expect' => 0,
-        'forwarded' => 0,
-        'from' => 0, // singleton
-        'host' => self::IS_SINGLETON,
-        'http2-settings' => 0, // singleton?
-        'if-match' => 0,
-        'if-modified-since' => 0, // singleton?
-        'if-none-match' => 0,
-        'if-range' => 0, // singleton?
-        'if-unmodified-since' => 0, // singleton?
-        'keep-alive' => 0,
-        'max-forwards' => self::IS_INTEGER | self::IS_SINGLETON, // should be restricted to 1 digit
-        'origin' => 0, // singleton?
-        'pragma' => 0, // singleton?
-        'prefer' => 0, // not a csv list?
-        'priority' => 0,
-        'proxy-authorization' => 0, // singleton?
-        'range' => 0,
-        'referer' => 0, // singleton?
-        'repr-digest' => 0,
-        'sec-fetch-dest' => 0,
-        'sec-fetch-mode' => 0,
-        'sec-fetch-site' => 0,
-        'sec-fetch-storage-access' => 0,
-        'sec-fetch-user' => 0,
-        'sec-gpc' => 0, // non-standard?
-        'sec-purpose' => 0,
-        'sec-websocket-extensions' => 0,
-        'sec-websocket-key' => 0,
-        'sec-websocket-protocol' => 0,
-        'service-worker' => 0,
-        'service-worker-navigation-preload' => 0,
-        'te' => 0, /// @todo... this one allows QS in a specific part of the value...
-        'trailer' => self::IS_TOKEN,
-        'transfer-encoding' => 0,
-        'user-agent' => 0, // singleton?
-        'upgrade' => 0, /// @todo... token+'/'
-        'upgrade-insecure-requests' => 0, // non-standard?
-        'via' => 0, /// @todo... token + '/' + ':' and trailing comment
-        'want-content-digest' => 0,
-        'want-repr-digest' => 0,
-        'x-forwarded-for' => 0,
-        'x-forwarded-host' => 0,
-        'x-forwarded-proto' => 0,
-
-        // req. non-standard
-        'attribution-reporting-eligible' => 0,
-        'attribution-reporting-register-source' => 0,
-        'attribution-reporting-register-trigger' => 0,
-        'available-dictionary' => 0,
-        'correlation-id' => 0,
-        'device-memory' => 0,
-        'dictionary-id' => 0,
-        'dnt' => 0,
-        'downlink' => 0,
-        'dpr' => 0,
-        'early-data' => 0,
-        'ect' => 0,
-        'front-end-https' => 0,
-        'idempotency-key' => 0,
-        'proxy-connection' => 0,
-        'rtt' => 0,
-        'save-data' => 0,
-        'sec-browsing-topics' => 0,
-        'sec-ch-device-memory' => 0,
-        'sec-ch-dpr' => 0,
-        'sec-ch-prefers-color-scheme' => 0,
-        'sec-ch-prefers-reduced-motion' => 0,
-        'sec-ch-prefers-reduced-transparency' => 0,
-        'sec-ch-ua' => 0,
-        'sec-ch-ua-arch' => 0,
-        'sec-ch-ua-bitness' => 0,
-        'sec-ch-ua-form-factors' => 0,
-        'sec-ch-ua-full-version' => 0,
-        'sec-ch-ua-full-version-list' => 0,
-        'sec-ch-ua-mobile' => 0,
-        'sec-ch-ua-model' => 0,
-        'sec-ch-ua-platform' => 0,
-        'sec-ch-ua-platform-version' => 0,
-        'sec-ch-ua-wow64' => 0,
-        'sec-ch-viewport-height' => 0,
-        'sec-ch-viewport-width' => 0,
-        'sec-ch-width' => 0,
-        'sec-private-state-token' => 0,
-        'sec-private-state-token-crypto-version' => 0,
-        'sec-private-state-token-lifetime' => 0,
-        'sec-redemption-record' => 0,
-        'sec-speculation-tags' => 0,
-        'warning' => 0, // deprecated
-        'viewport-width' => 0,
-        'width' => 0,
-        'x-att-deviceid' => 0,
-        'x-csrf-token' => 0,
-        'x-correlation-id' => 0,
-        'x-http-method-override' => 0,
-        'x-request-id' => 0,
-        'x-requested-with' => 0,
-        'x-uidh' => 0,
-        'x-wap-profile' => 0,
-
-        // resp
-        'accept-ch' => 0,
-        'access-control-allow-credentials' => 0,
-        'access-control-allow-headers' => 0,
-        'access-control-allow-methods' => 0,
-        'access-control-allow-origin' => 0,
-        'access-control-expose-headers' => 0,
-        'access-control-max-age' => 0,
-        'accept-patch' => 0,
-        'accept-post' => 0,
-        'accept-ranges' => 0,
-        'activate-storage-access' => 0,
-        'age' => 0,
-        'allow' => 0,
-        'alt-svc' => 0,
-        'clear-site-data' => 0,
-        'content-disposition' => 0,
-        'content-language' => 0,
-        'content-location' => 0,
-        'content-range' => 0,
-        'content-security-policy' => 0, // non-standard?
-        'content-security-policy-report-only' => 0,
-        'cross-origin-embedder-policy' => 0,
-        'cross-origin-embedder-policy-report-only' => 0,
-        'cross-origin-opener-policy' => 0,
-        'cross-origin-resource-policy' => 0,
-        'delta-base' => 0,
-        'etag' => 0,
-        'expires' => 0,
-        'im' => 0,
-        'integrity-policy' => 0,
-        'integrity-policy-report-only' => 0,
-        'last-modified' => 0,
-        'link' => 0,
-        'location' => 0,
-        'origin-agent-cluster' => 0,
-        'p3p' => 0,
-        'preference-applied' => 0,
-        'proxy-authenticate' => 0,
-        'public-key-pins' => 0,
-        'referrer-policy' => 0,
-        'refresh' => 0, // non-standard?
-        'reporting-endpoints' => 0,
-        'retry-after' => 0,
-        'sec-websocket-accept' => 0,
-        'sec-websocket-version' => 0,
-        'server' => 0,
-        'server-timing' => 0,
-        'service-worker-allowed' => 0,
-        'set-cookie' => 0,
-        'set-login' => 0,
-        'sourcemap' => 0,
-        'speculation-rules' => 0,
-        'strict-transport-security' => 0,
-        'supports-loading-mode' => 0,
-        'timing-allow-origin' => 0, // non-standard?
-        'vary' => 0,
-        'www-authenticate' => 0,
-        'x-content-type-options' => 0, // non-standard?
-        'x-frame-options' => 0,
-
-        // Resp. non-standard
-        'content-dpr' => 0,
-        'critical-ch' => 0,
-        'expect-ct' => 0,
-        'nel' => 0,
-        'no-vary-search' => 0,
-        'observe-browsing-topics' => 0,
-        'permissions-policy' => 0,
-        'permissions-policy-report-only' => 0,
-        'status' => 0,
-        'report-to' => 0,
-        'tk' => 0,
-        'use-as-dictionary' => 0,
-        'x-content-duration' => 0,
-        'x-content-security-policy' => 0,
-        'x-dns-prefetch-control' => 0,
-        'x-permitted-cross-domain-policies' => 0,
-        'x-powered-by' => 0,
-        'x-redirect-by' => 0,
-        'x-robots-tag' => 0,
-        'x-webkit-csp' => 0,
-        'x-ua-compatible' => 0,
-        'x-xss-protection' => 0,
-    ];
-
+    protected static array $defaultKnownHeaders = [];
     protected array $knownHeaders;
 
     public function __construct(array $customHeadersSpec = [], LoggerInterface|null $logger = null)
@@ -246,17 +34,26 @@ class HeaderParser
         if (! Stdlib::array_of_int($customHeadersSpec)) {
             throw new \InvalidArgumentException('customHeadersSpec argument to HeaderParser constructor must be an array of ints');
         }
-        $this->knownHeaders = $customHeadersSpec + static::getDefaultKnownHeaders();
+
+        // speed/memory optimization: remove all headers which have no specific format and allow multiple values
+
+        if (!self::$defaultKnownHeaders) {
+            self::$defaultKnownHeaders = array_filter(require __DIR__ . '/KnownHttpHeaders.php');
+        }
+
+        $this->knownHeaders = array_filter($customHeadersSpec) + self::$defaultKnownHeaders;
 
         $this->logger = $logger;
     }
 
     /**
-     * Parses the value of a header into a list of strings, based on its known syntax. Custom headers f.e. just get
-     * values split on commas and trimmed of space/tab. The format for specific headers can be set in the parser constructor.
+     * Normalizes the value of a header, as obtained by a psr-7 message, by splitting it into a list of strings and
+     * removing quoted-encodings, based on its known syntax.
+     * Custom headers f.e. just get values split on commas and trimmed of space/tab.
+     * The format for specific headers can be set in the parser constructor.
      * NB: assumes that the header name and value(s) come from a web-server, meaning that some basic validation has
-     * already happened , eg. there are no ctrl characters or \n or \r in its name (we test that this is true for all
-     * supported webservers via BA_ServerRequestCreatorTest tests)
+     * already happened, eg. there are no ctrl characters or \n or \r in its name, or 7F in either (we test that this
+     * is true for all supported webservers via BA_ServerRequestCreatorTest tests)
      *
      * @param string $name has to be lowercase
      * @param string[] $values as obtained by a psr-7 message
@@ -279,25 +76,26 @@ class HeaderParser
      * @return string[]
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
      *
-     * @todo introduce a version of this that does extra validation, eg. checking for NUL, CR, LF cahrs
+     * @todo introduce a version of this that does extra validation, eg. checking for NUL, CR, LF chars
+     * @todo is there a better name for this function?
      */
     protected function parseHeaderValue(array $values, int $options, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
     {
-        $throwOnErrors = ($onErrors === HeaderParserOnError::Throw);
-
-        /// @todo... allow parsing of non-csv lists, eg. for Set-Cookie
-        $allowsQuotedStrings = $options & self::ALLOWS_QUOTED_STRINGS;
+/// @todo... allow parsing of non-csv-separated lists, eg. for Set-Cookie
         $isToken = $options & self::IS_TOKEN;
-        $isSingleton = $options & self::IS_SINGLETON;
         $isCookie = false;
         $isDate = false;
-        //$allowsCommasInSingleValue = $isCookie || $isDate;
+        $allowsQuotedStrings = $options & self::ALLOWS_QUOTED_STRINGS;
         //$allowsComments = $options & self::ALLOWS_TRAILING_COMMENT;
+
+        $isSingleton = $options & self::IS_SINGLETON;
+
+        $splitValuesOnCommas = !($isCookie || $isDate);
 
         // This check is done at the end of processing, as it makes more sense to do so
         // for singleton values, throw if count($values) > 1
         //if ($isSingleton && count($values) > 1) {
-        //    if ($throwOnErrors) {
+        //    if ($onErrors === HeaderParserOnError::Throw) {
         //        throw new InvalidHeaderValue("Multiple values to parse for singleton header");
         //    } else {
         //        $this->debug("Multiple values to parse for singleton header");
@@ -316,68 +114,66 @@ class HeaderParser
 
             // The following test and filter were disabled after checking that the (supported) webservers will not allow
             // such headers to reach php anyway
-/// @todo... add more specific tests for this in BA_ServerRequestCreatorTest - esp. some sending these chars within a known quoted-string header
+/// @todo... add more tests specifically for this in BA_ServerRequestCreatorTest - esp. some sending these chars within a known quoted-string header
 
             /// @todo would a regexp be faster?
-            /// @todo also throw if any CTRL chars are found
-            //if ($onErrors === HeaderParserOnError::Throw && (str_contains("\n", $value) || str_contains("\r", $value) || str_contains("\x00", $value))) {
-            //    throw new InvalidHeaderValue("Found invalid character: CR, LF or NUL");
+            /// @todo also check if any CTRL chars are found
+            //if (str_contains("\n", $value) || str_contains("\r", $value)
+            //    || str_contains("\x00", $value) || str_contains("\x7F", $value)) {
+            //    if ($onErrors === HeaderParserOnError::Throw) {
+            //        throw new InvalidHeaderValue("Found invalid character: CR, LF, NUL or DEL");
+            //    } else {
+            //        /// @todo log a debug message
+            //        $value = str_replace(["\n", "\r", "\x00", "\x7F"], ' ', $value);
+            //    }
             //}
+
+            // Which approach is better for singleton headers: split on commas and check how many headers we got, or
+            // do not split and keep a single-value?
             //
-            // we do not reject CR, LF and NUL, but transform them to SP
-            /// @todo log a message if transforming any chars
-            //$value = str_replace(["\n", "\r", "\x00"], ' ', $value);
+            // The constraints are:
+            // - the http spec says that for _any header_, unless otherwise specified, the values of multiple header
+            //   occurrences can be concatenated with a comma as separator
+            // - the PSR APIs we use to retrieve the header values fed to this method give an array as value for each header...
+            // - ...but in the end, for the most common scenario (PHP running as a FCGI app, or via a webserver), the
+            //   values for http headers are gotten from $_SERVER['HTTP_***'], meaning that for each http header there
+            //   will be _only 1 value_, not many. Which, in turn, means that the webserver is most likely to concatenate
+            //   together multiple values using the comma rule.
+            //
+            // This means that, given header "X-Custom", defined as singleton, it is factually impossible for php to tell
+            // apart these 2 cases:
+            //     X-Custom: hello
+            //     X-Custom: world
+            // and
+            //     X-custom: hello, world
+            // which is of course not the best position to be in for a firewall.
+            //
+            // The best solution seems to be to start out with a-priori knowledge of the headers that should not be split
+            // on quotes, and act on that - even though ...
+            if ($splitValuesOnCommas) {
 
-/// @todo... which one of the two approaches is better for singletons: split on commas and check how many headers we got,
-///          or keep a single-value while parsing?
-
-/*            if ($isSingleton) {
-
-                if ($allowsQuotedStrings && ($len = strlen($value)) >= 2 && $value[0] === '"' && $value[$len-1] === '"') {
-                    $out[] = $this->parseQuotedStingContents($value, $len, $onErrors);
-                } else {
-                    if ($allowsCommasInSingleValue) {
-                        /// ...
-                        if ($isCokie) {
-
-                        } elseif ($isDate) {
-
-                        } else {
-
-                        }
-                    } else {
-                        $pieces =  $this->parseGeneric($value, $onErrors);
-                    }
-
-
-                    if ($isToken) {
-                        /// ...
-                    } else {
-                        $out = array_merge($out, $pieces);
-                        //$out[] = $value;
-                    }
-                }
-
-            } else {
-*/
                 if ($allowsQuotedStrings) {
                     $pieces = $this->parseMaybeQuotedString($value, $onErrors);
                 } else {
-                    if ($isCookie) {
-                        $pieces = $this->parseCookie($value, $onErrors);
-                    } elseif ($isDate) {
-                        $pieces = $this->parseDate($value, $onErrors);
-                    } else {
-                        // non-singleton, no quoted strings
-                        $pieces = $this->parseGeneric($value, $onErrors);
-                    }
+                    // non-singleton, no quoted strings
+                    $pieces = $this->parseGeneric($value, $onErrors);
                 }
 
 /// @todo... allow stripping of trailing comments
 
                 $out = array_merge($out, $pieces);
 
-//            } // non-singleton
+            } else {
+
+                if ($isCookie) {
+                    $out[] = $this->parseCookie($value, $onErrors);
+                } elseif ($isDate) {
+                    $out[] = $this->parseDate($value, $onErrors);
+                } else {
+                    $out[] = $value;
+                }
+
+            }
         }
 
         if ($isToken) {
@@ -385,32 +181,41 @@ class HeaderParser
         }
 
         if ($isSingleton) {
-            $out = $this->validateSingletonHeader($out, $onErrors);
+            // the 'Cookie' req. header is a singleton, but if we allow parseCookie to split it, we need this weird handling
+            if ($isCookie) {
+                if ($onErrors === HeaderParserOnError::Ignore) {
+                    $this->validateSingletonHeader($values, $onErrors);
+                } else {
+                    $out = $this->validateSingletonHeader($values, $onErrors);
+                }
+            } else {
+                $out = $this->validateSingletonHeader($out, $onErrors);
+            }
+
         }
 
         return $out;
     }
 
     /**
-     * @param string[] $values
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
-     * @return string[]
+     * @todo should we split this in a list of cookie/value?
+     * @todo... throw based on $onErrors - see the rationale below for parseDate
      */
-    protected function parseCookie(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
+    protected function parseCookie(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): string
     {
-/// @todo...
-        return [];
+        return $value;
     }
 
     /**
-     * @param string[] $values
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
-     * @return string[]
      */
-    protected function parseDate(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
+    protected function parseDate(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): string
     {
-/// @todo...
-        return [];
+/// @todo... on non-conforming date strings log a debug message / throw based on $onErrors. This is needed in order to
+///          catch a client sending eg. 2 "Date" headers, which, thanks to cgi/fcgi collating them into a single string,
+///          would possibly be matched by a fw rule set up by the user, which might result in request smuggling
+        return $value;
     }
 
     /**
@@ -431,26 +236,31 @@ class HeaderParser
 
         $len = strlen($value);
 
+        /// @todo can we optimize the handling of $trailingSpaces?
+
         $piece = '';
         $quoted = false;
-        $start = true;
+        $notStarted = true;
+        $trailingSpaces = '';
 
         for ($i = 0; $i < $len; $i++) {
 
-            if ($start) {
+            if ($notStarted) {
                 switch($value[$i]) {
                     case '"':
                         $quoted = true;
-                        $start = false;
-                        continue 2;
+                        $notStarted = false;
+                        $trailingSpaces = '';
+                        continue 2; // advance to next char
                     case ' ':
                     case "\t":
                     case ",":
-                        continue 2;
+                        continue 2; // advance to next char
                     default:
                         $piece .= $value[$i];
-                        $start = false;
-                        continue 2;
+                        $notStarted = false;
+                        $trailingSpaces = '';
+                        continue 2; // advance to next char
                 }
             }
 
@@ -483,13 +293,13 @@ class HeaderParser
                         break;
                     case '"':
                         $quoted = false;
-                        $pieces[] = $piece;
-                        $piece = '';
-                        $start = true;
-                        // we do an 'advance' step here to avoid 2 double quotes back to back
-                        for ($j = $i+1; $j < $len; $j++) {
-                            if ($value[$j] === ',' || $value[$j] === ' ' || $value[$j] === "\t") {
-                                $i++;
+                        // in case the last chars where spaces or tabs, we need to preserve them
+                        $trailingSpaces = '';
+                        for ($j = strlen($piece) - 1; $j >= 0; $j--) {
+                            if ($piece[$j] === ' ' || $piece[$j] === "\t") {
+                                $trailingSpaces = $piece[$j] . $trailingSpaces;
+                            } else {
+                                break;
                             }
                         }
                         break;
@@ -499,30 +309,23 @@ class HeaderParser
             } else {
                 switch($value[$i]) {
                     case ',':
-                        $pieces[] = rtrim($piece, " \t");
+                        // the comma is the separator of multiple header values
+                        $pieces[] = rtrim($piece, " \t") . $trailingSpaces;
                         $piece = '';
-                        // no need to advance, as we set $start
-                        $start = true;
+                        $trailingSpaces = '';
+                        $notStarted = true;
                         break;
                     case '"':
-                        if ($onErrors === HeaderParserOnError::Throw) {
-                            throw new InvalidHeaderValue("Double quote found within non-quoted value");
-                        }
-                        $this->debug("Found invalid possibly quoted string: double quote found within non-quoted value");
-                        switch($onErrors) {
-                            case HeaderParserOnError::ReturnNull:
-                                $pieces[] = '';
-                                $piece = '';
-                                $start = true;
-                                break 3;
-                            case HeaderParserOnError::ReplaceWithSpace:
-                                $piece .= ' ';
-                                break;
-                            case HeaderParserOnError::Ignore:
-                                $pieces[] = $value[$i];
-                                break;
-                        }
+                        $quoted = true;
+                        break;
+                    case ' ':
+                    case "\t":
+                        $piece .= $value[$i];
+                        break;
                     default:
+                        if ($trailingSpaces !== '') {
+                            $trailingSpaces = '';
+                        }
                         $piece .= $value[$i];
                 }
             }
@@ -544,11 +347,11 @@ class HeaderParser
                     break;
             }
             $piece = '';
-            $start = true;
+            $notStarted = true;
         }
 
-        if (!$start) {
-            $pieces[] = $piece;
+        if (!$notStarted) {
+            $pieces[] = rtrim($piece, " \t") . $trailingSpaces;
         }
 
         return $pieces;
@@ -567,10 +370,10 @@ class HeaderParser
             switch($onErrors) {
                 case HeaderParserOnError::ReturnNull:
                     return [''];
-/// @todo... what to do? This does not make a lot of sense...
                 case HeaderParserOnError::ReplaceWithSpace:
+/// @todo... what to do? This does not make a lot of sense...
                     //$out[$i] = str_replace(['...'], ' ', $value);
-                    break;
+                    //break;
                 case HeaderParserOnError::Ignore:
                     return $values;
             }
