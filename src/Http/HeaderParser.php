@@ -150,6 +150,9 @@ class HeaderParser
             //
             // The best solution seems to be to start out with a-priori knowledge of the headers that should not be split
             // on quotes, and act on that - even though ...
+            //
+            // See: https://github.com/php/frankenphp/discussions/2575
+
             if ($splitValuesOnCommas) {
 
                 if ($allowsQuotedStrings) {
