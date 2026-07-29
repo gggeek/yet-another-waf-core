@@ -177,6 +177,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         $cases[] = ["Cookie: invalid",  ['invalid' => '']];
         $cases[] = ["Cookie: invalid=has space",  ['invalid' => 'has space']];
         $cases[] = ['Cookie: invalid=has"dquote',  ['invalid' => 'has"dquote']];
+        $cases[] = ['Cookie: invalid=has,comma',  ['invalid' => 'has,comma']];
         $cases[] = ['Cookie: invalid=has\\backslash',  ['invalid' => 'has\\backslash']];
         $cases[] = ['Cookie: invalid=has;semicolon',  ['invalid' => 'has', 'semicolon' => '']];
 

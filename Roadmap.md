@@ -5,11 +5,12 @@
     - support other wildcards besides the `*`?
       - glob has: ? for one char, [...] for char ranges, [!...] for negated char ranges
       - sql LIKE has `%` and `_`
-      - we could just allow full regexp instead, at least for char ranges...
+      - we most likely should just allow full regexp instead, as it is quite useful at least for forbidden char ranges...
       - for which matcher a 'literal' version is importamt? body, header, user_agent, query_string, ...
     - client_address: support v6 IPs without forcing users to write a complex regexp
     - other?
-      - add a `/trim` modifier, similar to `/case_insensitive` and `/no_wildcards`
+      - add a `/trim` modifier, similar to `/case_insensitive` and `/no_wildcards`, and document which chars get trimmed
+        (note that http headers, unless using double-quote spans, already get trimmed values to match upon)
       - a `valid_json` matcher for both body, headers and query string elements
       - eg. ssl on
   - implement filtering support
@@ -17,12 +18,13 @@
   - allow 'restart' as action for (Request) rules
     - allow setting a maxRestarts limit
     - q: should we remove from the current rule chain a rule, after it did trigger a restart? (possibly use 2 `restart` types?)
+  - allow NO-OP as action for rules?
   - review: can we do the same (but better) as all the haproxy rules in NC-AIO haproxy.cfg?
   - review: can we implement all rules from OWASP Top 10?
     Also, take a look at OWASP Coraza:
-    - can we transform YAWAF rules into Coraza ones?
+    - can we automatically transform YAWAF rules into Coraza ones? And vice-versa?
     - take hints from features supported by Coraza, eg. setting resource limits (eg. on resp body size etc),
-      have 'log' as rule actions, have a do-not-deny mode, etc...
+      have 'log' as rule actions, have a do-not-deny-but-log-violations mode, etc...
   - xml req./resp. body with xpath/css matchers
   - allow failures of the MethodMatcher to generate a 501 response instead of the default 403?
   - API reworking:
@@ -30,7 +32,7 @@
     - check: could we use the firewall filters to implement something like https://github.com/terrylinooo/shieldon instead
       of a waf to remote apps, or would it need some api changes?
     - do we need to keep *Filter as an alternative to Middleware?
-    - make it easy to install a tracer as 1st middleware in the chain that does not get bypassed in case other MWs throw
+    - make it easy to install a (resp) tracer as 1st middleware in the chain that does not get bypassed in case other MWs throw
 
 - Proxy
   - add by default (or via a filter?) the http headers telling upstream about real-ip and x-forwarded-protocol, patch hop-by-hop headers
@@ -57,9 +59,9 @@
     one does not allow access to its wrapped client in any way, so we can not push down options to it...)
 
 - Docs
+  - document all the supported matchers
   - create diagram for proxy / middlewares / handlers
   - create flow diagram with firewall rules req/resp matching and filtering
-  - document all the supported matchers
   - add config examples for common use-cases, eg. 'all readonly', 'redact secrets', 'inject headers', 'fix Host', etc...
     see fe. all cases listed at https://codingchallenges.fyi/challenges/challenge-forward-proxy/
 
@@ -67,15 +69,15 @@
   - improve message formatting: add context
 
 - Testing
-  - add tests which try to exploit issues in http parsers, see f.e. https://hostoftroubles.com/
+  - add more tests which try to exploit issues in http parsers, see f.e. https://hostoftroubles.com/
   - see all the tests run by https://www.http-probe.com/
   - on GH, run tests on a matrix of all supported php, ubuntu but also webserver versions
     - add one test using frankenphp worker mode
     - test also against: apache+mod_php, php-http-server, lighttpd, openlitespeed, roadrunner, swoole
       - use a cloud-based platform that provides those ready-built, rather than installing each one by ourselves?
         Either that, or move to a multi-container setup for testing...
-      - we might give a strong preference to how frankenphp sets up $_SERVER, as that will be the default way to
-        deploy a WAF based on this code (in the downstream YAWAF project)
+      - we will give a strong preference to how frankenphp sets up $_SERVER, as that will be the default way to
+        deploy a WAF based on this code (in the downstream YAWAF and YADSP projects)
       - swoole has built-in support for psr-15 (mapping an \OpenSwoole\HTTP\Request to a psr one, see https://github.com/openswoole/openswoole/blob/master/core/src/Helper.php)
   - add tests which make use of middleware from other projects, eg. rate-limiting and caching
 
@@ -88,3 +90,5 @@
 - Maybe?
   - create our own implementation of the psr-compliant http upstream client used by the proxy (based on eg. phpxmlrpc),
     as that might lead to easier-to-debug-and-maintain code than Sf and Guzzle...
+  - create our own webserver as stand-alone php cli app, as that gives absolute control on how http headers are parsed
+    (see Qbix and AppserverIo for examples of reasonably performing and complete implementations)
