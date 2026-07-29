@@ -41,7 +41,7 @@ return [
     'content-length' => 0, // singleton
     //'content-md5' => 0, // singleton - obsoleted
     'content-type' => HP::IS_SINGLETON, /// @todo token + '/' + ';' + '='
-    'cookie' => HP::IS_COOKIE, // not a csv list
+    'cookie' => HP::IS_COOKIE | HP::IS_SINGLETON, // not a csv list
     'date' => HP::IS_DATE | HP::IS_SINGLETON, // singleton
     'expect' => 0,
     'forwarded' => 0,
@@ -193,7 +193,7 @@ return [
     'server' => 0,
     'server-timing' => 0,
     'service-worker-allowed' => 0,
-    'set-cookie' => 0,
+    'set-cookie' => 0, /// @todo should de-encode qs spans; test how we get multiple values in responses
     'set-login' => 0,
     'sourcemap' => 0,
     'speculation-rules' => 0,

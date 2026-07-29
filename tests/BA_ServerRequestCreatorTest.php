@@ -133,6 +133,53 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
             $cases[] = ["Custom: \t1\t\r\nCustom: 2 \r\nCustom: \t3\t", 'Custom', '1, 2, 3'];
         }
 
+        // smuggle in stuff: send 2 malformed http headers making the app see one valid singleton header...
+        $cases[] = ["Date: Tue\r\nDate: 15 Nov 1994 08:12:31 GMT", 'Date', 'Tue, 15 Nov 1994 08:12:31 GMT'];
+        // note that Set-Cookie is a Response header, and as such it is not parsed by webservers
+        $cases[] = ["Set-Cookie: lang=en-US; Expires=Wed\r\nSet-Cookie: 09 Jun 2021 10:18:14 GMT", 'Set-Cookie', 'lang=en-US; Expires=Wed, 09 Jun 2021 10:18:14 GMT'];
+
+        // one more test case where different webservers behave differently :-(
+        // Nginx recognizes Cookie and treats it specifically, Apache and FrankenPHP do not
+        if ($_ENV['SERVER_TYPE'] === 'nginx') {
+            $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR", 'Cookie', 'lang1=xx-YY; lang2=en-US; lang3=fr-FR'];
+        } else {
+            $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR", 'Cookie', 'lang1=xx-YY; lang2=en-US, lang3=fr-FR'];
+        }
+
+        return self::mergeCommonDataProviderOptions($cases);
+    }
+
+    /**
+     * Test how the webserver parses quirky cookie headers and passes them to php via $_COOKIE
+     */
+    #[DataProvider('duplicateCookieDataProvider')]
+    public function testDuplicateCookieHttpHeader(string $headers, $expectedCookiesValue,
+        string $httpVersion = '1.0', string $serverScheme = 'http'): void
+    {
+        $response = $this->customRequest('GET', $headers, '', $httpVersion, $serverScheme);
+        $failureMessage = $this->getRespDetails($response);
+        $data = $this->getDecodedBody($response);
+        $cookies = $data['_COOKIE'];
+        $this->assertSame($expectedCookiesValue, $cookies, $failureMessage);
+    }
+
+    public static function duplicateCookieDataProvider(): array
+    {
+        // one more test case where different webservers behave differently :-(
+        // Apache glues together 2 Cookie lines using ', ' (and then allow that as cookie value), Nginx and FrankenPHP do not
+        if ($_ENV['SERVER_TYPE'] === 'apache') {
+            $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR", ['lang1' => 'xx-YY', 'lang2' => 'en-US, lang3=fr-FR']];
+        } else {
+            $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR",  ['lang1' => 'xx-YY', 'lang2' => 'en-US','lang3' => 'fr-FR',]];
+        }
+
+        $cases[] = ["Cookie: valid=",  ['valid' => '']];
+        $cases[] = ["Cookie: invalid",  ['invalid' => '']];
+        $cases[] = ["Cookie: invalid=has space",  ['invalid' => 'has space']];
+        $cases[] = ['Cookie: invalid=has"dquote',  ['invalid' => 'has"dquote']];
+        $cases[] = ['Cookie: invalid=has\\backslash',  ['invalid' => 'has\\backslash']];
+        $cases[] = ['Cookie: invalid=has;semicolon',  ['invalid' => 'has', 'semicolon' => '']];
+
         return self::mergeCommonDataProviderOptions($cases);
     }
 

@@ -202,11 +202,14 @@ class HeaderParser
 
     /**
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
-     * @todo should we split this in a list of cookie/value?
-     * @todo... throw based on $onErrors - see the rationale below for parseDate
      */
     protected function parseCookie(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): string
     {
+/// @todo should we split this in a list of cookie/value? (and remove dquotes from the value? Check what we get in $_COOKIE)
+/// @todo... throw based on $onErrors - see the rationale below for parseDate
+///          (should we just check for not having CTLs, whitespace, DQUOTE, comma, semicolon and backslash, or use a proper
+///          regxep validation? Note the test results in duplicateCookieDataProvider: webservers are quite lenient in what
+///          they pass on to php in $_COOKIE...)
         return $value;
     }
 
@@ -218,6 +221,7 @@ class HeaderParser
 /// @todo... on non-conforming date strings log a debug message / throw based on $onErrors. This is needed in order to
 ///          catch a client sending eg. 2 "Date" headers, which, thanks to cgi/fcgi collating them into a single string,
 ///          would possibly be matched by a fw rule set up by the user, which might result in request smuggling
+///          (should we just check for 2 commas, or use a proper regxep validation?)
         return $value;
     }
 
