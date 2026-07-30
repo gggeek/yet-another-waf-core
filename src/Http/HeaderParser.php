@@ -15,17 +15,6 @@ class HeaderParser
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
-    const IS_SINGLETON = 1;
-
-    /// @todo... allow other productions than token, quoted-string
-    const ALLOWS_QUOTED_STRINGS = 2;
-    const ALLOWS_TRAILING_COMMENT = 4;
-    /// @todo is it useful to add a constant for the common 'parameter' abnf definition?
-    const IS_TOKEN = 8;
-    const IS_COOKIE = 16;
-    const IS_DATE = 32;
-    const IS_INTEGER = 64;
-
     protected static array $defaultKnownHeaders = [];
     protected array $knownHeaders;
 
@@ -36,12 +25,7 @@ class HeaderParser
         }
 
         // speed/memory optimization: remove all headers which have no specific format and allow multiple values
-
-        if (!self::$defaultKnownHeaders) {
-            self::$defaultKnownHeaders = array_filter(require __DIR__ . '/KnownHttpHeaders.php');
-        }
-
-        $this->knownHeaders = array_filter($customHeadersSpec) + self::$defaultKnownHeaders;
+        $this->knownHeaders = array_filter($customHeadersSpec) + HeaderSpec::getHeadersDefinitions();
 
         $this->logger = $logger;
     }
@@ -81,19 +65,22 @@ class HeaderParser
      */
     protected function parseHeaderValue(array $values, int $options, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
     {
-/// @todo... allow parsing of non-csv-separated lists, eg. for Set-Cookie
-        $isToken = $options & self::IS_TOKEN;
-        $isCookie = false;
-        $isDate = false;
-        $allowsQuotedStrings = $options & self::ALLOWS_QUOTED_STRINGS;
-        //$allowsComments = $options & self::ALLOWS_TRAILING_COMMENT;
+/// @todo... allow parsing structured-value headers (see rfc9651)
+        $isToken = $options & HeaderSpec::IS_TOKEN;
+        $isCookie = $options & HeaderSpec::IS_COOKIE;
+        $isDate = $options & HeaderSpec::IS_DATE;
+        $isJson = $options & HeaderSpec::IS_JSON;
+        $allowsQuotedStrings = $options & HeaderSpec::ALLOWS_QUOTED_STRINGS;
+        //$allowsComments = $options & HeaderSpec::ALLOWS_TRAILING_COMMENT;
 
-        $isSingleton = $options & self::IS_SINGLETON;
+        $isSingleton = $options & HeaderSpec::IS_SINGLETON;
 
-        $splitValuesOnCommas = !($isCookie || $isDate);
+        $splitValuesOnCommas = !($isCookie || $isDate || $isJson);
 
-        // This check is done at the end of processing, as it makes more sense to do so
-        // for singleton values, throw if count($values) > 1
+        // This check is now done at the end of processing, as it makes more sense to do so then (are we sure? what about
+        // the curious case of singleton headers which allow lists of values?)
+        //
+        // For singleton values, throw if count($values) > 1
         //if ($isSingleton && count($values) > 1) {
         //    if ($onErrors === HeaderParserOnError::Throw) {
         //        throw new InvalidHeaderValue("Multiple values to parse for singleton header");
