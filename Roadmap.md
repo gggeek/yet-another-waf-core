@@ -60,7 +60,7 @@
 
 - Docs
   - document all the supported matchers
-  - create diagram for proxy / middlewares / handlers
+  - create diagram for proxy / middlewares / handlers (use Mermaid?)
   - create flow diagram with firewall rules req/resp matching and filtering
   - add config examples for common use-cases, eg. 'all readonly', 'redact secrets', 'inject headers', 'fix Host', etc...
     see fe. all cases listed at https://codingchallenges.fyi/challenges/challenge-forward-proxy/

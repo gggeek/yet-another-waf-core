@@ -145,6 +145,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         } else {
             $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR", 'Cookie', 'lang1=xx-YY; lang2=en-US, lang3=fr-FR'];
         }
+        $cases[] = ['Cookie: withquotes="xx-YY"', 'Cookie', 'withquotes="xx-YY"'];
 
         return self::mergeCommonDataProviderOptions($cases);
     }
@@ -152,8 +153,8 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
     /**
      * Test how the webserver parses quirky cookie headers and passes them to php via $_COOKIE
      */
-    #[DataProvider('duplicateCookieDataProvider')]
-    public function testDuplicateCookieHttpHeader(string $headers, $expectedCookiesValue,
+    #[DataProvider('cookieDataProvider')]
+    public function testCookieHttpHeader(string $headers, $expectedCookiesValue,
         string $httpVersion = '1.0', string $serverScheme = 'http'): void
     {
         $response = $this->customRequest('GET', $headers, '', $httpVersion, $serverScheme);
@@ -163,24 +164,51 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         $this->assertSame($expectedCookiesValue, $cookies, $failureMessage);
     }
 
-    public static function duplicateCookieDataProvider(): array
+    public static function cookieDataProvider(): array
     {
-        // one more test case where different webservers behave differently :-(
-        // Apache glues together 2 Cookie lines using ', ' (and then allow that as cookie value), Nginx and FrankenPHP do not
-        if ($_ENV['SERVER_TYPE'] === 'apache') {
-            $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR", ['lang1' => 'xx-YY', 'lang2' => 'en-US, lang3=fr-FR']];
-        } else {
-            $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR",  ['lang1' => 'xx-YY', 'lang2' => 'en-US','lang3' => 'fr-FR',]];
-        }
-
         $cases[] = ["Cookie: valid=",  ['valid' => '']];
         $cases[] = ["Cookie: invalid",  ['invalid' => '']];
+        $cases[] = ["Cookie: one= o n e ",  ['one' => ' o n e']];
+
+        // these are quite weird...
+        $cases[] = ["Cookie: one =one",  ['one_' => 'one']];
+        $cases[] = ["Cookie: one =one",  ['one_' => 'one']];
+        $cases[] = ["Cookie: o n e=one",  ['o_n_e' => 'one']];
+        $cases[] = ["Cookie: o\tne=one",  ["o\tne" => 'one']];
+/// @todo... report this as php bug?
+        //$cases[] = ["Cookie: o\tn\te=one",  ['o\tn\te' => 'one']];
+/// @todo... add test cases for non-ascii 'token' chars in cookie name
+
+        $cases[] = ['Cookie: withquotes="withquotes"',  ['withquotes' => '"withquotes"']];
+        $cases[] = ['Cookie: one=one; two=two',  ['one' => 'one', 'two' => 'two']];
+        $cases[] = ['Cookie: one="one"; two=two',  ['one' => '"one"', 'two' => 'two']];
+        $cases[] = ['Cookie: one="one"; two=; three=3',  ['one' => '"one"', 'two' => '', 'three' => '3']];
+        $cases[] = ["Cookie: one=one; ;\t;; three=3",  ['one' => 'one', 'three' => '3']];
+        // subsequent spaces are not trimmed from cookie values
+        $cases[] = ['Cookie: one=one   ; two=two',  ['one' => 'one   ', 'two' => 'two']];
+        // in theory, a single space char should be found after the ';'...
+        $cases[] = ["Cookie: one=one; \t two=two",  ['one' => 'one', 'two' => 'two']];
+
+        // the use of double quoted spans does not interfere with splitting around
+        $cases[] = ['Cookie: one="one;three=three"; two=two',  ['one' => '"one', 'three' => 'three"', 'two' => 'two']];
+        $cases[] = ['Cookie: one="one ; three=three"; two=two',  ['one' => '"one ', 'three' => 'three"', 'two' => 'two']];
+
+
         $cases[] = ["Cookie: invalid=has space",  ['invalid' => 'has space']];
         $cases[] = ['Cookie: invalid=has"dquote',  ['invalid' => 'has"dquote']];
         $cases[] = ['Cookie: invalid=has,comma',  ['invalid' => 'has,comma']];
         $cases[] = ['Cookie: invalid=has\\backslash',  ['invalid' => 'has\\backslash']];
         $cases[] = ['Cookie: invalid=has;semicolon',  ['invalid' => 'has', 'semicolon' => '']];
 
+        // one more test case where different webservers behave differently :-(
+        // Apache glues together 2 Cookie lines using ', ' (and then allow that as cookie value), Nginx and FrankenPHP do not
+        if ($_ENV['SERVER_TYPE'] === 'apache') {
+            $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR", ['lang1' => 'xx-YY', 'lang2' => 'en-US, lang3=fr-FR']];
+        } else {
+            $cases[] = ["Cookie: lang1=xx-YY; lang2=en-US\r\nCookie: lang3=fr-FR",  ['lang1' => 'xx-YY', 'lang2' => 'en-US','lang3' => 'fr-FR']];
+        }
+
+        // NB: _COOKIE is most likely set up by php, there could be no need to repeat the test over http versions and protocols
         return self::mergeCommonDataProviderOptions($cases);
     }
 

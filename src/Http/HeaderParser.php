@@ -34,9 +34,9 @@ class HeaderParser
      * Normalizes the value of a header, as obtained by a psr-7 message, by splitting it into a list of strings and
      * removing quoted-encodings, based on its known syntax.
      * Custom headers f.e. just get values split on commas and trimmed of space/tab.
-     * The format for specific headers can be set in the parser constructor.
+     * The format for specific headers can be set via the parser constructor.
      * NB: assumes that the header name and value(s) come from a web-server, meaning that some basic validation has
-     * already happened, eg. there are no ctrl characters or \n or \r in its name, or 7F in either (we test that this
+     * already happened, eg. there are no ctrl characters or \n or \r in its name, or x7F in either (we test that this
      * is true for all supported webservers via BA_ServerRequestCreatorTest tests)
      *
      * @param string $name has to be lowercase
@@ -54,6 +54,9 @@ class HeaderParser
     }
 
     /**
+     * Normalizes the value of a header, as obtained by a psr-7 message, by splitting it into a list of strings and
+     * removing quoted-encodings, based on its known syntax.
+     *
      * @param string[] $values as obtained by a psr-7 message. Keys must be numerically indexed from 0
      * @param int $options
      * @param HeaderParserOnError $onErrors
@@ -70,24 +73,46 @@ class HeaderParser
         $isCookie = $options & HeaderSpec::IS_COOKIE;
         $isDate = $options & HeaderSpec::IS_DATE;
         $isJson = $options & HeaderSpec::IS_JSON;
-        $allowsQuotedStrings = $options & HeaderSpec::ALLOWS_QUOTED_STRINGS;
-        //$allowsComments = $options & HeaderSpec::ALLOWS_TRAILING_COMMENT;
+        $isStructured = ($options & (HeaderSpec::IS_DICTIONARY|HeaderSpec::IS_LIST|HeaderSpec::IS_ITEM));
 
         $isSingleton = $options & HeaderSpec::IS_SINGLETON;
 
-        $splitValuesOnCommas = !($isCookie || $isDate || $isJson);
+        $allowsQuotedStrings = $options & HeaderSpec::ALLOWS_QUOTED_STRINGS;
+        //$allowsComments = $options & HeaderSpec::ALLOWS_TRAILING_COMMENT;
 
-        // This check is now done at the end of processing, as it makes more sense to do so then (are we sure? what about
-        // the curious case of singleton headers which allow lists of values?)
+        $splitValuesOnCommas = !($isCookie || $isDate || $isJson || $isStructured);
+        //$joinMultipleValuesOnCommas = false;
+
+        // Which approach is better for headers supposed to be singletons?
+        // 1. split on commas and then check how many values we got, or
+        // 2. do not split and keep a single-value? Or even
+        // 3. combine multiple values with a ', '
         //
-        // For singleton values, throw if count($values) > 1
-        //if ($isSingleton && count($values) > 1) {
-        //    if ($onErrors === HeaderParserOnError::Throw) {
-        //        throw new InvalidHeaderValue("Multiple values to parse for singleton header");
-        //    } else {
-        //        $this->debug("Multiple values to parse for singleton header");
-        /// @todo... should we nullify the returned value(s)?
-        //    }
+        // The constraints are:
+        // - the http spec says that for _any header_, _the recipient_ can concatenate the values of multiple header
+        //   occurrences without changing the semantics of the message (but we are an intermediary, not the recipient)
+        // - the PSR APIs we use to retrieve the header values fed to this method gives us an array as value for each header...
+        // - ...but in the end, for the most common scenario (PHP running as a FCGI app, or via a webserver), the
+        //   values for http headers are gotten from $_SERVER['HTTP_***'], meaning that for each http header there
+        //   will be _only 1 value_, not many. Which, in turn, means that the webserver is extremely likely to
+        //   concatenate together multiple values using the comma rule.
+        //
+        // This means that, given header "X-Custom", defined as singleton, it is factually impossible for php to tell
+        // apart these 2 cases:
+        //     X-Custom: "hello
+        //     X-Custom: world"
+        // and
+        //     X-custom: "hello, world"
+        // which is of course not the best position to be in for a firewall... Fe. rfc9651 explicitly says that a parser
+        // _might_ reject the first case...
+        //
+        // The best solution seems to be to start out with the a-priori knowledge of the headers that should not be split
+        // on quotes, rather than the headers which are supposed to be singletons, and start from that...
+        //
+        // See: https://github.com/php/frankenphp/discussions/2575
+
+        //if ($joinMultipleValuesOnCommas) {
+        //    $values = [implode(', '), $values];
         //}
 
         $out = [];
@@ -115,30 +140,7 @@ class HeaderParser
             //    }
             //}
 
-            // Which approach is better for singleton headers: split on commas and check how many headers we got, or
-            // do not split and keep a single-value?
-            //
-            // The constraints are:
-            // - the http spec says that for _any header_, unless otherwise specified, the values of multiple header
-            //   occurrences can be concatenated with a comma as separator
-            // - the PSR APIs we use to retrieve the header values fed to this method give an array as value for each header...
-            // - ...but in the end, for the most common scenario (PHP running as a FCGI app, or via a webserver), the
-            //   values for http headers are gotten from $_SERVER['HTTP_***'], meaning that for each http header there
-            //   will be _only 1 value_, not many. Which, in turn, means that the webserver is most likely to concatenate
-            //   together multiple values using the comma rule.
-            //
-            // This means that, given header "X-Custom", defined as singleton, it is factually impossible for php to tell
-            // apart these 2 cases:
-            //     X-Custom: hello
-            //     X-Custom: world
-            // and
-            //     X-custom: hello, world
-            // which is of course not the best position to be in for a firewall.
-            //
-            // The best solution seems to be to start out with a-priori knowledge of the headers that should not be split
-            // on quotes, and act on that - even though ...
-            //
-            // See: https://github.com/php/frankenphp/discussions/2575
+/// @todo... allow stripping of trailing comments
 
             if ($splitValuesOnCommas) {
 
@@ -149,16 +151,16 @@ class HeaderParser
                     $pieces = $this->parseGeneric($value, $onErrors);
                 }
 
-/// @todo... allow stripping of trailing comments
-
                 $out = array_merge($out, $pieces);
 
             } else {
 
                 if ($isCookie) {
-                    $out[] = $this->parseCookie($value, $onErrors);
+                    $out[] = array_merge($out, $this->parseCookie($value, $onErrors));
                 } elseif ($isDate) {
                     $out[] = $this->parseDate($value, $onErrors);
+                } elseif ($isStructured) {
+                    $out= array_merge($out, $this->parseStructuredValue($value, $onErrors));
                 } else {
                     $out[] = $value;
                 }
@@ -181,23 +183,29 @@ class HeaderParser
             } else {
                 $out = $this->validateSingletonHeader($out, $onErrors);
             }
-
         }
 
         return $out;
     }
 
     /**
+     * This "normalizes" the Cookie header, by splitting it as it is effectively a list - but it does not use the
+     * cookie name as key of the returned array.
+     *
+     * @return string[]
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
      */
-    protected function parseCookie(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): string
+    protected function parseCookie(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
     {
-/// @todo should we split this in a list of cookie/value? (and remove dquotes from the value? Check what we get in $_COOKIE)
+/// @todo should we remove dquotes around the value? We do get them in $_COOKIE, but end users might not expect them
 /// @todo... throw based on $onErrors - see the rationale below for parseDate
 ///          (should we just check for not having CTLs, whitespace, DQUOTE, comma, semicolon and backslash, or use a proper
 ///          regxep validation? Note the test results in duplicateCookieDataProvider: webservers are quite lenient in what
 ///          they pass on to php in $_COOKIE...)
-        return $value;
+
+        $pieces = preg_split("/;[ \\t]*/", $value, -1, PREG_SPLIT_NO_EMPTY);
+
+        return $pieces;
     }
 
     /**
@@ -347,6 +355,15 @@ class HeaderParser
         if (!$notStarted) {
             $pieces[] = rtrim($piece, " \t") . $trailingSpaces;
         }
+
+        return $pieces;
+    }
+
+    protected function parseStructuredValue(): array
+    {
+        $pieces = [];
+
+/// @todo...
 
         return $pieces;
     }
