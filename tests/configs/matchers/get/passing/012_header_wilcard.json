@@ -1,7 +1,7 @@
 {
     "rule 1": {
         "req_match": {
-            "http_header_value/x-test-1": "Hello*"
+            "http_header_value": {"x-test-1": "Hello*"}
         }
     }
 }

@@ -1,5 +1,5 @@
 [
     {
-        "http_header_value/x-test-1": ["The", "Last", "He*"]
+        "http_header_value": {"x-test-1": ["The", "Last", "He*"]}
     }
 ]

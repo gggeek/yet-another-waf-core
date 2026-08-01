@@ -1,0 +1,5 @@
+[
+    {
+        "wildcard_http_header_length_ge": {"x-te*t-8": 9, "x-test-*": 1}
+    }
+]

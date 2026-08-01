@@ -6,6 +6,7 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use YAWAF\Core\Exception\ConfigurationError;
+use YAWAF\Core\Matcher\Logic\AndMatcher;
 use YAWAF\Core\Matcher\MatcherInterface;
 use YAWAF\Core\Matcher\OptionAwareMatcherFactory;
 use YAWAF\Core\Matcher\Response\StatusCodeMatcher;
@@ -20,11 +21,11 @@ abstract class MatcherFactory extends OptionAwareMatcherFactory
     protected array $supportedMatcherTypes = [
         'body',
         'content_type',
-        'http_header_length',
+        'http_header_length_ge',
 //        'http_header_rfc_compliant',
         'http_header_value',
         'status_code',
-        'wildcard_http_header_length',
+        'wildcard_http_header_length_ge',
 //        'wildcard_http_header_rfc_compliant',
         'wildcard_http_header_value',
     ];
@@ -38,52 +39,74 @@ abstract class MatcherFactory extends OptionAwareMatcherFactory
     {
         $matcherType = $this->getMatcherType($type);
         switch ($matcherType) {
-            /// @todo accept 'response_body' as an alias?
             case 'body':
                 $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
                 $matcher = new BodyMatcher($values, $opts['case_insensitive'], $opts['no_wildcards']);
                 break;
-            /// @todo accept 'response_content_type' as an alias?
             case 'content_type':
                 $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);
                 $matcher = new ContentTypeMatcher($values, $opts['no_wildcards']);
                 break;
-            /// @todo accept 'response_http_header' as an alias?
             case 'http_header_value':
             case 'wildcard_http_header_value':
-                // code temporarily left in: using an alternative json format for header matchers spec...
-                //if (!is_array($values) || count($values) !== 1) {
-                //    throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with 1 element only");
-                //}
-                //$hv = reset($values);
-                //$hn = array_key_first($values);
-                //if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
-                //    throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
-                //}
-                $hn = $this->getMatcherOptionByPosition($type, 1);
-                $hv = $values;
-                if ($hn === '') {
-                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed by a '/' and a header name");
+                if (!is_array($values) || !$values) {
+                    throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with 1 or more elements");
                 }
-                $this->validateHeaderName($hn);
-                if (!(is_string($hv) || is_array($hv))) {
-                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
+                $matchers = [];
+                foreach($values as $hn => $hv) {
+                    if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
+                        throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with the http header name as keys and string or array of strings for values");
+                    }
+                    $this->validateHeaderName($hn);
+                    $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
+                    $matchers[] = new HeaderValueMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], str_starts_with($matcherType, 'wildcard_'));
                 }
-                $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true], 2);
-                $matcher = new HeaderValueMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], str_starts_with($matcherType, 'wildcard_'));
+                if (count($matchers) > 1) {
+                    $matcher = new AndMatcher($matchers);
+                } else {
+                    $matcher = $matchers[0];
+                }
+                //$hn = $this->getMatcherOptionByPosition($type, 1);
+                //$hv = $values;
+                //if ($hn === '') {
+                //    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed by a '/' and a header name");
+                //}
+                //$this->validateHeaderName($hn);
+                //if (!(is_string($hv) || is_array($hv))) {
+                //    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
+                //}
+                //$opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true], 2);
+                //$matcher = new HeaderValueMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], str_starts_with($matcherType, 'wildcard_'));
                 break;
-            case 'http_header_length':
-            case 'wildcard_http_header_length':
-                $hn = $this->getMatcherOptionByPosition($type, 1);
-                $hv = $values;
-                if ($hn === '') {
-                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed by a '/' and a header name");
+            case 'http_header_length_ge':
+            case 'wildcard_http_header_length_ge':
+                if (!is_array($values) || !$values) {
+                    throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with 1 or more elements");
                 }
-                $this->validateHeaderName($hn);
-                //if (!(is_int($hv) || ctype_digit($hv))) {
-                //    throw new ConfigurationError("Invalid request matching configuration: the value for '$type' should be an integer");
-                //}
-                $matcher = new HeaderLengthMatcher($hn, $hv, str_starts_with($matcherType, 'wildcard_'));
+                $matchers = [];
+                foreach($values as $hn => $hv) {
+                    if (!is_string($hn) || !is_int($hv)) {
+                        throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with the http header name as keys and an int for value");
+                    }
+                    $this->validateHeaderName($hn);
+                    //$opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
+                    $matchers[] = new HeaderLengthMatcher($hn, $hv, true, str_starts_with($matcherType, 'wildcard_'));
+                }
+                if (count($matchers) > 1) {
+                    $matcher = new AndMatcher($matchers);
+                } else {
+                    $matcher = $matchers[0];
+                }
+//                $hn = $this->getMatcherOptionByPosition($type, 1);
+//                $hv = $values;
+//                if ($hn === '') {
+//                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed by a '/' and a header name");
+//                }
+//                $this->validateHeaderName($hn);
+//                //if (!(is_int($hv) || ctype_digit($hv))) {
+//                //    throw new ConfigurationError("Invalid request matching configuration: the value for '$type' should be an integer");
+//                //}
+//                $matcher = new HeaderLengthMatcher($hn, $hv, str_starts_with($matcherType, 'wildcard_'));
                 break;
 //            case 'http_header_rfc_compliant':
 //            case 'wildcard_http_header_rfc_compliant':

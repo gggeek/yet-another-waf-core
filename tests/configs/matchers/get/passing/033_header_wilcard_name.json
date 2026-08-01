@@ -1,5 +1,5 @@
 [
     {
-        "wildcard_http_header_value/x-t*t-1": "Hello"
+        "wildcard_http_header_value": {"x-t*t-1": "Hello"}
     }
 ]

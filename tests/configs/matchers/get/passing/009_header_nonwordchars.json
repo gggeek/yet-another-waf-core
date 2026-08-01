@@ -1,5 +1,5 @@
 [
     {
-        "http_header_value/x-test-9/no_wildcards": "_ :;.\\/\"'?!(){}[]@<>=-+*#$&`|~^%"
+        "http_header_value/no_wildcards": {"x-test-9": "_ :;.\\/\"'?!(){}[]@<>=-+*#$&`|~^%"}
     }
 ]

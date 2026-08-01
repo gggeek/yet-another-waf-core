@@ -1,5 +1,5 @@
 [
     {
-        "http_header_value/x-test-6": ""
+        "http_header_value": {"x-test-6": ""}
     }
 ]
