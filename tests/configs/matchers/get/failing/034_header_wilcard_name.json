@@ -1,5 +1,5 @@
 [
     {
-        "wildcard_http_header": {"*-Test-2": "Hello"}
+        "wildcard_http_header_value/*-Test-2": "Hello"
     }
 ]

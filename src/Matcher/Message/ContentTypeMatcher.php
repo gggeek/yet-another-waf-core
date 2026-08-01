@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Matcher\Message;
 
-class ContentTypeMatcher extends HeaderMatcher
+class ContentTypeMatcher extends HeaderValueMatcher
 {
     /**
      * @param string|string[] $filter

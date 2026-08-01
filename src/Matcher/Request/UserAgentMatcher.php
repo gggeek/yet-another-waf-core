@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Matcher\Request;
 
-use YAWAF\Core\Matcher\Message\HeaderMatcher;
+use YAWAF\Core\Matcher\Message\HeaderValueMatcher;
 
-class UserAgentMatcher extends HeaderMatcher
+class UserAgentMatcher extends HeaderValueMatcher
 {
     /**
      * @param string|string[] $filter

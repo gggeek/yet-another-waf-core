@@ -8,7 +8,7 @@ use YAWAF\Core\Http\HeaderParser;
 use YAWAF\Core\Http\HeaderParserOnError;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
 
-class HeaderMatcher extends BaseMatcher
+class HeaderValueMatcher extends BaseMatcher
 {
     use RegExpListMatcherTrait;
 
@@ -18,6 +18,7 @@ class HeaderMatcher extends BaseMatcher
     protected HeaderParserOnError $headerValueParsingMode;
 
     /**
+     * NB: when passed a header name regex, returns true if at _least one_ header value matches
      * @param string|string[] $filter
      * @throws \Exception
      */
