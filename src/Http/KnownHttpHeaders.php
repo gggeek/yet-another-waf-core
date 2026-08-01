@@ -1,6 +1,6 @@
 <?php
 
-use YAWAF\Core\Http\HeaderParser as HP;
+use YAWAF\Core\Http\HeaderSpec as HP;
 
 /**
  * @var int[] keys should be lowercase, and values be a bitmask of the class constants

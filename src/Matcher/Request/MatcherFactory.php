@@ -22,7 +22,7 @@ class MatcherFactory extends BaseMatcherFactory implements MatcherFactoryInterfa
     {
         parent::__construct($logger);
 
-        $this->supportedMatcherTypes = $this->supportedMatcherTypes + [
+        $this->supportedMatcherTypes = array_merge($this->supportedMatcherTypes, [
             'client_address',
             'client_port',
             'content_type',
@@ -35,7 +35,7 @@ class MatcherFactory extends BaseMatcherFactory implements MatcherFactoryInterfa
             'url_path',
             'user_agent',
             'wildcard_query_string'
-        ];
+        ]);
     }
 
     /**
@@ -105,6 +105,7 @@ class MatcherFactory extends BaseMatcherFactory implements MatcherFactoryInterfa
             case 'protocol_version':
                 $matcher = new ProtocolVersionMatcher($values);
                 break;
+/// @todo rename?
             case 'query_string':
             case 'wildcard_query_string':
                 if (!is_array($values) || count($values) !== 1) {

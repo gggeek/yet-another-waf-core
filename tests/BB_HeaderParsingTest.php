@@ -6,6 +6,7 @@ namespace YAWAF\Core\Tests;
 use PHPUnit\Framework\Attributes\DataProvider;
 use YAWAF\Core\Http\HeaderParser;
 use YAWAF\Core\Http\HeaderParserOnError;
+use YAWAF\Core\Http\HeaderSpec;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
 class BB_HeaderParsingTest extends TestCase
@@ -59,7 +60,7 @@ class BB_HeaderParsingTest extends TestCase
     #[DataProvider('parsingDQHeadersDataProvider')]
     public function testParsingDQHeaders($values, $expectedResults)
     {
-        $hp = new HeaderParser(['Custom' => HeaderParser::ALLOWS_QUOTED_STRINGS]);
+        $hp = new HeaderParser(['Custom' => HeaderSpec::ALLOWS_QUOTED_STRINGS]);
         $this->assertSame($expectedResults, $hp->normalizeHeaderValue('Custom', $values, HeaderParserOnError::ReturnNull));
     }
 
