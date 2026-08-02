@@ -296,21 +296,6 @@ class HeaderParser
                             $piece .= $value[$j];
                             $i++;
                         } else {
-                            //if ($onErrors === HeaderParserOnError::Throw) {
-                            //    throw new InvalidHeaderValue("Quoted string has backslash before final quote");
-                            //}
-                            //$this->debug("Found invalid quoted string in http header: the final double quote is escaped by a backslash");
-                            //switch($onErrors) {
-                            //    case HeaderParserOnError::ReturnNull:
-                            //        $pieces[] = '';
-                            //        break;
-                            //    case HeaderParserOnError::ReplaceWithSpace:
-                            //        $pieces[] = $piece .' ';
-                            //        break;
-                            //    case HeaderParserOnError::Ignore:
-                            //        $pieces[] = $piece;
-                            //        break;
-                            //}
                             $errorsFound[] = 'Invalid quoted-string: it has backslash before final quote';
 /// @todo... should we add the final, spurious backslash to the returned value instead of dropping it?
                             $pieces[] = $piece;
@@ -359,20 +344,6 @@ class HeaderParser
         }
 
         if ($quoted) {
-            //if ($onErrors === HeaderParserOnError::Throw) {
-            //    throw new InvalidHeaderValue("Quoted string has no final quote");
-            //}
-            //$this->debug("Found invalid quoted string in http header: no final quote");
-            //switch($onErrors) {
-            //    case HeaderParserOnError::ReturnNull:
-            //        $pieces[] = '';
-            //        break;
-            /// @todo should we do some specific processing in case of ReplaceWithSpace ?
-            //    case HeaderParserOnError::ReplaceWithSpace:
-            //    case HeaderParserOnError::Ignore:
-            //        $pieces[] = $piece;
-            //        break;
-            //}
             $errorsFound[] = "Invalid quoted string: missing closing quote";
 /// @todo... should we use as returned value the original string, without backslash escaping?
             $pieces[] = $piece;
@@ -395,58 +366,4 @@ class HeaderParser
 
         return $pieces;
     }
-
-/*
-    protected function validateSingletonHeader(array $values): array
-    {
-        if (count($values) < 2) {
-            return $values;
-        }
-
-        if ($onErrors === HeaderParserOnError::Throw) {
-            throw new InvalidHeaderValue(count($values) . " values received but only 1 allowed");
-        } else {
-            $this->debug("Multiple values parsed for singleton header");
-            switch($onErrors) {
-                case HeaderParserOnError::ReturnNull:
-                    return [''];
-                case HeaderParserOnError::ReplaceWithSpace:
-/// @todo... what to do? This does not make a lot of sense...
-                    //$out[$i] = str_replace(['...'], ' ', $value);
-                    //break;
-                case HeaderParserOnError::Ignore:
-                    return $values;
-            }
-        }
-    }
-
-    /**
-     * @param string[] $values
-     * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
-     * /
-    protected function validateTokenHeader(array $values, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
-    {
-/// @todo...
-        $out = $values;
-        foreach ($values as $i => $value) {
-            if (preg_match('...', $value)) {
-                if ($onErrors === HeaderParserOnError::Throw) {
-                    throw new InvalidHeaderValue('Non allowed characters for Token');
-                }
-                $this->debug("Found invalid Token: non allowed characters");
-                switch($onErrors) {
-                    case HeaderParserOnError::ReturnNull:
-                        $out[$i] = '';
-                        break;
-                    case HeaderParserOnError::ReplaceWithSpace:
-                        $out[$i] = str_replace(['...'], ' ', $value);
-                        break;
-                    case HeaderParserOnError::Ignore:
-                        break;
-                }
-            }
-        }
-        return $out;
-    }
-*/
 }
