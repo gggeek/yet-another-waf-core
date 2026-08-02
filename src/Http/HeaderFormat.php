@@ -1,16 +1,17 @@
 <?php
+declare(strict_types=1);
 
 namespace YAWAF\Core\Http;
 
-enum HeaderFormat
+enum HeaderFormat: string
 {
-    case Cookie;
-    case Date;
-    case Generic;
-    case Integer;
-    case Json;
-    case SFItem;
-    case SFList;
-    case SFDictionary;
-    case Token;
+    case Cookie = 'cookie';
+    case Date = 'date';
+    case Generic = 'generic';
+    case Integer = 'integer';
+    case Json = 'json';
+    case SFItem = 'Item';
+    case SFList = 'List';
+    case SFDictionary = 'Dictionary';
+    case Token = 'token';
 }

@@ -5,6 +5,7 @@ namespace YAWAF\Core\Http;
 
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
+use YAWAF\Core\Exception\ConfigurationError;
 use YAWAF\Core\Exception\InvalidHeaderValue;
 use YAWAF\Core\Http\HeaderFormat as HF;
 use YAWAF\Core\Http\HeaderQuotedSpansFormat as HQSF;
@@ -23,17 +24,17 @@ class HeaderParser
     protected array $knownHeaders;
 
     /**
-     * @param headerSpec[] $customHeadersSpec
+     * @param HeaderSpec[] $customHeadersSpecs
+     * @throws \InvalidArgumentException
+     * @throws ConfigurationError
      */
-    public function __construct(array $customHeadersSpec = [], LoggerInterface|null $logger = null)
+    public function __construct(array $customHeadersSpecs = [], LoggerInterface|null $logger = null)
     {
-        if (! Stdlib::array_of($customHeadersSpec, HeaderSpec::class)) {
+        if (! Stdlib::array_of($customHeadersSpecs, HeaderSpec::class)) {
             throw new \InvalidArgumentException('customHeadersSpec argument to HeaderParser constructor must be an array of HeaderSpec objects');
         }
 
-        // speed/memory optimization: remove all headers which have no specific format, allow multiple values and can be in both reqs and resps
-        $this->knownHeaders = array_values(array_filter($customHeadersSpec, [HS::class, 'isNotGeneric']) + HeaderSpec::getHeadersSpecifications());
-
+        $this->knownHeaders = HeaderSpecFactory::getHeadersSpecifications($customHeadersSpecs);
         $this->logger = $logger;
     }
 
