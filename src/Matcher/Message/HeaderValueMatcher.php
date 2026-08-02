@@ -5,17 +5,18 @@ namespace YAWAF\Core\Matcher\Message;
 
 use Psr\Http\Message\MessageInterface;
 use YAWAF\Core\Http\HeaderParser;
-use YAWAF\Core\Http\HeaderParserOnError;
+use YAWAF\Core\Http\HeaderParserAwareTrait;
+//use YAWAF\Core\Http\HeaderParserOnError;
 use YAWAF\Core\Matcher\RegExpListMatcherTrait;
 
 class HeaderValueMatcher extends BaseMatcher
 {
     use RegExpListMatcherTrait;
+    use HeaderParserAwareTrait;
 
     protected string $headerName;
     protected bool $headerNameIsRegex = false;
-    protected HeaderParser $headerParser;
-    protected HeaderParserOnError $headerValueParsingMode;
+    //protected HeaderParserOnError $headerValueParsingMode;
 
     /**
      * NB: when passed a header name regex, returns true if at _least one_ header value matches
@@ -23,12 +24,12 @@ class HeaderValueMatcher extends BaseMatcher
      * @throws \Exception
      */
     public function __construct(string $headerName, string|array $filter, bool $caseInsensitive = false, bool $expandWildcards = true,
-        bool $expandWildcardsInName = false, $matchInvalidHeaderValues = false)
+        bool $expandWildcardsInName = false/*, $matchInvalidHeaderValues = false*/)
     {
         $this->caseInsensitive = $caseInsensitive;
         $this->expandWildcards = $expandWildcards;
         $this->headerNameIsRegex = $expandWildcardsInName;
-        $this->headerValueParsingMode = $matchInvalidHeaderValues ? HeaderParserOnError::Ignore : HeaderParserOnError::ReplaceWithSpace;
+        //$this->headerValueParsingMode = $matchInvalidHeaderValues ? HeaderParserOnError::Ignore : HeaderParserOnError::ReplaceWithSpace;
 
         if ($expandWildcardsInName) {
             $this->headerName = $this->regexpDelimiter . $this->wildcardStringToRegexp($headerName, true) . $this->regexpDelimiter . 'i';
@@ -46,7 +47,8 @@ class HeaderValueMatcher extends BaseMatcher
         if ($this->headerNameIsRegex) {
             foreach ($message->getHeaders() as $headerName => $headerValues) {
                 if (preg_match($this->headerName, $headerName)) {
-                    $parsedValues = $this->headerParser->normalizeHeaderValue(strtolower($headerName), $headerValues, $this->headerValueParsingMode);
+/// @todo... log a debug message if parsing finds errors and/or allow a 'strict' matching mode
+                    $parsedValues = $this->headerParser->normalizeHeaderValue(strtolower($headerName), $headerValues, $errors);
                     foreach ($parsedValues as $headerValue) {
                         if ($this->matchesRegexp($headerValue)) {
                             return true;
@@ -60,7 +62,8 @@ class HeaderValueMatcher extends BaseMatcher
                 return false;
             }
             $headerValues = $message->getHeader($this->headerName);
-            $parsedValues = $this->headerParser->normalizeHeaderValue($this->headerName, $headerValues, $this->headerValueParsingMode);
+/// @todo... log a debug message if parsing finds errors and/or allow a 'strict' matching mode
+            $parsedValues = $this->headerParser->normalizeHeaderValue($this->headerName, $headerValues, $errors);
             foreach ($parsedValues as $headerValue) {
                 if ($this->matchesRegexp($headerValue)) {
                     return true;

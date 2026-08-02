@@ -6,51 +6,122 @@ namespace YAWAF\Core\Http;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use YAWAF\Core\Exception\InvalidHeaderValue;
+use YAWAF\Core\Http\HeaderFormat as HF;
+use YAWAF\Core\Http\HeaderQuotedSpansFormat as HQSF;
+use YAWAF\Core\Http\HeaderSpec as HS;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\Stdlib;
 
-/// @todo implement plugins/subclasses to add support for headers used in well-known protocols such as eg. webdav
+/// @todo do we need to implement plugins/subclasses to add support for headers used in well-known protocols such as eg. webdav?
 class HeaderParser
 {
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
     protected static array $defaultKnownHeaders = [];
+    /** @var HS[] */
     protected array $knownHeaders;
 
+    /**
+     * @param headerSpec[] $customHeadersSpec
+     */
     public function __construct(array $customHeadersSpec = [], LoggerInterface|null $logger = null)
     {
-        if (! Stdlib::array_of_int($customHeadersSpec)) {
-            throw new \InvalidArgumentException('customHeadersSpec argument to HeaderParser constructor must be an array of ints');
+        if (! Stdlib::array_of($customHeadersSpec, HeaderSpec::class)) {
+            throw new \InvalidArgumentException('customHeadersSpec argument to HeaderParser constructor must be an array of HeaderSpec objects');
         }
 
-        // speed/memory optimization: remove all headers which have no specific format and allow multiple values
-        $this->knownHeaders = array_filter($customHeadersSpec) + HeaderSpec::getHeadersDefinitions();
+        // speed/memory optimization: remove all headers which have no specific format, allow multiple values and can be in both reqs and resps
+        $this->knownHeaders = array_values(array_filter($customHeadersSpec, [HS::class, 'isNotGeneric']) + HeaderSpec::getHeadersSpecifications());
 
         $this->logger = $logger;
     }
 
     /**
      * Normalizes the value of a header, as obtained by a psr-7 message, by splitting it into a list of strings and
-     * removing quoted-encodings, based on its known syntax.
+     * removing excess whitespace and quoted-encodings, based on its known syntax.
      * Custom headers f.e. just get values split on commas and trimmed of space/tab.
      * The format for specific headers can be set via the parser constructor.
      * NB: assumes that the header name and value(s) come from a web-server, meaning that some basic validation has
-     * already happened, eg. there are no ctrl characters or \n or \r in its name, or x7F in either (we test that this
-     * is true for all supported webservers via BA_ServerRequestCreatorTest tests)
+     * already happened, eg. there are no ctrl characters or \n or \r in its name, or x7F in either name or value
+     * (we test that this is true for all supported webservers via BA_ServerRequestCreatorTest tests)
      *
      * @param string $name has to be lowercase
      * @param string[] $values as obtained by a psr-7 message
      * @return string[]
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
      */
-    public function normalizeHeaderValue(string $name, array $values, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
+    public function normalizeHeaderValue(string $name, array $values, array|null &$errorsFound = []): array
     {
-        try {
-            return $this->parseHeaderValue($values, $this->knownHeaders[$name] ?? 0, $onErrors);
-        } catch (InvalidHeaderValue $e) {
-            throw new InvalidHeaderValue("Error parsing header '$name': " . lcfirst($e->getMessage()));
+        //try {
+            return $this->parseHeaderValue($values, $this->knownHeaders[$name] ?? null, $errorsFound);
+        //} catch (InvalidHeaderValue $e) {
+        //    throw new InvalidHeaderValue("Error parsing header '$name': " . lcfirst($e->getMessage()));
+        //}
+    }
+
+    /**
+     * Checks that a header value is fully compliant with its RFC specification
+     * @param string $name has to be lowercase
+     * @param string[] $values
+     * @return bool true if the header is compliant
+     */
+    public function validateHeaderValue(string $name, array $values): bool
+    {
+        // The following was disabled after checking that the (supported) webservers will not allow such headers
+        // to reach php anyway
+/// @todo... add more tests specifically for this in BA_ServerRequestCreatorTest - esp. some sending these chars within a known quoted-string header
+        /// @todo introduce a version of this that does extra validation, eg. checking for NUL, CR, LF, DEL chars in header name + value,
+        ///       and CTRL chars or > 127 in header name
+        /// @todo introduce a version of this that does also check for chars !#$%&\'*+.^_`|~ in the header name
+        /// @todo would a regexp be faster?
+        //foreach ($values as $value) {
+        //    if (str_contains("\n", $value) || str_contains("\r", $value)
+        //        || str_contains("\x00", $value) || str_contains("\x7F", $value)) {
+        //        return false;
+        //    }
+        //}
+
+        if (!array_key_exists($name, $this->knownHeaders)) {
+            return true;
         }
+
+        $spec = $this->knownHeaders[$name];
+
+        $errors = [];
+        $normalizedValues = $this->parseHeaderValue($values, $spec, $errors);
+
+        if ($errors) {
+            return false;
+        }
+
+        switch ($spec->format) {
+            case HF::Cookie:
+            case HF::Date:
+            case HF::Token:
+            case HF::Integer:
+                foreach ($normalizedValues as $value) {
+                    if (!preg_match($spec->validationRegexp, $value)) {
+                        return false;
+                    }
+                }
+                break;
+            case HF::Generic:
+                if ($spec->validationRegexp !== null) {
+                    foreach ($normalizedValues as $value) {
+                        if (!preg_match($spec->validationRegexp, $value)) {
+                            return false;
+                        }
+                    }
+                }
+                break;
+        }
+
+        if ($spec->isSingleton && (count($values) > 1 || count($normalizedValues) > 1)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -58,26 +129,23 @@ class HeaderParser
      * removing quoted-encodings, based on its known syntax.
      *
      * @param string[] $values as obtained by a psr-7 message. Keys must be numerically indexed from 0
-     * @param int $options
-     * @param HeaderParserOnError $onErrors
      * @return string[]
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
      *
-     * @todo introduce a version of this that does extra validation, eg. checking for NUL, CR, LF chars
      * @todo is there a better name for this function?
      */
-    protected function parseHeaderValue(array $values, int $options, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
+    protected function parseHeaderValue(array $values, HS|null $hs, array|null &$errorsFound = []): array
     {
-/// @todo... allow parsing structured-value headers (see rfc9651)
-        $isToken = $options & HeaderSpec::IS_TOKEN;
-        $isCookie = $options & HeaderSpec::IS_COOKIE;
-        $isDate = $options & HeaderSpec::IS_DATE;
-        $isJson = $options & HeaderSpec::IS_JSON;
-        $isStructured = ($options & (HeaderSpec::IS_DICTIONARY|HeaderSpec::IS_LIST|HeaderSpec::IS_ITEM));
+        //$isToken = $hs !== null && $hs->format === HF::Token;
+        $isCookie = $hs !== null && $hs->format === HF::Cookie;
+        $isDate = $hs !== null && $hs->format === HF::Date;
+        $isJson = $hs !== null && $hs->format === HF::Json;
+        /// @todo move this methods to HP/HF?
+        $isStructured = $hs !== null &&  ($hs->format === HF::SFDictionary || $hs->format === HF::SFList || $hs->format === HF::SFItem);
 
-        $isSingleton = $options & HeaderSpec::IS_SINGLETON;
+        //$isSingleton = $hs !== null && $hs->isSingleton;
 
-        $allowsQuotedStrings = $options & HeaderSpec::ALLOWS_QUOTED_STRINGS;
+        $allowsQuotedStrings = $hs !== null && $hs->quotedSpansFormat === HQSF::QuotedString;
         //$allowsComments = $options & HeaderSpec::ALLOWS_TRAILING_COMMENT;
 
         $splitValuesOnCommas = !($isCookie || $isDate || $isJson || $isStructured);
@@ -116,6 +184,7 @@ class HeaderParser
         //}
 
         $out = [];
+        $errorsFound = [];
         foreach ($values as $value) {
 
             // @see https://www.rfc-editor.org/info/rfc9112/#section-5
@@ -124,64 +193,24 @@ class HeaderParser
             // some webservers (I am looking at you, Nginx...) do not _always apply this stripping
             $value = trim($value, " \t");
 
-            // The following test and filter were disabled after checking that the (supported) webservers will not allow
-            // such headers to reach php anyway
-/// @todo... add more tests specifically for this in BA_ServerRequestCreatorTest - esp. some sending these chars within a known quoted-string header
-
-            /// @todo would a regexp be faster?
-            /// @todo also check if any CTRL chars are found
-            //if (str_contains("\n", $value) || str_contains("\r", $value)
-            //    || str_contains("\x00", $value) || str_contains("\x7F", $value)) {
-            //    if ($onErrors === HeaderParserOnError::Throw) {
-            //        throw new InvalidHeaderValue("Found invalid character: CR, LF, NUL or DEL");
-            //    } else {
-            //        /// @todo log a debug message
-            //        $value = str_replace(["\n", "\r", "\x00", "\x7F"], ' ', $value);
-            //    }
-            //}
-
 /// @todo... allow stripping of trailing comments
 
             if ($splitValuesOnCommas) {
-
                 if ($allowsQuotedStrings) {
-                    $pieces = $this->parseMaybeQuotedString($value, $onErrors);
+                    $pieces = $this->parseMaybeQuotedString($value, $errorsFound);
                 } else {
                     // non-singleton, no quoted strings
-                    $pieces = $this->parseGeneric($value, $onErrors);
+                    $pieces = $this->parseGeneric($value, $errorsFound);
                 }
-
                 $out = array_merge($out, $pieces);
-
+            } elseif ($isCookie) {
+                $out[] = array_merge($out, $this->parseCookie($value, $errorsFound));
+            //} elseif ($isDate) {
+            //    $out[] = $this->parseDate($value, $errorsFound);
+            } elseif ($isStructured) {
+                $out = array_merge($out, $this->parseStructuredValue($value, $errorsFound));
             } else {
-
-                if ($isCookie) {
-                    $out[] = array_merge($out, $this->parseCookie($value, $onErrors));
-                } elseif ($isDate) {
-                    $out[] = $this->parseDate($value, $onErrors);
-                } elseif ($isStructured) {
-                    $out= array_merge($out, $this->parseStructuredValue($value, $onErrors));
-                } else {
-                    $out[] = $value;
-                }
-
-            }
-        }
-
-        if ($isToken) {
-            $out = $this->validateTokenHeader($out, $onErrors);
-        }
-
-        if ($isSingleton) {
-            // the 'Cookie' req. header is a singleton, but if we allow parseCookie to split it, we need this weird handling
-            if ($isCookie) {
-                if ($onErrors === HeaderParserOnError::Ignore) {
-                    $this->validateSingletonHeader($values, $onErrors);
-                } else {
-                    $out = $this->validateSingletonHeader($values, $onErrors);
-                }
-            } else {
-                $out = $this->validateSingletonHeader($out, $onErrors);
+                $out[] = $value;
             }
         }
 
@@ -193,46 +222,39 @@ class HeaderParser
      * cookie name as key of the returned array.
      *
      * @return string[]
-     * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
      */
-    protected function parseCookie(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
+    protected function parseCookie(string $value, array &$errorsFound): array
     {
 /// @todo should we remove dquotes around the value? We do get them in $_COOKIE, but end users might not expect them
 /// @todo... throw based on $onErrors - see the rationale below for parseDate
 ///          (should we just check for not having CTLs, whitespace, DQUOTE, comma, semicolon and backslash, or use a proper
 ///          regxep validation? Note the test results in duplicateCookieDataProvider: webservers are quite lenient in what
 ///          they pass on to php in $_COOKIE...)
-
         $pieces = preg_split("/;[ \\t]*/", $value, -1, PREG_SPLIT_NO_EMPTY);
-
         return $pieces;
     }
 
-    /**
-     * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
-     */
-    protected function parseDate(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): string
+    /*protected function parseDate(string $value, array &$errorsFound): string
     {
 /// @todo... on non-conforming date strings log a debug message / throw based on $onErrors. This is needed in order to
 ///          catch a client sending eg. 2 "Date" headers, which, thanks to cgi/fcgi collating them into a single string,
 ///          would possibly be matched by a fw rule set up by the user, which might result in request smuggling
 ///          (should we just check for 2 commas, or use a proper regxep validation?)
         return $value;
-    }
+    }*/
 
     /**
      * @return string[]
      */
-    protected function parseGeneric(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
+    protected function parseGeneric(string $value, array &$errorsFound): array
     {
         return preg_split("/[ \\t]*,[ \\t]*/", $value, -1, PREG_SPLIT_NO_EMPTY);
     }
 
     /**
      * @return string[]
-     * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
      */
-    protected function parseMaybeQuotedString(string $value, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
+    protected function parseMaybeQuotedString(string $value, array &$errorsFound): array
     {
         $pieces = [];
 
@@ -273,22 +295,24 @@ class HeaderParser
                             $piece .= $value[$j];
                             $i++;
                         } else {
-                            if ($onErrors === HeaderParserOnError::Throw) {
-                                throw new InvalidHeaderValue("Quoted string has backslash before final quote");
-                            }
-                            $this->debug("Found invalid quoted string: the final double quote is escaped by a backslash");
-                            switch($onErrors) {
-                                case HeaderParserOnError::ReturnNull:
-                                    $pieces[] = '';
-                                    break;
-                                case HeaderParserOnError::ReplaceWithSpace:
-                                    $pieces[] = $piece .' ';
-                                    break;
+                            //if ($onErrors === HeaderParserOnError::Throw) {
+                            //    throw new InvalidHeaderValue("Quoted string has backslash before final quote");
+                            //}
+                            //$this->debug("Found invalid quoted string in http header: the final double quote is escaped by a backslash");
+                            //switch($onErrors) {
+                            //    case HeaderParserOnError::ReturnNull:
+                            //        $pieces[] = '';
+                            //        break;
+                            //    case HeaderParserOnError::ReplaceWithSpace:
+                            //        $pieces[] = $piece .' ';
+                            //        break;
+                            //    case HeaderParserOnError::Ignore:
+                            //        $pieces[] = $piece;
+                            //        break;
+                            //}
+                            $errorsFound[] = 'Invalid quoted-string: it has backslash before final quote';
 /// @todo... should we add the final, spurious backslash to the returned value instead of dropping it?
-                                case HeaderParserOnError::Ignore:
-                                    $pieces[] = $piece;
-                                    break;
-                            }
+                            $pieces[] = $piece;
                             $quoted = false;
                             $piece = '';
                         }
@@ -334,20 +358,23 @@ class HeaderParser
         }
 
         if ($quoted) {
-            if ($onErrors === HeaderParserOnError::Throw) {
-                throw new InvalidHeaderValue("Quoted string has no final quote");
-            }
-            $this->debug("Found invalid quoted string: no final quote");
-            switch($onErrors) {
-                case HeaderParserOnError::ReturnNull:
-                    $pieces[] = '';
-                    break;
-/// @todo should we do some specific processing in case of ReplaceWithSpace ?
-                case HeaderParserOnError::ReplaceWithSpace:
-                case HeaderParserOnError::Ignore:
-                    $pieces[] = $piece;
-                    break;
-            }
+            //if ($onErrors === HeaderParserOnError::Throw) {
+            //    throw new InvalidHeaderValue("Quoted string has no final quote");
+            //}
+            //$this->debug("Found invalid quoted string in http header: no final quote");
+            //switch($onErrors) {
+            //    case HeaderParserOnError::ReturnNull:
+            //        $pieces[] = '';
+            //        break;
+            /// @todo should we do some specific processing in case of ReplaceWithSpace ?
+            //    case HeaderParserOnError::ReplaceWithSpace:
+            //    case HeaderParserOnError::Ignore:
+            //        $pieces[] = $piece;
+            //        break;
+            //}
+            $errorsFound[] = "Invalid quoted string: missing closing quote";
+/// @todo... should we use as returned value the original string, without backslash escaping?
+            $pieces[] = $piece;
             $piece = '';
             $notStarted = true;
         }
@@ -368,7 +395,8 @@ class HeaderParser
         return $pieces;
     }
 
-    protected function validateSingletonHeader(array $values, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
+/*
+    protected function validateSingletonHeader(array $values): array
     {
         if (count($values) < 2) {
             return $values;
@@ -394,7 +422,7 @@ class HeaderParser
     /**
      * @param string[] $values
      * @throws InvalidHeaderValue only when $onErrors == HeaderParserOnError::Throw
-     */
+     * /
     protected function validateTokenHeader(array $values, HeaderParserOnError $onErrors = HeaderParserOnError::Throw): array
     {
 /// @todo...
@@ -419,9 +447,5 @@ class HeaderParser
         }
         return $out;
     }
-
-    protected static function getDefaultKnownHeaders(): array
-    {
-        return static::$defaultKnownHeaders;
-    }
+*/
 }

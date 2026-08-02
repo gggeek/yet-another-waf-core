@@ -10,6 +10,7 @@ use YAWAF\Core\Matcher\Logic\AndMatcher;
 use YAWAF\Core\Matcher\MatcherInterface;
 use YAWAF\Core\Matcher\OptionAwareMatcherFactory;
 use YAWAF\Core\Matcher\Response\StatusCodeMatcher;
+use YAWAF\Core\Http\HeaderParserFactory;
 
 /**
  * Used to share code for setting up those matchers that ar identical between request and response
@@ -22,16 +23,19 @@ abstract class MatcherFactory extends OptionAwareMatcherFactory
         'body',
         'content_type',
         'http_header_length_ge',
-//        'http_header_rfc_compliant',
+        'http_header_rfc_compliant',
         'http_header_value',
         'status_code',
         'wildcard_http_header_length_ge',
-//        'wildcard_http_header_rfc_compliant',
+        'wildcard_http_header_rfc_compliant',
         'wildcard_http_header_value',
     ];
 
-    public function __construct(LoggerInterface|null $logger = null)
+    protected HeaderParserFactory $headerParserFactory;
+
+    public function __construct(HeaderParserFactory $headerParserFactory, LoggerInterface|null $logger = null)
     {
+        $this->headerParserFactory = $headerParserFactory;
         $this->logger = $logger;
     }
 
@@ -52,6 +56,7 @@ abstract class MatcherFactory extends OptionAwareMatcherFactory
                 if (!is_array($values) || !$values) {
                     throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with 1 or more elements");
                 }
+                $parser = $this->headerParserFactory->createParser();
                 $matchers = [];
                 foreach($values as $hn => $hv) {
                     if (!is_string($hn) || !(is_string($hv) || is_array($hv))) {
@@ -59,24 +64,15 @@ abstract class MatcherFactory extends OptionAwareMatcherFactory
                     }
                     $this->validateHeaderName($hn);
                     $opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
-                    $matchers[] = new HeaderValueMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], str_starts_with($matcherType, 'wildcard_'));
+                    $matcher = new HeaderValueMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], str_starts_with($matcherType, 'wildcard_'));
+                    $matcher->setHeaderParser($parser);
+                    $matchers[] = $matcher;
                 }
                 if (count($matchers) > 1) {
                     $matcher = new AndMatcher($matchers);
                 } else {
                     $matcher = $matchers[0];
                 }
-                //$hn = $this->getMatcherOptionByPosition($type, 1);
-                //$hv = $values;
-                //if ($hn === '') {
-                //    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed by a '/' and a header name");
-                //}
-                //$this->validateHeaderName($hn);
-                //if (!(is_string($hv) || is_array($hv))) {
-                //    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed with an object with 1 element: a string name, and a string or string[] for values");
-                //}
-                //$opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true], 2);
-                //$matcher = new HeaderValueMatcher($hn, $hv, $opts['case_insensitive'], $opts['no_wildcards'], str_starts_with($matcherType, 'wildcard_'));
                 break;
             case 'http_header_length_ge':
             case 'wildcard_http_header_length_ge':
@@ -89,7 +85,6 @@ abstract class MatcherFactory extends OptionAwareMatcherFactory
                         throw new ConfigurationError("Invalid response matching configuration: '$type' should be followed with an object with the http header name as keys and an int for value");
                     }
                     $this->validateHeaderName($hn);
-                    //$opts = $this->parseMatcherBooleanOptions($type, ['case_insensitive' => false, 'no_wildcards' => true]);
                     $matchers[] = new HeaderLengthMatcher($hn, $hv, true, str_starts_with($matcherType, 'wildcard_'));
                 }
                 if (count($matchers) > 1) {
@@ -97,31 +92,13 @@ abstract class MatcherFactory extends OptionAwareMatcherFactory
                 } else {
                     $matcher = $matchers[0];
                 }
-//                $hn = $this->getMatcherOptionByPosition($type, 1);
-//                $hv = $values;
-//                if ($hn === '') {
-//                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed by a '/' and a header name");
-//                }
-//                $this->validateHeaderName($hn);
-//                //if (!(is_int($hv) || ctype_digit($hv))) {
-//                //    throw new ConfigurationError("Invalid request matching configuration: the value for '$type' should be an integer");
-//                //}
-//                $matcher = new HeaderLengthMatcher($hn, $hv, str_starts_with($matcherType, 'wildcard_'));
                 break;
-//            case 'http_header_rfc_compliant':
-//            case 'wildcard_http_header_rfc_compliant':
-//                $hn = $this->getMatcherOptionByPosition($type, 1);
-///// @todo... what to use as value? should it be always true, or the string 'rfc', in case we want to support other validations, or ...?
-//                $hv = $values;
-//                if ($hn === '') {
-//                    throw new ConfigurationError("Invalid request matching configuration: '$type' should be followed by a '/' and a header name");
-//                }
-//                $this->validateHeaderName($hn);
-//                //if (!(is_int($hv) || ctype_digit($hv))) {
-//                //    throw new ConfigurationError("Invalid request matching configuration: the value for '$type' should be an integer");
-//                //}
-//                $matcher = new HeaderRFCComplianceMatcher($hn, str_starts_with($matcherType, 'wildcard_'));
-//                break;
+            case 'http_header_rfc_compliant':
+            case 'wildcard_http_header_rfc_compliant':
+/// @todo... either validate here that $values is a string|string[], or check that it is done in HeaderRFCComplianceMatcher
+                $matcher = new HeaderRFCComplianceMatcher($values, str_starts_with($matcherType, 'wildcard_'));
+                $matcher->setHeaderParser($this->headerParserFactory->createParser());
+                break;
             case 'status_code':
                 $opts = $this->parseMatcherBooleanOptions($type, ['no_wildcards' => true]);
                 $matcher = new StatusCodeMatcher($values, $opts['no_wildcards']);
@@ -137,13 +114,14 @@ abstract class MatcherFactory extends OptionAwareMatcherFactory
 
     /**
      * @throws ConfigurationError
+     * @todo... move to the single matchers constructors?
      */
     protected function validateHeaderName(string $hn): void
     {
         /// @todo improve validation - reject headers with any chars which are not valid in the rfc? Also, move to a shared function
         /// @todo improve validation - reject headers with any chars which are not valid in the rfc?
         if (trim($hn) !== $hn) {
-            throw new ConfigurationError("Invalid request matching configuration: header name for '$type' should not contain whitespace");
+            throw new ConfigurationError("Invalid request matching configuration: header name should not contain whitespace");
         }
     }
 }

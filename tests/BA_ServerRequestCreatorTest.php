@@ -264,7 +264,7 @@ class BA_ServerRequestCreatorTest extends ServerTestCase
         // NB: FrankenPHP, as of 2026/7/21 at least, _does_ allow these chars in header names !!
         if ($_ENV['SERVER_TYPE'] !== 'frankenphp') {
             $cases = $cases + [
-                // !#$%&\'*+-.^_`|~
+                // !#$%&\'*+.^_`|~
                 ['Cus!tom: hey', true],
                 ['Cus#tom: hey', true],
                 ['Cus$tom: hey', true],

@@ -1,9 +1,11 @@
 <?php
 
-use YAWAF\Core\Http\HeaderSpec as HP;
+use YAWAF\Core\Http\HeaderFormat as HF;
+use YAWAF\Core\Http\HeaderQuotedSpansFormat as QS;
+use YAWAF\Core\Http\HeaderSpec as HS;
 
 /**
- * @var int[] keys should be lowercase, and values be a bitmask of the class constants
+ * @var HS|null[] keys should be lowercase strings
  *
  * Info taken from:
  * 1. https://www.iana.org/assignments/http-fields/http-fields.xhtml,
@@ -19,215 +21,215 @@ return [
     // uri-host = 'a-zA-Z0-9' + '-' + '_' + '~' + '%' + '.' + ':' + [' + ']' + '!' + '$' + '&' + "'" + '(' + ')' + '*' + '+' + ',' + ';' + '=' - https://www.rfc-editor.org/info/rfc3986#section-3.2.2
 
     // req
-    'a-im' => 0, // token + ';' + '=' + qs (in a specific part) - https://www.rfc-editor.org/info/rfc3229/
-    'accept' => 0, // token + '/' + '*' + ';' + '=' + qs (in a specific part) - https://www.rfc-editor.org/info/rfc9110/#section-12.5.1
+    'a-im'=> null, // token + ';' + '=' + qs (in a specific part) - https://www.rfc-editor.org/info/rfc3229/
+    'accept'=> null, // token + '/' + '*' + ';' + '=' + qs (in a specific part) - https://www.rfc-editor.org/info/rfc9110/#section-12.5.1
 /// @todo review - no qs?
-    'accept-charset' => 0, // token + '*' + ';' + '=' - https://www.rfc-editor.org/info/rfc9110/#section-12.5.2
-    'accept-datetime' => HP::IS_SINGLETON, // 'a-zA-Z0-9' + ',' + ':' - https://www.rfc-editor.org/info/rfc7089/, https://www.rfc-editor.org/info/rfc1123/
+    'accept-charset'=> null, // token + '*' + ';' + '=' - https://www.rfc-editor.org/info/rfc9110/#section-12.5.2
+    'accept-datetime' => new HS(HF::Generic, null, QS::None, true), // 'a-zA-Z0-9' + ',' + ':' - https://www.rfc-editor.org/info/rfc7089/, https://www.rfc-editor.org/info/rfc1123/
 /// @todo review - no qs?
-    'accept-encoding' => 0, // token + '*' + ';' + '=' - https://www.rfc-editor.org/info/rfc9110/#field.accept-encoding
+    'accept-encoding'=> null, // token + '*' + ';' + '=' - https://www.rfc-editor.org/info/rfc9110/#field.accept-encoding
 /// @todo review - no qs?
-    'accept-features' => 0, // token + '!' + '=' + '{' + '}' + ';' - https://datatracker.ietf.org/doc/html/rfc2295#section-8.2
-    'accept-language' => 0, // 'a-zA-Z0-9' + '*' + '-' + ';' + '=' + qs (in a specific part) - https://www.rfc-editor.org/info/rfc9110/#field.accept-language, https://www.rfc-editor.org/info/rfc4647/#section-2.1
-    'access-control-request-headers' => HP::IS_TOKEN, // token - https://fetch.spec.whatwg.org/#http-new-header-syntax
-    'access-control-request-method' => HP::IS_TOKEN | HP::IS_SINGLETON, // token - https://fetch.spec.whatwg.org/#http-new-header-syntax
-    'alt-used' => HP::IS_TOKEN, // uri-host + ':' + '0-9' - https://datatracker.ietf.org/doc/html/rfc7838#section-5
+    'accept-features'=> null, // token + '!' + '=' + '{' + '}' + ';' - https://datatracker.ietf.org/doc/html/rfc2295#section-8.2
+    'accept-language'=> null, // 'a-zA-Z0-9' + '*' + '-' + ';' + '=' + qs (in a specific part) - https://www.rfc-editor.org/info/rfc9110/#field.accept-language, https://www.rfc-editor.org/info/rfc4647/#section-2.1
+    'access-control-request-headers' => new HS(HF::Token), // token - https://fetch.spec.whatwg.org/#http-new-header-syntax
+    'access-control-request-method' => new HS(HF::Token, null, QS::None, true), // token - https://fetch.spec.whatwg.org/#http-new-header-syntax
+    'alt-used' => new HS(HF::Token), // uri-host + ':' + '0-9' - https://datatracker.ietf.org/doc/html/rfc7838#section-5
 
-    'authorization' => HP::IS_SINGLETON, // singleton + ... - https://www.rfc-editor.org/info/rfc9110/#section-11.6.2
-    'cache-control' => 0,
-    'connection' => HP::IS_TOKEN,
-    'content-digest' => 0,
-    'content-encoding' => HP::IS_TOKEN,
-    'content-length' => 0, // singleton
-    //'content-md5' => 0, // singleton - obsoleted
-    'content-type' => HP::IS_SINGLETON, /// @todo token + '/' + ';' + '='
-    'cookie' => HP::IS_COOKIE | HP::IS_SINGLETON, // not a csv list
-    'date' => HP::IS_DATE | HP::IS_SINGLETON, // singleton
-    'expect' => 0,
-    'forwarded' => 0,
-    'from' => 0, // singleton
-    'host' => HP::IS_SINGLETON,
-    //'http2-settings' => 0, // singleton? - obsoleted
-    'if-match' => 0,
-    'if-modified-since' => 0, // singleton?
-    'if-none-match' => 0,
-    'if-range' => 0, // singleton?
-    'if-unmodified-since' => 0, // singleton?
-    'keep-alive' => 0,
-    'max-forwards' => HP::IS_INTEGER | HP::IS_SINGLETON, // should be restricted to 1 digit
-    'origin' => 0, // singleton?
-    'pragma' => 0, // singleton?
-    'prefer' => 0, // not a csv list?
-    'priority' => 0,
-    'proxy-authorization' => 0, // singleton?
-    'range' => 0,
-    'referer' => 0, // singleton?
-    'repr-digest' => 0,
-    'sec-fetch-dest' => 0,
-    'sec-fetch-mode' => 0,
-    'sec-fetch-site' => 0,
-    'sec-fetch-storage-access' => 0,
-    'sec-fetch-user' => 0,
-    'sec-gpc' => 0, // non-standard?
-    'sec-purpose' => 0,
-    'sec-websocket-extensions' => 0,
-    'sec-websocket-key' => 0,
-    'sec-websocket-protocol' => 0,
-    'service-worker' => 0,
-    'service-worker-navigation-preload' => 0,
-    'te' => 0, /// @todo... this one allows QS in a specific part of the value...
-    'trailer' => HP::IS_TOKEN,
-    'transfer-encoding' => 0,
-    'upgrade' => 0, /// @todo... token+'/'
-    'upgrade-insecure-requests' => 0, // non-standard?
-    'user-agent' => 0, // singleton?
-    'via' => 0, /// @todo... token + '/' + ':' and trailing comment
-    'want-content-digest' => 0,
-    'want-repr-digest' => 0,
-    'x-forwarded-for' => 0,
-    'x-forwarded-host' => 0,
-    'x-forwarded-proto' => 0,
+    'authorization' => new HS(HF::Generic, null, QS::None, true), // singleton + ... - https://www.rfc-editor.org/info/rfc9110/#section-11.6.2
+    'cache-control'=> null,
+    'connection' => new HS(HF::Token),
+    'content-digest'=> null,
+    'content-encoding' => new HS(HF::Token),
+    'content-length'=> null, // singleton
+    //'content-md5'=> null, // singleton - obsoleted
+    'content-type' => new HS(HF::Generic, null, QS::None, true), /// @todo token + '/' + ';' + '='
+    'cookie' => new HS(HF::Cookie, null, QS::None, true), // not a csv list
+    'date' => new HS(HF::Date, null, QS::None, true), // singleton
+    'expect'=> null,
+    'forwarded'=> null,
+    'from'=> null, // singleton
+    'host' => new HS(HF::Generic, null, QS::None, true),
+    //'http2-settings'=> null, // singleton? - obsoleted
+    'if-match'=> null,
+    'if-modified-since'=> null, // singleton?
+    'if-none-match'=> null,
+    'if-range'=> null, // singleton?
+    'if-unmodified-since'=> null, // singleton?
+    'keep-alive'=> null,
+    'max-forwards' => new HS(HF::Integer, null, QS::None, true), // should be restricted to 1 digit
+    'origin'=> null, // singleton?
+    'pragma'=> null, // singleton?
+    'prefer'=> null, // not a csv list?
+    'priority'=> null,
+    'proxy-authorization'=> null, // singleton?
+    'range'=> null,
+    'referer'=> null, // singleton?
+    'repr-digest'=> null,
+    'sec-fetch-dest'=> null,
+    'sec-fetch-mode'=> null,
+    'sec-fetch-site'=> null,
+    'sec-fetch-storage-access'=> null,
+    'sec-fetch-user'=> null,
+    'sec-gpc'=> null, // non-standard?
+    'sec-purpose'=> null,
+    'sec-websocket-extensions'=> null,
+    'sec-websocket-key'=> null,
+    'sec-websocket-protocol'=> null,
+    'service-worker'=> null,
+    'service-worker-navigation-preload'=> null,
+    'te'=> null, /// @todo... this one allows QS in a specific part of the value...
+    'trailer' => new HS(HF::Token),
+    'transfer-encoding'=> null,
+    'upgrade'=> null, /// @todo... token+'/'
+    'upgrade-insecure-requests'=> null, // non-standard?
+    'user-agent'=> null, // singleton?
+    'via'=> null, /// @todo... token + '/' + ':' and trailing comment
+    'want-content-digest'=> null,
+    'want-repr-digest'=> null,
+    'x-forwarded-for'=> null,
+    'x-forwarded-host'=> null,
+    'x-forwarded-proto'=> null,
 
     // req. non-standard
-    'attribution-reporting-eligible' => 0,
-    'attribution-reporting-register-source' => 0,
-    'attribution-reporting-register-trigger' => 0,
-    'available-dictionary' => 0,
-    'correlation-id' => 0,
-    'device-memory' => 0,
-    'dictionary-id' => 0,
-    'dnt' => 0,
-    'downlink' => 0,
-    'dpr' => 0,
-    'early-data' => 0,
-    'ect' => 0,
-    'front-end-https' => 0,
-    'idempotency-key' => 0,
-    'proxy-connection' => 0,
-    'rtt' => 0,
-    'save-data' => 0,
-    'sec-browsing-topics' => 0,
-    'sec-ch-device-memory' => 0,
-    'sec-ch-dpr' => 0,
-    'sec-ch-prefers-color-scheme' => 0,
-    'sec-ch-prefers-reduced-motion' => 0,
-    'sec-ch-prefers-reduced-transparency' => 0,
-    'sec-ch-ua' => 0,
-    'sec-ch-ua-arch' => 0,
-    'sec-ch-ua-bitness' => 0,
-    'sec-ch-ua-form-factors' => 0,
-    'sec-ch-ua-full-version' => 0,
-    'sec-ch-ua-full-version-list' => 0,
-    'sec-ch-ua-mobile' => 0,
-    'sec-ch-ua-model' => 0,
-    'sec-ch-ua-platform' => 0,
-    'sec-ch-ua-platform-version' => 0,
-    'sec-ch-ua-wow64' => 0,
-    'sec-ch-viewport-height' => 0,
-    'sec-ch-viewport-width' => 0,
-    'sec-ch-width' => 0,
-    'sec-private-state-token' => 0,
-    'sec-private-state-token-crypto-version' => 0,
-    'sec-private-state-token-lifetime' => 0,
-    'sec-redemption-record' => 0,
-    'sec-speculation-tags' => 0,
-    //'warning' => 0, // obsoleted
-    'viewport-width' => 0,
-    'width' => 0,
-    'x-att-deviceid' => 0,
-    'x-correlation-id' => 0,
-    'x-csrf-token' => 0,
-    'x-http-method-override' => 0,
-    'x-request-id' => 0,
-    'x-requested-with' => 0,
-    'x-uidh' => 0,
-    'x-wap-profile' => 0,
+    'attribution-reporting-eligible'=> null,
+    'attribution-reporting-register-source'=> null,
+    'attribution-reporting-register-trigger'=> null,
+    'available-dictionary'=> null,
+    'correlation-id'=> null,
+    'device-memory'=> null,
+    'dictionary-id'=> null,
+    'dnt'=> null,
+    'downlink'=> null,
+    'dpr'=> null,
+    'early-data'=> null,
+    'ect'=> null,
+    'front-end-https'=> null,
+    'idempotency-key'=> null,
+    'proxy-connection'=> null,
+    'rtt'=> null,
+    'save-data'=> null,
+    'sec-browsing-topics'=> null,
+    'sec-ch-device-memory'=> null,
+    'sec-ch-dpr'=> null,
+    'sec-ch-prefers-color-scheme'=> null,
+    'sec-ch-prefers-reduced-motion'=> null,
+    'sec-ch-prefers-reduced-transparency'=> null,
+    'sec-ch-ua'=> null,
+    'sec-ch-ua-arch'=> null,
+    'sec-ch-ua-bitness'=> null,
+    'sec-ch-ua-form-factors'=> null,
+    'sec-ch-ua-full-version'=> null,
+    'sec-ch-ua-full-version-list'=> null,
+    'sec-ch-ua-mobile'=> null,
+    'sec-ch-ua-model'=> null,
+    'sec-ch-ua-platform'=> null,
+    'sec-ch-ua-platform-version'=> null,
+    'sec-ch-ua-wow64'=> null,
+    'sec-ch-viewport-height'=> null,
+    'sec-ch-viewport-width'=> null,
+    'sec-ch-width'=> null,
+    'sec-private-state-token'=> null,
+    'sec-private-state-token-crypto-version'=> null,
+    'sec-private-state-token-lifetime'=> null,
+    'sec-redemption-record'=> null,
+    'sec-speculation-tags'=> null,
+    //'warning'=> null, // obsoleted
+    'viewport-width'=> null,
+    'width'=> null,
+    'x-att-deviceid'=> null,
+    'x-correlation-id'=> null,
+    'x-csrf-token'=> null,
+    'x-http-method-override'=> null,
+    'x-request-id'=> null,
+    'x-requested-with'=> null,
+    'x-uidh'=> null,
+    'x-wap-profile'=> null,
 
     // resp
-    'accept-ch' => 0, // token + '(' + ')' + '=' + ';' + '*' + almost-dquote + '/' + ':' + '/' - https://httpwg.org/specs/rfc8942.html#accept-ch
-    'accept-patch' => 0,
-    'accept-post' => 0,
-    'accept-ranges' => 0,
-    'access-control-allow-credentials' => 0,
-    'access-control-allow-headers' => 0,
-    'access-control-allow-methods' => 0,
-    'access-control-allow-origin' => 0,
-    'access-control-expose-headers' => 0,
-    'access-control-max-age' => 0,
-    'activate-storage-access' => 0,
-    'age' => 0,
-    'allow' => 0,
-    'alt-svc' => 0,
-    'clear-site-data' => 0,
-    'content-disposition' => 0,
-    'content-language' => 0,
-    'content-location' => 0,
-    'content-range' => 0,
-    'content-security-policy' => 0, // non-standard?
-    'content-security-policy-report-only' => 0,
-    'cross-origin-embedder-policy' => 0,
-    'cross-origin-embedder-policy-report-only' => 0,
-    'cross-origin-opener-policy' => 0,
-    'cross-origin-resource-policy' => 0,
-    'delta-base' => 0,
-    'etag' => 0,
-    'expires' => 0,
-    'im' => 0,
-    'integrity-policy' => 0,
-    'integrity-policy-report-only' => 0,
-    'last-modified' => 0,
-    'link' => 0,
-    'location' => 0,
-    'memento-datetime' => 0, // - https://www.rfc-editor.org/info/rfc7089/
-    'origin-agent-cluster' => 0,
-    //'p3p' => 0, // obsoleted
-    'preference-applied' => 0,
-    'proxy-authenticate' => 0,
-    'public-key-pins' => 0,
-    'referrer-policy' => 0,
-    'refresh' => 0, // non-standard?
-    'reporting-endpoints' => 0,
-    'retry-after' => 0,
-    'sec-websocket-accept' => 0,
-    'sec-websocket-version' => 0,
-    'server' => 0,
-    'server-timing' => 0,
-    'service-worker-allowed' => 0,
-    'set-cookie' => 0, /// @todo should de-encode qs spans; test how we get multiple values in responses
-    'set-login' => 0,
-    'sourcemap' => 0,
-    'speculation-rules' => 0,
-    'strict-transport-security' => 0,
-    'supports-loading-mode' => 0,
-    'timing-allow-origin' => 0, // non-standard?
-    'vary' => 0,
-    'www-authenticate' => 0,
-    'x-content-type-options' => 0, // non-standard?
-    'x-frame-options' => 0,
+    'accept-ch'=> null, // token + '(' + ')' + '=' + ';' + '*' + almost-dquote + '/' + ':' + '/' - https://httpwg.org/specs/rfc8942.html#accept-ch
+    'accept-patch'=> null,
+    'accept-post'=> null,
+    'accept-ranges'=> null,
+    'access-control-allow-credentials'=> null,
+    'access-control-allow-headers'=> null,
+    'access-control-allow-methods'=> null,
+    'access-control-allow-origin'=> null,
+    'access-control-expose-headers'=> null,
+    'access-control-max-age'=> null,
+    'activate-storage-access'=> null,
+    'age'=> null,
+    'allow'=> null,
+    'alt-svc'=> null,
+    'clear-site-data'=> null,
+    'content-disposition'=> null,
+    'content-language'=> null,
+    'content-location'=> null,
+    'content-range'=> null,
+    'content-security-policy'=> null, // non-standard?
+    'content-security-policy-report-only'=> null,
+    'cross-origin-embedder-policy'=> null,
+    'cross-origin-embedder-policy-report-only'=> null,
+    'cross-origin-opener-policy'=> null,
+    'cross-origin-resource-policy'=> null,
+    'delta-base'=> null,
+    'etag'=> null,
+    'expires'=> null,
+    'im'=> null,
+    'integrity-policy'=> null,
+    'integrity-policy-report-only'=> null,
+    'last-modified'=> null,
+    'link'=> null,
+    'location'=> null,
+    'memento-datetime'=> null, // - https://www.rfc-editor.org/info/rfc7089/
+    'origin-agent-cluster'=> null,
+    //'p3p'=> null, // obsoleted
+    'preference-applied'=> null,
+    'proxy-authenticate'=> null,
+    'public-key-pins'=> null,
+    'referrer-policy'=> null,
+    'refresh'=> null, // non-standard?
+    'reporting-endpoints'=> null,
+    'retry-after'=> null,
+    'sec-websocket-accept'=> null,
+    'sec-websocket-version'=> null,
+    'server'=> null,
+    'server-timing'=> null,
+    'service-worker-allowed'=> null,
+    'set-cookie'=> null, /// @todo should de-encode qs spans; test how we get multiple values in responses
+    'set-login'=> null,
+    'sourcemap'=> null,
+    'speculation-rules'=> null,
+    'strict-transport-security'=> null,
+    'supports-loading-mode'=> null,
+    'timing-allow-origin'=> null, // non-standard?
+    'vary'=> null,
+    'www-authenticate'=> null,
+    'x-content-type-options'=> null, // non-standard?
+    'x-frame-options'=> null,
 
     // Resp. non-standard
-    'accept-additions' => 0, // token + '*' + ';' + '=' + qs - https://datatracker.ietf.org/doc/html/rfc2324
-    'content-dpr' => 0,
-    'critical-ch' => 0,
-    'expect-ct' => 0,
-    'nel' => 0,
-    'no-vary-search' => 0,
-    'observe-browsing-topics' => 0,
-    'permissions-policy' => 0,
-    'permissions-policy-report-only' => 0,
-    'report-to' => 0,
+    'accept-additions'=> null, // token + '*' + ';' + '=' + qs - https://datatracker.ietf.org/doc/html/rfc2324
+    'content-dpr'=> null,
+    'critical-ch'=> null,
+    'expect-ct'=> null,
+    'nel'=> null,
+    'no-vary-search'=> null,
+    'observe-browsing-topics'=> null,
+    'permissions-policy'=> null,
+    'permissions-policy-report-only'=> null,
+    'report-to'=> null,
     //'safe' => HP::IS_TOKEN, // singleton? - obsoleted - https://datatracker.ietf.org/doc/html/rfc2324
-    'status' => 0,
-    'tk' => 0,
-    'use-as-dictionary' => 0,
-    'x-content-duration' => 0,
-    'x-content-security-policy' => 0,
-    'x-dns-prefetch-control' => 0,
-    'x-permitted-cross-domain-policies' => 0,
-    'x-powered-by' => 0,
-    'x-redirect-by' => 0,
-    'x-robots-tag' => 0,
-    'x-webkit-csp' => 0,
-    'x-ua-compatible' => 0,
-    'x-xss-protection' => 0,
+    'status'=> null,
+    'tk'=> null,
+    'use-as-dictionary'=> null,
+    'x-content-duration'=> null,
+    'x-content-security-policy'=> null,
+    'x-dns-prefetch-control'=> null,
+    'x-permitted-cross-domain-policies'=> null,
+    'x-powered-by'=> null,
+    'x-redirect-by'=> null,
+    'x-robots-tag'=> null,
+    'x-webkit-csp'=> null,
+    'x-ua-compatible'=> null,
+    'x-xss-protection'=> null,
 ];

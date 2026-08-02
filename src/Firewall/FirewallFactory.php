@@ -5,6 +5,7 @@ namespace YAWAF\Core\Firewall;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use YAWAF\Core\Exception\ConfigurationError;
+use YAWAF\Core\Http\HeaderParserFactory;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 
 class FirewallFactory
@@ -68,7 +69,10 @@ class FirewallFactory
             }
         }
 
-        $ruleFactory = new RuleFactory($this->logger);
+        /// @todo... allow custom http header specification via configuration
+        $headerParserFactory = new HeaderParserFactory([], $this->logger);
+
+        $ruleFactory = new RuleFactory($headerParserFactory, $this->logger);
         $rules = [];
 
         /// @todo give warnings for config smells not caught by fromConfiguration
