@@ -31,13 +31,13 @@ class HeaderSpec
     const VALIDATION_REGEXPS = [
         /// @see https://www.rfc-editor.org/info/rfc6265/#section-4.2
         // NB: this is stricter than what PHP accepts as valid when populating $_COOKIE (eg. it rejects multiple spaces to separate cookies)
-        'cookie' => '/^$' . self::TOKEN_REGEXP . '=(?:' . self::COOKIE_VALUE_REGEXP . '|"' . self::COOKIE_VALUE_REGEXP . '")(; ' . self::TOKEN_REGEXP. '=(?:' . self::COOKIE_VALUE_REGEXP . '|"' . self::COOKIE_VALUE_REGEXP . '"))*/',
+        'cookie' => '/^' . self::TOKEN_REGEXP . '=(?:' . self::COOKIE_VALUE_REGEXP . '|"' . self::COOKIE_VALUE_REGEXP . '")(?:; ' . self::TOKEN_REGEXP. '=(?:' . self::COOKIE_VALUE_REGEXP . '|"' . self::COOKIE_VALUE_REGEXP . '"))*$/',
         // @see https://httpwg.org/specs/rfc9110.html#http.date
         // NB: this does not guarantee valid days or times - day 32, hour 25 and minute 99 are all accepted
         'date' => '/^(:?' .
             '(:?' . '(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT' . ')|' .
             '(:?' . '(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), \d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2} \d{2}:\d{2}:\d{2} GMT' . ')|' .
-            '(:?' . '(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (?:\d{2}| \d) \d{2}:\d{2}:\d{2} \d{4}' . '))$',
+            '(:?' . '(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (?:\d{2}| \d) \d{2}:\d{2}:\d{2} \d{4}' . '))$/',
         'integer' => '/^\d+$/',
         'token' => '/^' . self::TOKEN_REGEXP . '$/',
     ];
@@ -45,8 +45,8 @@ class HeaderSpec
     public function __construct(headerFormat $format, string|null $validationRegexp = null, HeaderQuotedSpansFormat $quotedSpansFormat = HeaderQuotedSpansFormat::None, bool $isSingleton = false, bool $allowedInRequest = true, bool $allowedInResponse = true)
     {
         $this->format = $format;
-        if ($validationRegexp === null && array_key_exists($format->name, self::VALIDATION_REGEXPS)) {
-            $this->validationRegexp = self::VALIDATION_REGEXPS[$format->name];
+        if ($validationRegexp === null && array_key_exists($format->value, self::VALIDATION_REGEXPS)) {
+            $this->validationRegexp = self::VALIDATION_REGEXPS[$format->value];
         } else {
             $this->validationRegexp = $validationRegexp;
         }

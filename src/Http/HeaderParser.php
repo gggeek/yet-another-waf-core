@@ -115,6 +115,13 @@ class HeaderParser
 
         switch ($spec->format) {
             case HF::Cookie:
+                // the regx is more stringent than the normalization, and acts on the whole header
+                foreach ($values as $value) {
+                    if (!preg_match($spec->validationRegexp, $value)) {
+                        return false;
+                    }
+                }
+                break;
             case HF::Date:
             case HF::Token:
             case HF::Integer:
@@ -237,7 +244,7 @@ class HeaderParser
                 }
                 $out = array_merge($out, $pieces);
             } elseif ($isCookie) {
-                $out[] = array_merge($out, $this->normalizeCookie($value, $errorsFound));
+                $out = array_merge($out, $this->normalizeCookie($value, $errorsFound));
             //} elseif ($isDate) {
             //    $out[] = $this->normalizeDate($value, $errorsFound);
             } elseif ($isStructuredDictionary) {
