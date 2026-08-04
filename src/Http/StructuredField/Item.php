@@ -16,7 +16,7 @@ class Item extends Parameter
         if (! Stdlib::array_of($parameters, Parameter::class)) {
             throw new \InvalidArgumentException('parameters argument to Item constructor must be an array of Parameter objects');
         }
-        parent::__costruct($type, $value);
+        parent::__construct($type, $value);
         $this->parameters = $parameters;
     }
 }

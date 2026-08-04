@@ -178,7 +178,7 @@ class HeaderParser
         $isStructuredDictionary = $hs !== null && $hs->format === HF::SFDictionary;
         $isStructuredList = $hs !== null && $hs->format === HF::SFList;
         // includes both Item and its sub-specs
-        $isStructuredItem = $hs !== null && (str_ends_with('Item', $hs->format->value));
+        $isStructuredItem = $hs !== null && (str_ends_with($hs->format->value, 'Item'));
 
         $allowsQuotedStrings = $hs !== null && $hs->quotedSpansFormat === HQSF::QuotedString;
         //$allowsComments = $options & HeaderSpec::ALLOWS_TRAILING_COMMENT;
@@ -274,7 +274,7 @@ class HeaderParser
     protected function normalizeCookie(string $value, array &$errorsFound): array
     {
 /// @todo... should we remove dquotes around the value? We do get them in $_COOKIE, but end users might not expect them
-/// @todo... should we strip/replave CTLs, whitespace, DQUOTE, comma, semicolon and backslash?
+/// @todo... should we strip/replace CTLs, whitespace, DQUOTE, comma, semicolon and backslash?
 ///          Note the test results in duplicateCookieDataProvider: webservers (or, most likely, the php engine) are quite
 ///          lenient in what they pass on to php in $_COOKIE...)
         $pieces = preg_split("/;[ \\t]*/", $value, -1, PREG_SPLIT_NO_EMPTY);
@@ -526,7 +526,7 @@ class HeaderParser
                                 break;
                             case '"':
                                 $offset = $i + 1;
-                                $foundType = HeaderFormat::SFByteSequence;
+                                $foundType = HeaderFormat::SFString;
                                 break 2;
                             default:
                                 $code = ord($value[$i]);
@@ -544,10 +544,10 @@ class HeaderParser
                     }
                     break;
                 case ':':
-                    if (preg_match('#^:([0-9A-Za-z+/=]+):#', $value, $matches)) {
+                    if (preg_match('#^:([0-9A-Za-z+/=]*):#', $value, $matches)) {
                         $offset += strlen($matches[1]) + 2;
                         $foundType = HeaderFormat::SFByteSequence;
-                        /// @todo... apply base64 decoding?
+                        /// @todo... apply base64 decoding to test validity?
                         $parsedValue = $matches[1];
                     } else {
                         //$offset++;
@@ -576,13 +576,13 @@ class HeaderParser
                     }
                     break;
                 case '%':
-                    if ($value[1] === '"') {
+                    if ($value[$offset + 1] === '"') {
                         /// @todo validation (but not parsing) can probably be replaced with a regexp
                         $parsedValue = '';
                         for ($i = $offset+2; $i < $len; $i++) {
                             switch ($value[$i]) {
                                 case '%':
-                                    if ($i + 2 < $len && (preg_match('/^([0-9a-f]{2})/', substr($value, $i, 2), $matches))) {
+                                    if ($i + 2 < $len && (preg_match('/^([0-9a-f]{2})/', substr($value, $i + 1, 2), $matches))) {
                                         $i = $i + 2;
                                         $parsedValue .= hexdec($matches[1]);
                                     } else {
@@ -597,8 +597,8 @@ class HeaderParser
                                     break 2;
                                 default:
                                     $code = ord($value[$i]);
-                                    // [0-9a-f]
-                                    if ($code <= 48 || ($code >= 58 && $code <= 96) || $code >= 102) {
+                                    // any VCHAR (except for % and ")
+                                    if ($code <= 31 || $code >= 127) {
                                         $errorsFound[] = "Invalid display string Structured Field Item found: invalid char nr. $code";
                                         break 2;
                                     }
@@ -682,7 +682,15 @@ class HeaderParser
                     [$param, $newOffset] = $this->parseStructuredItemInner(substr($string, $offset), false, $subErrors);
                     $offset += $newOffset;
                     if ($param !== null && !$subErrors) {
-                        $parameters[$key] = $param;
+                        if ($offset == $len || $string[$offset] === ';') {
+                            $parameters[$key] = $param;
+                            if ($offset == $len) {
+                                break;
+                            }
+                            $offset++;
+                        } else {
+                            $errorsFound[] = 'Invalid Structured Field Item found: invalid char found at end of parameter value';
+                        }
                     } else {
                         $errorsFound = $errorsFound + $subErrors;
                         break;
