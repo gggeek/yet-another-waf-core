@@ -555,10 +555,10 @@ class HeaderParser
                     }
                     break;
                 case '?':
-                    if ($value[1] === '0' || $value[1] === '1') {
+                    if ($value[$offset+1] === '0' || $value[$offset+1] === '1') {
                         $foundType = HeaderFormat::SFBoolean;
                         $offset += 2;
-                        $parsedValue = ($value[1] === '1');
+                        $parsedValue = ($value[$offset+1] === '1');
                     } else {
                         //$offset++;
                         $errorsFound[] = 'Invalid boolean Structured Field Item found: neither 0 nor 1';
