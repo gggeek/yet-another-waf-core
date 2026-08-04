@@ -22,7 +22,7 @@ class Parser
                 $offset += strlen($matches[1]);
 
                 if ($offset == $len) {
-                    $pieces[$key] = new Item(HeaderFormat::SFBoolean, true);
+                    $pieces[$key] = new Item\Boolean(true);
                     break;
                 }
 
@@ -52,7 +52,7 @@ class Parser
                             break;
                         }
                     }
-                    $pieces[] = new Item(HeaderFormat::SFBoolean, true, $parameters);
+                    $pieces[] = new Item\Boolean(true, $parameters);
                 }
 
                 // consume OWS after the dictionary element value, before and after the comma
@@ -293,9 +293,9 @@ class Parser
             return [null, $offset];
         }
         if ($isItem) {
-            return [new Item($foundType, $parsedValue, $parameters), $offset];
+            return [ItemFactory::create($foundType, $parsedValue, $parameters), $offset];
         } else {
-            return [new Parameter($foundType, $parsedValue), $offset];
+            return [ParameterFactory::create($foundType, $parsedValue), $offset];
         }
     }
 
@@ -316,12 +316,12 @@ class Parser
                 $key = ltrim(' ', $matches[1]);
                 $offset += strlen($matches[1]);
                 if ($offset == $len) {
-                    $pieces[$key] = new Parameter(HeaderFormat::SFBoolean, true);
+                    $pieces[$key] = new Parameter\Boolean(true);
                     break;
                 }
                 if ($value[$offset] === ';') {
 /// @todo... check the spec: is it ok if the string ends with ';' ?
-                    $pieces[$key] = new Parameter(HeaderFormat::SFBoolean, true);
+                    $pieces[$key] = new Parameter\Boolean(true);
                     $offset++;
                     continue;
                 }

@@ -9,7 +9,6 @@ use YAWAF\Core\Exception\ConfigurationError;
 use YAWAF\Core\Http\HeaderFormat as HF;
 use YAWAF\Core\Http\HeaderQuotedSpansFormat as HQSF;
 use YAWAF\Core\Http\HeaderSpec as HS;
-use YAWAF\Core\Http\StructuredField\Item;
 use YAWAF\Core\Http\StructuredField\Parser as StructuredFieldParser;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\Stdlib;
@@ -441,8 +440,8 @@ class HeaderParser
     {
         /// @todo... save the parsed items for later reuse
         $item = StructuredFieldParser::parseItem($value, $errorsFound);
-        if ($item !== null && $hs !== HeaderFormat::SFItem && $hs !== $item->type) {
-            $errorsFound[] = 'Invalid Structured Field Item found: expected ' . $hs->value . ' but found a ' . $item->type->value;
+        if ($item !== null && $hs !== HeaderFormat::SFItem && $hs !== $item->getType()) {
+            $errorsFound[] = 'Invalid Structured Field Item found: expected ' . $hs->value . ' but found a ' . $item->getType()->value;
             $item = null;
         }
 
