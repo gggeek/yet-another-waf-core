@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace YAWAF\Core\Http;
 
+/**
+ * A data-class used to hold all the information required for successful parsing and validation of http headers with a known format
+ */
 class HeaderSpec
 {
     /// @todo is it useful to add a constant for other common abnf definitions, such as 'parameter', OWS, .etc..?
@@ -24,6 +27,7 @@ class HeaderSpec
     public bool $allowedInResponse;
 
 /// @todo... should we relax the strict spacing requirements and replace them with OWS?
+///          Making this eg. a static var could allow easy modification...
     const VALIDATION_REGEXPS = [
         /// @see https://www.rfc-editor.org/info/rfc6265/#section-4.2
         // NB: this is stricter than what PHP accepts as valid when populating $_COOKIE (eg. it rejects multiple spaces to separate cookies)

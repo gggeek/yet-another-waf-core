@@ -14,4 +14,13 @@ enum HeaderFormat: string
     case SFList = 'List';
     case SFDictionary = 'Dictionary';
     case Token = 'token';
+
+    case SFBoolean = 'BooleanItem';
+    case SFByteSequence = 'ByteSequenceItem';
+    case SFDate = 'DateItem';
+    case SFDisplayString = 'DisplayStringItem';
+    case SFDecimal = 'DecimalItem';
+    case SFInteger = 'IntegerItem';
+    case SFString = 'StringItem';
+    case SFToken = 'TokenItem';
 }

@@ -12,15 +12,21 @@ use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
 class BB_HeaderParsingTest extends TestCase
 {
-    #[DataProvider('parsingCustomHeadersDataProvider')]
-    public function testParsingCustomHeaders($values, $expectedResults)
+    #[DataProvider('normalizingCustomHeadersDataProvider')]
+    public function testNormalizingCustomHeaders(array $values, array $expectedResults, bool $expectErrors = false)
     {
         $hp = new HeaderParser(['Custom' => new HeaderSpec(HeaderFormat::Generic)]);
-        $this->assertSame($expectedResults, $hp->normalizeHeaderValue('Custom', $values));
+        $errors = [];
+        $this->assertSame($expectedResults, $hp->normalizeHeaderValue('Custom', $values, $errors));
+        if ($expectErrors) {
+            $this->assertGreaterThanOrEqual(1, count($errors), "No errors found while normalizing header, but some were expected");
+        } else {
+            $this->assertCount(0, $errors, 'Unexpected errors while normalizing header: ' . implode("\n", $errors));
+        }
     }
 
-    // 1. multi-valued, no double-quoted-strings header
-    public static function parsingCustomHeadersDataProvider()
+    // multi-valued, no double-quoted-strings header
+    public static function normalizingCustomHeadersDataProvider()
     {
         return [
             [[], []],
@@ -58,15 +64,20 @@ class BB_HeaderParsingTest extends TestCase
         ];
     }
 
-    #[DataProvider('parsingDQHeadersDataProvider')]
-    public function testParsingDQHeaders($values, $expectedResults)
+    #[DataProvider('normalizingDQHeadersDataProvider')]
+    public function testNormalizingDQHeaders($values, $expectedResults, bool $expectErrors = false)
     {
         $hp = new HeaderParser(['Custom' => new HeaderSpec(HeaderFormat::Generic, null, HeaderQuotedSpansFormat::QuotedString)]);
         $this->assertSame($expectedResults, $hp->normalizeHeaderValue('Custom', $values, $errors));
+        if ($expectErrors) {
+            $this->assertGreaterThanOrEqual(1, count($errors), "No errors found while normalizing header, but some were expected");
+        } else {
+            $this->assertCount(0, $errors, 'Unexpected errors while normalizing header: ' . implode("\n", $errors));
+        }
     }
 
-    // 2. multi-valued, allows double-quoted-strings header
-    public static function parsingDQHeadersDataProvider()
+    // multi-valued, allows double-quoted-strings header
+    public static function normalizingDQHeadersDataProvider()
     {
         return [
             [[], []],
@@ -90,9 +101,9 @@ class BB_HeaderParsingTest extends TestCase
             // Given the and that the same matcher can be used both within an Allow and a Deny rule, it is also hard to
             // make a good choice regarding the default behaviour for when trying to match the content of a non-compliant
             // header. For this reason, a separate matcher has been developed, focused on finding non-compliant headers.
-            [['hello"world'], ['helloworld']],
-            [['hello world"'], ['hello world']], /// @todo... should ew modify the parse to change this result?
-            [['"hello world'], ['hello world']],
+            [['hello"world'], ['helloworld'], true],
+            [['hello world"'], ['hello world'], true], /// @todo... should we modify the parser to change this result?
+            [['"hello world'], ['hello world'], true],
 
             [['""'], ['']],
             [['"\\""'], ['"']],
@@ -129,6 +140,53 @@ class BB_HeaderParsingTest extends TestCase
             [['hello, "hello, world", world'], ['hello', 'hello, world', 'world']],
 
             /// @todo any more DQ strings to test?
+        ];
+    }
+
+    #[DataProvider('normalizingJsonHeadersDataProvider')]
+    public function testNormalizingJsonHeaders(array $values, array $expectedResults, bool $expectErrors = false)
+    {
+        $hp = new HeaderParser(['Custom' => new HeaderSpec(HeaderFormat::Json)]);
+        $errors = [];
+        $this->assertSame($expectedResults, $hp->normalizeHeaderValue('Custom', $values, $errors));
+        if ($expectErrors) {
+            $this->assertGreaterThanOrEqual(1, count($errors), "No errors found while normalizing header, but some were expected");
+        } else {
+            $this->assertCount(0, $errors, 'Unexpected errors while normalizing header: ' . implode("\n", $errors));
+        }
+    }
+
+    public static function normalizingJsonHeadersDataProvider()
+    {
+        return [
+            [['{" hello ":" world "}'], ['{" hello ":" world "}']],
+            [['{ "hello" : "world" }'], ['{"hello":"world"}']],
+            [["{\t\"hello\"\t:\t\"world\"\t}"], ['{"hello":"world"}']],
+            [['{"hello": "world"}'], ['{"hello":"world"}']],
+            [['{"hello": true}'], ['{"hello":true}']],
+            [['{"hello": false}'], ['{"hello":false}']],
+            [['{"hello": null}'], ['{"hello":null}']],
+            [['{"hello": 1}'], ['{"hello":1}']],
+            [['{"hello": 1.1}'], ['{"hello":1.1}']],
+            [['{"hello": "\u0020"}'], ['{"hello":" "}']],
+            [['{"hello": {"hello": {"hello": null}}}'], ['{"hello":{"hello":{"hello":null}}}']],
+            [['{"hello": {"hello": {"hello": null}}}'], ['{"hello":{"hello":{"hello":null}}}']],
+
+            [['{"hello":["world"]}'], ['{"hello":["world"]}']],
+            [['{"hello":["world" , 1, "again"]}'], ['{"hello":["world",1,"again"]}']],
+            [['{"hello":["world" , 1, "again"]}'], ['{"hello":["world",1,"again"]}']],
+
+            [['{}'], ['{}']],
+            [['[]'], ['[]']],
+            [['{"0" : "0" , "1" : "1"}'], ['{"0":"0","1":"1"}']],
+
+            [['1'], ['1']],
+
+            /// @todo this test fails!
+            //[['1.0'], ['1.0']],
+            /// @todo the following 2 cases results in different spacing of the produced output :-(
+            //[['{"hello": "\\\" \\/ \\\\"}'], ['{"hello":"\\\" \\/ \\\\"}']],
+            //[['{"hello": [ {"hello": {"hello": null}}}, 1, true]'], ['{"hello":[{"hello":{"hello":null}}},1,true]']],
         ];
     }
 

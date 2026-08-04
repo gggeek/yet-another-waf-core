@@ -139,7 +139,6 @@ class HTTPHeadersReferenceCoDec
                         $spec['format'] = HF::SFList->value;
                         break;
 
-/// @todo... use more fine-grained format specifiers, as soon as those are handled by the HeaderSpec and HeaderParser
                     case 'boolean':
                     case 'byte_sequence':
                     case 'date':
@@ -148,7 +147,7 @@ class HTTPHeadersReferenceCoDec
                     case 'integer':
                     case 'string':
                     case 'token':
-                        $spec['format'] = HF::SFItem->value;
+                        $spec['format'] = implode('', array_map('ucfirst', explode('_', $structuredType))) . 'Item';
                         break;
 
                     default:
@@ -294,7 +293,6 @@ class HTTPHeadersReferenceCoDec
      */
     protected function formatOutputString(array $lines): string
     {
-        //return $this->phpFileHeader . "\n    " . implode("\n    ", $lines) . $this->phpFileFooter . "\n";
         return json_encode($lines, JSON_PRETTY_PRINT);
     }
 
