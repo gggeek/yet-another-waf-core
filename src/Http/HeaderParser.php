@@ -10,7 +10,7 @@ use YAWAF\Core\Http\HeaderFormat as HF;
 use YAWAF\Core\Http\HeaderQuotedSpansFormat as HQSF;
 use YAWAF\Core\Http\HeaderSpec as HS;
 use YAWAF\Core\Http\StructuredField\Item;
-use YAWAF\Core\Http\StructuredField\Parameter;
+use YAWAF\Core\Http\StructuredField\Parser as StructuredFieldParser;
 use YAWAF\Core\Logger\PrivateLoggerTrait;
 use YAWAF\Core\Stdlib;
 
@@ -20,7 +20,6 @@ class HeaderParser
     use LoggerAwareTrait;
     use PrivateLoggerTrait;
 
-    protected static array $defaultKnownHeaders = [];
     /** @var HS[] */
     protected array $knownHeaders;
 
@@ -252,9 +251,7 @@ class HeaderParser
             } elseif ($isStructuredList) {
                 $out = array_merge($out, $this->normalizeStructuredList($value, $errorsFound));
             } elseif ($isStructuredItem) {
-/// @todo... do we actually need this parsing at all? see the comment in validateHeaderValue
-                $this->parseStructuredItem($value, $hs->format, $errorsFound);
-                $out[] = $value;
+                $out[] = $this->normalizeStructuredItem($value, $hs->format, $errorsFound);
             } elseif ($isJson) {
                 $out[] = $this->normalizeJson($value, $errorsFound);
             } else {
@@ -300,6 +297,8 @@ class HeaderParser
      * @todo... this normalization has a few downsides, including:
      *          - a received '1.0' will be converted into a '1'
      *          - the amount of whitespace after an object's key in the produced string varies - see BB_HeaderParsingTest
+     *
+     * @todo... save the parsed Json for later reuse
      */
     protected function normalizeJson(string $value, array &$errorsFound): string
     {
@@ -422,286 +421,46 @@ class HeaderParser
         return $pieces;
     }
 
-    protected function normalizeStructuredDictionary(string $value, array &$errorsFound): array
+    /**
+     * @return string[]
+     * @todo... save the parsed items for later reuse
+     */
+    protected function normalizeStructuredDictionary($value, array &$errorsFound): array
     {
-        $pieces = [];
-
-/// @todo...
-
-        return $pieces;
+        $items = StructuredFieldParser::parseDictionary($value, $errorsFound);
+        $out = [];
+        foreach($items as $name => $item)
+        {
+/// @todo... fix: for bools, we should omit ?1 and show only the parameters
+            $out[] = $name . '=' . $item->__toString();
+        }
+        return $out;
     }
 
-    protected function normalizeStructuredList(string $value, array &$errorsFound): array
+    protected function normalizeStructuredItem($value, HeaderFormat $hs, array &$errorsFound): string
     {
-        $pieces = [];
-
-/// @todo...
-
-        return $pieces;
-    }
-
-    protected function parseStructuredItem(string $value, HeaderFormat $hs, array &$errorsFound): Item|null
-    {
-        [$item, $offset] = $this->parseStructuredItemInner($value, true, $errorsFound);
+        /// @todo... save the parsed items for later reuse
+        $item = StructuredFieldParser::parseItem($value, $errorsFound);
         if ($item !== null && $hs !== HeaderFormat::SFItem && $hs !== $item->type) {
             $errorsFound[] = 'Invalid Structured Field Item found: expected ' . $hs->value . ' but found a ' . $item->type->value;
             $item = null;
         }
-        return $item;
+
+        return $item === null ? '' : $item->__toString();
     }
 
     /**
-     * @param string $value
-     * @param array $errorsFound
-     * @return array Item|Parameter|null, int (the offset of the unparsed part left within $value)
+     * @return string[]
+     * @todo... save the parsed items for later reuse
      */
-    /*protected function parseStructuredParameter(string $value, array &$errorsFound): array
+    protected function normalizeStructuredList($value, array &$errorsFound): array
     {
-        return $this->parseStructuredItemInner($value, false, $errorsFound);
-    }*/
-
-    /**
-     * @see https://httpwg.org/specs/rfc9651.html#rfc.section.4.2.3
-     * @todo perf improvement: to avoid string copies (substr & co.), use a single string and start/end position indexes.
-     *       That should be achievable using regexp_match replacing ^ with \G and passing in an offset
-     * @todo review usage of $isItem - it might need to change when this is called while parsing lists
-     * @param bool $isItem when false, we are looking for a Parameter's value
-     * @return array Item|Parameter|null, int (the offset of the unparsed part left within $value. NB: 0 returned when )
-     */
-    protected function parseStructuredItemInner(string $value, bool $isItem, array &$errorsFound): array
-    {
-        $foundType = null;
-        $parsedValue = null;
-        $parameters = [];
-
-        $offset = 0;
-
-        $len = strlen($value) - $offset;
-        if ($len === 1 && in_array($value[$offset], ['-', '"', ':', '?', '@', '%'])) {
-            $errorsFound[] = "Invalid Structured Field Item found: a single '{$value}' is not a valid value";
-        } else {
-            switch ($value[$offset]) {
-                case '-':
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                    if (preg_match('/^(-?\d+(?:\.\d+)?)/', $value, $matches)) {
-                        $offset += strlen($matches[1]);
-                        if (str_contains($matches[1], '.')) {
-                            $foundType = HeaderFormat::SFDecimal;
-                            /// @todo... check if php float range is sufficient for the rfc
-                            $parsedValue = (float)$matches[1];
-                        } else {
-                            $foundType = HeaderFormat::SFInteger;
-                            /// @todo... check if php float range is sufficient for the rfc
-                            $parsedValue = (int)$matches[1];
-                        }
-                    } else {
-                        //$offset++;
-                        $errorsFound[] = 'Invalid Structured Field Item found: dash followed by a non-number';
-                    }
-                    break;
-                case '"':
-                    /// @todo validation (but not parsing) can probably be replaced with a regexp
-                    //$offset++;
-                    $parsedValue = '';
-                    for ($i = $offset + 1; $i < $len; $i++) {
-                        switch($value[$i]) {
-                            case '\\':
-                                if ($i + 1 < $len && ($value[$i+1] === '\\' || $value[$i+1] === '"')) {
-                                    $parsedValue .= $value[$i+1];
-                                    $i++;
-                                } else {
-                                    //$offset = $i;
-                                    $errorsFound[] = "Invalid string Structured Field Item found: invalid use of \\";
-                                    break 2;
-                                }
-                                break;
-                            case '"':
-                                $offset = $i + 1;
-                                $foundType = HeaderFormat::SFString;
-                                break 2;
-                            default:
-                                $code = ord($value[$i]);
-                                if ($code <= 31 || $code >= 127) {
-                                    //$offset = $i;
-                                    $errorsFound[] = "Invalid string Structured Field Item found: invalid char nr. $code";
-                                    break 2;
-                                }
-                                $parsedValue .= $value[$i];
-                                break;
-                        }
-                    }
-                    if ($foundType === null) {
-                        $errorsFound[] = 'Invalid string Structured Field Item found: missing closing double quote?';
-                    }
-                    break;
-                case ':':
-                    if (preg_match('#^:([0-9A-Za-z+/=]*):#', $value, $matches)) {
-                        $offset += strlen($matches[1]) + 2;
-                        $foundType = HeaderFormat::SFByteSequence;
-                        /// @todo... apply base64 decoding to test validity?
-                        $parsedValue = $matches[1];
-                    } else {
-                        //$offset++;
-                        $errorsFound[] = 'Invalid byte sequence Structured Field Item found: missing closing colon?';
-                    }
-                    break;
-                case '?':
-                    if ($value[$offset+1] === '0' || $value[$offset+1] === '1') {
-                        $foundType = HeaderFormat::SFBoolean;
-                        $offset += 2;
-                        $parsedValue = ($value[$offset+1] === '1');
-                    } else {
-                        //$offset++;
-                        $errorsFound[] = 'Invalid boolean Structured Field Item found: neither 0 nor 1';
-                    }
-                    break;
-                case '@':
-                    if (preg_match('/^@([0-9]+)/', $value, $matches)) {
-                        $offset += strlen($matches[1]) + 1;
-                        $foundType = HeaderFormat::SFDate;
-                        /// @todo convert to DateTime?
-                        $parsedValue = (int)$matches[1];
-                    } else {
-                        //$offset++;
-                        $errorsFound[] = 'Invalid date Structured Field Item found: spurious @ character?';
-                    }
-                    break;
-                case '%':
-                    if ($value[$offset + 1] === '"') {
-                        /// @todo validation (but not parsing) can probably be replaced with a regexp
-                        $parsedValue = '';
-                        for ($i = $offset+2; $i < $len; $i++) {
-                            switch ($value[$i]) {
-                                case '%':
-                                    if ($i + 2 < $len && (preg_match('/^([0-9a-f]{2})/', substr($value, $i + 1, 2), $matches))) {
-                                        $i = $i + 2;
-                                        $parsedValue .= hexdec($matches[1]);
-                                    } else {
-                                        $errorsFound[] = "Invalid display string Structured Field Item found: invalid % escaping sequence found";
-                                        break 2;
-                                    }
-                                    break;
-                                case '"':
-                                    $offset = $i + 1;
-                                    $foundType = HeaderFormat::SFDisplayString;
-                                    /// @todo... check that value found is valid unicode
-                                    break 2;
-                                default:
-                                    $code = ord($value[$i]);
-                                    // any VCHAR (except for % and ")
-                                    if ($code <= 31 || $code >= 127) {
-                                        $errorsFound[] = "Invalid display string Structured Field Item found: invalid char nr. $code";
-                                        break 2;
-                                    }
-                                    $parsedValue .= $value[$i];
-                                    break;
-                            }
-                        }
-                    } else {
-                        //$offset++;
-                        $errorsFound[] = 'Invalid display string Structured Field Item found: spurious % character?';
-                    }
-                    break;
-                default:
-                    if (preg_match('=^([A-Za-z*][0-9A-Za-z!#$%&\'*+\\-.^_`|~:/]*)=', $value, $matches)) {
-                        $foundType = HeaderFormat::SFToken;
-                        $offset += strlen($matches[1]);
-                        $parsedValue = $matches[1];
-                    } else {
-                        $errorsFound[] = 'Invalid Structured Field Item found: invalid first character';
-                    }
-            }
-
-            if ($isItem && !$errorsFound /*&& $offset !== null*/ && $offset < $len && $value[$offset] === ';') {
-                $offset++;
-                $parametersErrors = [];
-                [$parameters, $newOffset] = $this->parseStructuredItemParameters(substr($value, $offset), $parametersErrors);
-                $offset += $newOffset;
-                if ($parametersErrors) {
-                    $errorsFound += $parametersErrors;
-                    return [null, $offset];
-                }
-            }
-
-            // when parsing a parameter item we are allowed to have leftover stuff, but not for items themselves
-            if ($isItem && !$errorsFound /*&& $offset !== null*/ && $offset < $len) {
-                $errorsFound[] = 'Invalid Structured Field Item found: leftover characters';
-                return [null, $offset];
-            }
+        $items = StructuredFieldParser::parseList($value, $errorsFound);
+        $out = [];
+        foreach($items as $item)
+        {
+            $out[] = $item->__toString();
         }
-
-        if ($foundType === null) {
-            return [null, $offset];
-        }
-        if ($isItem) {
-            return [new Item($foundType, $parsedValue, $parameters), $offset];
-        } else {
-            return [new Parameter($foundType, $parsedValue), $offset];
-        }
-    }
-
-    /**
-     * @return array Parameter[], int
-     * @todo perf improvement: to avoid string copies (substr & co.), use a single string and start/end position indexes.
-     *       That should be achievable using regexp_match replacing ^ with \G and passing in an offset
-     */
-    protected function parseStructuredItemParameters(string $string, array &$errorsFound): array
-    {
-        $parameters = [];
-        $offset = 0;
-
-        $len = strlen($string);
-
-        while ($offset < $len) {
-            if (preg_match('/^( *[a-z*][0-9a-z_\\-.*]*)/', substr($string, $offset), $matches)) {
-                $key = ltrim(' ', $matches[1]);
-                $offset += strlen($matches[1]);
-                if ($offset == $len) {
-                    $parameters[$key] = new Parameter(HeaderFormat::SFBoolean, true);
-                    break;
-                }
-                if ($string[$offset] === ';') {
-/// @todo... check the spec: is it ok if the string ends with ';' ?
-                    $parameters[$key] = new Parameter(HeaderFormat::SFBoolean, true);
-                    $offset++;
-                    continue;
-                }
-                if ($string[$offset] === '=') {
-                    $offset++;
-                    $subErrors = [];
-/// @todo... handle the case of the string ending with '=' without trying to parse '' as StructuredParameter
-                    [$param, $newOffset] = $this->parseStructuredItemInner(substr($string, $offset), false, $subErrors);
-                    $offset += $newOffset;
-                    if ($param !== null && !$subErrors) {
-                        if ($offset == $len || $string[$offset] === ';') {
-                            $parameters[$key] = $param;
-                            if ($offset == $len) {
-                                break;
-                            }
-                            $offset++;
-                        } else {
-                            $errorsFound[] = 'Invalid Structured Field Item found: invalid char found at end of parameter value';
-                        }
-                    } else {
-                        $errorsFound = $errorsFound + $subErrors;
-                        break;
-                    }
-                }
-            } else {
-                $errorsFound[] = 'Invalid Structured Field Item found: expected valid parameter name but did not find it';
-                break;
-            }
-        }
-
-        return [$parameters, $offset];
+        return $out;
     }
 }

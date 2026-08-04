@@ -15,6 +15,9 @@ enum HeaderFormat: string
     case SFDictionary = 'Dictionary';
     case Token = 'token';
 
+    /// @todo these belong logically to the StructuredField, but in php it is not possible to extend enums; also,
+    ///       having a single 'format' property in the HeaderSpec simplifies the logic compares to storing these
+    ///       'subformats' in a separate property. So we keep them here, at least for the moment...
     case SFBoolean = 'BooleanItem';
     case SFByteSequence = 'ByteSequenceItem';
     case SFDate = 'DateItem';
