@@ -29,7 +29,6 @@ class Parser
                 if ($value[$offset] === '=') {
                     $offset++;
                     $subErrors = [];
-/// @todo... handle the case of a
 /// @todo... handle the case of the string ending with '=' without trying to parse '' as StructuredItem
                     [$item, $newOffset] = self::parseItemInner(substr($value, $offset), true, $subErrors);
                     $offset += $newOffset;
@@ -208,8 +207,8 @@ class Parser
                 case '?':
                     if ($value[$offset+1] === '0' || $value[$offset+1] === '1') {
                         $foundType = HeaderFormat::SFBoolean;
-                        $offset += 2;
                         $parsedValue = ($value[$offset+1] === '1');
+                        $offset += 2;
                     } else {
                         //$offset++;
                         $errorsFound[] = 'Invalid boolean Structured Field Item found: neither 0 nor 1';
