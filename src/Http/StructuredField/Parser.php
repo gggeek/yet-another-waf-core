@@ -6,6 +6,9 @@ use YAWAF\Core\Http\HeaderFormat;
 
 /**
  * @todo... move away from being fully static to being a normal class and get one instance injected into the HeaderParser
+ * @todo... perf improvement: to avoid string copies (substr & co.), use a single string and start/end position indexes.
+ *          That should be achievable using regexp_match replacing ^ with \G and passing in an offset.
+ *          Side benefit: we could add $offset to every error message.
  */
 class Parser
 {
@@ -160,9 +163,6 @@ class Parser
 
     /**
      * @see https://httpwg.org/specs/rfc9651.html#rfc.section.4.2.3
-     * @todo perf improvement: to avoid string copies (substr & co.), use a single string and start/end position indexes.
-     *       That should be achievable using regexp_match replacing ^ with \G and passing in an offset
-     * @todo review usage of $isItem - it might need to change when this is called while parsing lists
      * @param bool $isItem when false, we are looking for a Parameter's value
      * @return array Item|Parameter|null, int (the offset of the unparsed part left within $value. NB: 0 returned when )
      */
@@ -206,7 +206,7 @@ class Parser
                 }
                 break;
             case '"':
-                /// @todo validation (but not parsing) can probably be replaced with a regexp
+                /// @todo validation (but not parsing) could probably be replaced with a regexp
                 //$offset++;
                 $parsedValue = '';
                 for ($i = $offset + 1; $i < $len; $i++) {
@@ -274,7 +274,7 @@ class Parser
                 break;
             case '%':
                 if ($value[$offset + 1] === '"') {
-                    /// @todo validation (but not parsing) can probably be replaced with a regexp
+                    /// @todo validation (but not parsing) could probably be replaced with a regexp
                     $parsedValue = '';
                     for ($i = $offset+2; $i < $len; $i++) {
                         switch ($value[$i]) {
@@ -345,8 +345,6 @@ class Parser
 
     /**
      * @return array Parameter[], int
-     * @todo perf improvement: to avoid string copies (substr & co.), use a single string and start/end position indexes.
-     *       That should be achievable using regexp_match replacing ^ with \G and passing in an offset
      */
     protected static function parseItemParameters(string $value, int $offset, int $len, array &$errorsFound): array
     {
@@ -361,7 +359,7 @@ class Parser
                     break;
                 }
                 if ($value[$offset] === ';') {
-/// @todo... check the spec: is it ok if the string ends with ';' ?
+/// @todo... check the spec: is it probably not ok if the string ends with ';'
                     $pieces[$key] = new Parameter\Boolean(true);
                     $offset++;
                     continue;
