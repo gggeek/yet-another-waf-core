@@ -34,66 +34,67 @@ class Parser
         $pieces = [];
 
         while ($offset < $len) {
-            if (preg_match('/^([a-z*][0-9a-z_\\-.*]*)/', substr($value, $offset), $matches)) {
-                $key = $matches[1];
-                $offset += strlen($matches[1]);
 
-                if ($offset == $len) {
-                    $pieces[$key] = new Item\Boolean(true);
+            if (!preg_match('/^([a-z*][0-9a-z_\\-.*]*)/', substr($value, $offset), $matches)) {
+                $errorsFound[] = "Invalid Structured Field Dictionary found: expected valid element name at offset $offset but did not find it";
+                $pieces = [];
+                break;
+            }
+
+            $key = $matches[1];
+            $offset += strlen($matches[1]);
+
+            if ($offset == $len) {
+                $pieces[$key] = new Item\Boolean(true);
+                break;
+            }
+
+            if ($value[$offset] === '=') {
+                $offset++;
+                $subErrors = [];
+/// @todo... handle the case of the string ending with '=' without trying to parse '' as StructuredItem
+                [$item, $newOffset] = self::parseItemInner(substr($value, $offset), 0, $len - $offset, true, $subErrors);
+                $offset += $newOffset;
+                if ($item !== null && !$subErrors) {
+                    $pieces[$key] = $item;
+                } else {
+                    $errorsFound = $errorsFound + $subErrors;
+                    $pieces = [];
                     break;
                 }
-
-                if ($value[$offset] === '=') {
+            } else {
+                $parameters = [];
+                if ($value[$offset] === ';') {
                     $offset++;
                     $subErrors = [];
-/// @todo... handle the case of the string ending with '=' without trying to parse '' as StructuredItem
-                    [$item, $newOffset] = self::parseItemInner(substr($value, $offset), 0, $len - $offset, true, $subErrors);
+                    [$parameters, $newOffset] = self::parseItemParameters(substr($value, $offset), 0, $len - $offset, $subErrors);
                     $offset += $newOffset;
-                    if ($item !== null && !$subErrors) {
-                        $pieces[$key] = $item;
-                    } else {
-                        $errorsFound = $errorsFound + $subErrors;
+                    if ($subErrors) {
+                        $errorsFound += $subErrors;
                         $pieces = [];
                         break;
                     }
-                } else {
-                    $parameters = [];
-                    if ($value[$offset] === ';') {
-                        $offset++;
-                        $subErrors = [];
-                        [$parameters, $newOffset] = self::parseItemParameters(substr($value, $offset), 0, $len - $offset, $subErrors);
-                        $offset += $newOffset;
-                        if ($subErrors) {
-                            $errorsFound += $subErrors;
-                            $pieces = [];
-                            break;
-                        }
-                    }
-                    $pieces[] = new Item\Boolean(true, $parameters);
                 }
+                $pieces[] = new Item\Boolean(true, $parameters);
+            }
 
-                // consume OWS after the dictionary element value, before and after the comma
+            // consume OWS after the dictionary element value, before and after the comma
+            while ($offset < $len && ($value[$offset] === ' ' || $value[$offset] === "\t")) {
+                $offset++;
+            }
+            if ($offset == $len) {
+                break;
+            }
+            if ($value[$offset] === ',') {
+                $offset++;
                 while ($offset < $len && ($value[$offset] === ' ' || $value[$offset] === "\t")) {
                     $offset++;
                 }
                 if ($offset == $len) {
                     break;
                 }
-                if ($value[$offset] === ',') {
-                    $offset++;
-                    while ($offset < $len && ($value[$offset] === ' ' || $value[$offset] === "\t")) {
-                        $offset++;
-                    }
-                    if ($offset == $len) {
-                        break;
-                    }
-                } else {
-                    $errorsFound[] = "Invalid Structured Field Dictionary found: invalid char found at end of element value/parameters at offset $offset";
-                    $pieces = [];
-                }
-
             } else {
-                $errorsFound[] = "Invalid Structured Field Dictionary found: expected valid element name at offset $offset but did not find it";
+                $errorsFound[] = "Invalid Structured Field Dictionary found: invalid char found at end of element value/parameters at offset $offset";
                 $pieces = [];
                 break;
             }
@@ -109,7 +110,40 @@ class Parser
 
         $pieces = [];
 
-/// @todo...
+        while ($offset < $len) {
+
+            $subErrors = [];
+            [$item, $newOffset] = self::parseItemInner(substr($value, $offset), 0, $len - $offset, true, $subErrors);
+            $offset += $newOffset;
+            if ($item !== null && !$subErrors) {
+                $pieces[] = $item;
+            } else {
+                $errorsFound = $errorsFound + $subErrors;
+                $pieces = [];
+                break;
+            }
+
+            // consume OWS after the dictionary element value, before and after the comma
+            while ($offset < $len && ($value[$offset] === ' ' || $value[$offset] === "\t")) {
+                $offset++;
+            }
+            if ($offset == $len) {
+                break;
+            }
+            if ($value[$offset] === ',') {
+                $offset++;
+                while ($offset < $len && ($value[$offset] === ' ' || $value[$offset] === "\t")) {
+                    $offset++;
+                }
+                if ($offset == $len) {
+                    break;
+                }
+            } else {
+                $errorsFound[] = "Invalid Structured Field List found: invalid char found at end of element value/parameters at offset $offset";
+                $pieces = [];
+                break;
+            }
+        }
 
         return $pieces;
     }

@@ -59,8 +59,8 @@ class BC_HeaderValidationTest extends TestCase
             [['1234567890.0123456789'], 'Item'],
             [['-1234567890.0123456789'], 'DecimalItem'],
             // String
-            [['"hello, world"'], 'Item'],
-            [['"hello; world"'], 'StringItem'],
+            [['"hello;, world"'], 'Item'],
+            [['"hello,; world"'], 'StringItem'],
             // Base64
             [[':' . base64_encode('hello') . ':'], 'Item'],
             [[':' . base64_encode('') . ':'], 'ByteSequenceItem'],
@@ -90,17 +90,29 @@ class BC_HeaderValidationTest extends TestCase
             [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1'], 'Item'],
             [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0'], 'Item'],
             [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=0.1;p6="hello"'], 'Item'],
-            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world"'], 'Item'],
-            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=0.1;p6="hello; world";p7=@1'], 'Item'],
-            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@12;p8=%"world"'], 'Item'],
-            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=0.1;p6="hello; world";p7=@123;p8=%"world";p9=hello'], 'Item'],
-            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1234;p8=%"world";p9=hello;p10=*'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world"'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=0.1;p6="hello;, world";p7=@1'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@12;p8=%"world"'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=0.1;p6="hello;, world";p7=@123;p8=%"world";p9=hello'], 'Item'],
+            [['-1;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1234;p8=%"world";p9=hello;p10=*'], 'Item'],
+            [['"hello;, world";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1234;p8=%"world";p9=hello;p10=*'], 'Item'],
+            [['::;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1234;p8=%"world";p9=hello;p10=*'], 'Item'],
+            [['?0;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1234;p8=%"world";p9=hello;p10=*'], 'Item'],
+            [['@0;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1234;p8=%"world";p9=hello;p10=*'], 'Item'],
+            [['%"";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1234;p8=%"world";p9=hello;p10=*'], 'Item'],
+            // List
+            [['hello'], 'List'],
+            [['hello,world'], 'List'],
+            [['"World", :w4ZibGV0w6ZydGU=: ,@123456789 , -1234567890.0123456789, %"%ffHello"'], 'List'],
+            [['"World";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=*, :w4ZibGV0w6ZydGU=:;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=* ,@123456789;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=* , -1234567890.0123456789;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=*, %"%ffHello";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=*'], 'List'],
             // Dictionary
             [['hello=world'], 'Dictionary'],
+            [['hello'], 'Dictionary'],
+            [['hello, world'], 'Dictionary'],
             [['hello=hello,hello=world'], 'Dictionary'],
-            [['hello=world;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*'], 'Dictionary'],
+            [['hello=world;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=*'], 'Dictionary'],
             [['hello="World", base64=:w4ZibGV0w6ZydGU=: ,date=@123456789 , *1234567890=-1234567890.0123456789, funny_-.*=%"%ffHello"'], 'Dictionary'],
-            [['hello="World";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*, base64=:w4ZibGV0w6ZydGU=:;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=* ,date=@123456789;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=* , *1234567890=-1234567890.0123456789;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*, funny_-.*=%"%ffHello";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*'], 'Dictionary'],
+            [['hello="World";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=*, base64=:w4ZibGV0w6ZydGU=:;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=* ,date=@123456789;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=* , *1234567890=-1234567890.0123456789;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=*, funny_-.*=%"%ffHello";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello;, world";p7=@1;p8=%"world";p9=hello;p10=*'], 'Dictionary'],
         ];
     }
 
@@ -170,6 +182,21 @@ class BC_HeaderValidationTest extends TestCase
             [['a;b;c=@'], 'Item'],
             [['a;b=b;c=:'], 'Item'],
             [['a;b=?;c'], 'Item'],
+
+/// @todo... these ones should fail, but atm they do not!
+            //[['a,b,'], 'List'],
+            [['a,b,,'], 'List'],
+            [['a,,b'], 'List'],
+            [[',a,b'], 'List'],
+
+            //[['a=a,b=b,'], 'Dictionary'],
+            [['a=a,b=b,,'], 'Dictionary'],
+            [['a=a,,b=b'], 'Dictionary'],
+            [[',a=a,b=b'], 'Dictionary'],
+            //[['a,b,'], 'Dictionary'],
+            [['a,b,,'], 'Dictionary'],
+            [['a,,b'], 'Dictionary'],
+            [[',a,b'], 'Dictionary'],
         ];
     }
 
