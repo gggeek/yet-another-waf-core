@@ -1,5 +1,0 @@
-[
-    {
-        "wildcard_http_header_value": {"x-test-8": "there", "x*test-1": "Hello"}
-    }
-]

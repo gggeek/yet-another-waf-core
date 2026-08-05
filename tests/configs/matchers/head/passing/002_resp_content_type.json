@@ -1,8 +1,0 @@
-{
-    "rule 1": {
-        "resp_match": {
-            "content_type": "application/son"
-        },
-        "resp_action": "deny"
-    }
-}

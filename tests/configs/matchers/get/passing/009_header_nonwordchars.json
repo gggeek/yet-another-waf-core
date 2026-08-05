@@ -1,5 +1,0 @@
-[
-    {
-        "http_header_value/no_wildcards": {"x-test-9": "_ :;.\\/\"'?!(){}[]@<>=-+*#$&`|~^%"}
-    }
-]

@@ -1,5 +1,0 @@
-[
-    {
-        "query_string/case_insensitive": {"true": ["TrUe", "yes", "Y", "1"]}
-    }
-]

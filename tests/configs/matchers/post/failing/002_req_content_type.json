@@ -1,7 +1,0 @@
-{
-    "rule 1": {
-        "req_match": {
-            "content_type": "application/son"
-        }
-    }
-}
