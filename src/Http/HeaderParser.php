@@ -61,7 +61,7 @@ class HeaderParser
      * @param string[] $values
      * @return bool true if the header is compliant
      */
-    public function validateHeaderValue(string $name, array $values): bool
+    public function validateHeaderValue(string $name, array $values, array|null &$errorsFound = []): bool
     {
         // The following was disabled after checking that the (supported) webservers will not allow such headers
         // to reach php anyway
@@ -77,6 +77,8 @@ class HeaderParser
         //    }
         //}
 
+        $errorsFound = [];
+
         if (!array_key_exists($name, $this->knownHeaders)) {
             return true;
         }
@@ -84,6 +86,7 @@ class HeaderParser
         $spec = $this->knownHeaders[$name];
 
         if ($spec->isSingleton && (count($values) > 1)) {
+            $errorsFound = ['Header has two or more values but it is defined as singleton'];
             return false;
         }
 
@@ -100,22 +103,23 @@ class HeaderParser
 ///          - for Structured Field headers of type List and Dictionary we are forced to run the full parsing algorithm
 ///            in order to be able to find out the commas used to split values on (String items allow commas within their quotes)
 
-        $errors = [];
-        $normalizedValues = $this->normalizeHeaderValueBySpec($values, $spec, $errors);
+        $normalizedValues = $this->normalizeHeaderValueBySpec($values, $spec, $errorsFound);
 
-        if ($errors) {
+        if ($errorsFound) {
             return false;
         }
 
         if ($spec->isSingleton && count($normalizedValues) > 1) {
+            $errorsFound = ['Header has two or more values (after normalization) but it is defined as singleton'];
             return false;
         }
 
         switch ($spec->format) {
             case HF::Cookie:
-                // the regx is more stringent than the normalization, and acts on the whole header
+                // the regex is more stringent than the normalization, and checks the whole header
                 foreach ($values as $value) {
                     if (!preg_match($spec->validationRegexp, $value)) {
+                        $errorsFound = ['Header does not comply with the cookie format (regex)'];
                         return false;
                     }
                 }
@@ -125,6 +129,7 @@ class HeaderParser
             case HF::Integer:
                 foreach ($normalizedValues as $value) {
                     if (!preg_match($spec->validationRegexp, $value)) {
+                        $errorsFound = ['Header does not comply with the ' . $spec->format->value . ' format (regex)'];
                         return false;
                     }
                 }
@@ -133,6 +138,7 @@ class HeaderParser
                 if ($spec->validationRegexp !== null) {
                     foreach ($normalizedValues as $value) {
                         if (!preg_match($spec->validationRegexp, $value)) {
+                            $errorsFound = ['Header does not comply with its format (regex)'];
                             return false;
                         }
                     }

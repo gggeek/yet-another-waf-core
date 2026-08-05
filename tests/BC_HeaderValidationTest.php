@@ -10,13 +10,21 @@ use YAWAF\Core\Http\HeaderQuotedSpansFormat;
 use YAWAF\Core\Http\HeaderSpec;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
+/**
+ * @todo we should move the tested header values to an external file, such as csv, so that it can be easily reused
+ *       by other frameworks (or vice-versa, could we reuse the test cases of other sdks)?
+ *       Note that it should be a format making it easy both to spot the presence of chars such as "\t" and to avoid
+ *       having to escape too many chars, for when eg. the header is a json string. This makes both csv and json kind
+ *       of suboptimal... :-(
+ */
 class BC_HeaderValidationTest extends TestCase
 {
     #[DataProvider('compliantHeadersDataProvider')]
     public function testCompliantHeaders(array $values, string $format)
     {
         $hp = new HeaderParser(['Custom' => new HeaderSpec(HeaderFormat::from($format))]);
-        $this->assertTrue($hp->validateHeaderValue('Custom', $values));
+        $ok = $hp->validateHeaderValue('Custom', $values, $errors);
+        $this->assertTrue($ok, implode(', ', $errors));
     }
 
     public static function compliantHeadersDataProvider()
@@ -34,11 +42,12 @@ class BC_HeaderValidationTest extends TestCase
 
             [['Sun, 06 Nov 1994 08:49:37 GMT'], 'date'],
             [['Sunday, 06-Nov-94 08:49:37 GMT'], 'date'],
+            [['Sun Nov 16 08:49:37 1994'], 'date'],
             [['Sun Nov  6 08:49:37 1994'], 'date'],
 
             [['1'], 'integer'],
 
-            [['{ "hello" : "world", "array":[true, false, null, [], {}, ["nested"]]}'], 'json'],
+            [['{ "hello" : "world", "array":[true, false, null, 1, -0.2e-1, [], {}, ["nested"]]}'], 'json'],
 
             [['hello,world'], 'token'],
             [['hello,world','again'], 'token'],
@@ -73,19 +82,25 @@ class BC_HeaderValidationTest extends TestCase
             [['*'], 'TokenItem'],
             [['hello', 'world'], 'Item'], /// @todo arguable! According to the spec, it could fail
             // Parameters
-            [['hello;p1'], 'Item'],
-            [['hello;p1;p2'], 'Item'],
-            [['hello;p1=?0'], 'Item'],
-            [['hello;p1=?0;p2=?1'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1;p4=1'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello"'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world"'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world"'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello'], 'Item'],
-            [['hello;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*'], 'Item'],
+            [['hello;p0'], 'Item'],
+            [['hello;p0;p1'], 'Item'],
+            [['hello;p0;p1=?0'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=0.1;p6="hello"'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world"'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=0.1;p6="hello; world";p7=@1'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@12;p8=%"world"'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=0.1;p6="hello; world";p7=@123;p8=%"world";p9=hello'], 'Item'],
+            [['hello;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1234;p8=%"world";p9=hello;p10=*'], 'Item'],
+            // Dictionary
+            [['hello=world'], 'Dictionary'],
+            [['hello=hello,hello=world'], 'Dictionary'],
+            [['hello=world;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*'], 'Dictionary'],
+            [['hello="World", base64=:w4ZibGV0w6ZydGU=: ,date=@123456789 , *1234567890=-1234567890.0123456789, funny_-.*=%"%ffHello"'], 'Dictionary'],
+            [['hello="World";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*, base64=:w4ZibGV0w6ZydGU=:;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=* ,date=@123456789;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=* , *1234567890=-1234567890.0123456789;p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*, funny_-.*=%"%ffHello";p0;p1=?0;p2=?1;p3=-1;p4=1;p5=1.0;p6="hello; world";p7=@1;p8=%"world";p9=hello;p10=*'], 'Dictionary'],
         ];
     }
 
@@ -123,9 +138,9 @@ class BC_HeaderValidationTest extends TestCase
             [['hello, world'], 'Item'],
             [['1'], 'BooleanItem'],
             [['?0'], 'StringItem'],
-/// @todo...
-            //[['hello;'], 'Item'],
 
+/// @todo... this one should fail, but atm it does not!
+            //[['hello;'], 'Item'],
 
             [['-'], 'Item'],
             [['-a'], 'Item'],

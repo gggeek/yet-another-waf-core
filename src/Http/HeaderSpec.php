@@ -4,7 +4,8 @@ declare(strict_types=1);
 namespace YAWAF\Core\Http;
 
 /**
- * A data-class used to hold all the information required for successful parsing and validation of http headers with a known format
+ * A data-class used to hold all the information required for successful parsing and validation of http headers with a known format.
+ * Used by the HeaderParser.
  */
 class HeaderSpec
 {
